@@ -2,25 +2,25 @@ import React, { useState, useMemo, useEffect, createContext, useContext } from '
 import ReactECharts from 'echarts-for-react';
 import { PieChart, Pie, Cell, LabelList, Brush, LineChart, Line, BarChart, Bar, ResponsiveContainer, Legend, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import logo from './assets/logo.svg';
+import userImage from './assets/persona.jpg';
 import { ThemeContext } from './ThemeContext';
 import { 
     Home, UserPlus, LogIn, PiggyBank, BarChart2, Shield, ShoppingCart, 
     Briefcase, TrendingUp, Menu, X, PlusCircle, ChevronDown, ChevronRight, 
-    Trash2, Edit, DollarSign, HeartHandshake, Users, CircleDollarSign, 
+    Trash2, Edit, DollarSign, HeartHandshake, Users, 
     Stethoscope, Car, Target, Landmark, Coins, CarFront, Building2, 
-    Gift, Package, Utensils, Film, Eye, EyeOff 
+    Gift, Package, Film, Eye, EyeOff, School, Plane, ArrowLeft, CheckSquare, ArrowRightLeft,
+    TreePalm,
+    Utensils,
+    BrushCleaning,
+    HandCoins,
+    Rocket,
+    CreditCard,
+    Award,
+    PlaneTakeoff
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence} from 'framer-motion';
 import { Sun, Moon } from 'lucide-react';
-
-// --- DADOS MOCK (Substituir por chamadas de API no futuro) ---
-const initialOrcamentoData = [
-    { id: 'renda', nome: 'Renda', tipo: 'receita', icon: DollarSign, subItens: [ { id: 1, nome: 'Salário', atual: 7000, sugerido: 7000 } ] },
-    { id: 'essencial', nome: 'Fixo Essencial', tipo: 'despesa', icon: Home, subItens: [ { id: 2, nome: 'Aluguel', atual: 1500, sugerido: 1500 }, { id: 3, nome: 'Energia', atual: 250, sugerido: 220 } ] },
-    { id: 'variavel', nome: 'Variável', tipo: 'despesa', icon: ShoppingCart, subItens: [ { id: 4, nome: 'Supermercado', atual: 800, sugerido: 750 }, { id: 5, nome: 'Lazer', atual: 400, sugerido: 500 } ] },
-    { id: 'investimento', nome: 'Investimento', tipo: 'despesa', icon: Briefcase, subItens: [ { id: 6, nome: 'Ações', atual: 500, sugerido: 700 } ] },
-    { id: 'protecao', nome: 'Proteção', tipo: 'despesa', icon: Shield, subItens: [ { id: 7, nome: 'Seguro de Vida', atual: 100, sugerido: 100 } ] },
-];
 
 const mockInvestimentos = [
     { id: 'inv1', nome: 'Tesouro Selic', valor: 5000 },
@@ -40,6 +40,304 @@ const initialPatrimonioData = {
 };
 
 const PIE_COLORS = ['#00d971', '#a39ee8', '#FFBB28', '#FF8042', '#AF19FF'];
+
+// --- Dados de Exemplo para a Tela de Objetivos ---
+const mockObjetivos = [
+    { id: 1, nome: 'Casa na Praia', icon: Home, valorAlvo: 800000, valorAtual: 350000, investimentosLinkados: ['inv1', 'inv3'] },
+    { id: 2, nome: 'Viagem ao Japão', icon: Plane, valorAlvo: 40000, valorAtual: 15000, investimentosLinkados: ['inv2'] },
+    { id: 3, nome: 'Carro Novo', icon: Car, valorAlvo: 120000, valorAtual: 95000, investimentosLinkados: ['inv1'] },
+    { id: 4, nome: 'Fundo de Emergência', icon: Shield, valorAlvo: 50000, valorAtual: 50000, investimentosLinkados: ['inv1', 'inv2'] },
+    { id: 5, nome: 'Aposentadoria', icon: Briefcase, valorAlvo: 2000000, valorAtual: 450000, investimentosLinkados: ['inv3'] },
+    { id: 6, nome: 'Educação dos Filhos', icon: School, valorAlvo: 250000, valorAtual: 80000, investimentosLinkados: ['inv1'] },
+];
+
+// Definições de Categorias e Ícones para o Fluxo de Caixa
+const CATEGORIAS_FLUXO = {
+    alimentacao: { label: 'Alimentação', icon: Utensils, color: '#f97316' },
+    transporte: { label: 'Transporte', icon: Car, color: '#3b82f6' },
+    moradia: { label: 'Moradia', icon: Home, color: '#ef4444' },
+    lazer: { label: 'Lazer', icon: Film, color: '#14b8a6' },
+    compras: { label: 'Compras', icon: ShoppingCart, color: '#8b5cf6' },
+    saude: { label: 'Saúde', icon: Stethoscope, color: '#ec4899' },
+    servicos: { label: 'Serviços e Taxas', icon: HandCoins, color: '#6b7280' },
+    outros: { label: 'Outros', icon: Package, color: '#facc15' }
+};
+
+// Dados de Exemplo - No futuro, isso viria de uma sincronização bancária
+const mockTransacoes = [
+  { id: 1, date: '2025-07-07', description: 'iFood Pedido #1234', amount: 54.90, type: 'debit', sourceAccount: 'Cartão de Crédito Nubank' },
+  { id: 2, date: '2025-07-07', description: 'Uber Viagens', amount: 22.50, type: 'debit', sourceAccount: 'Cartão de Crédito Nubank' },
+  { id: 3, date: '2025-07-06', description: 'Salário Empresa X', amount: 7000.00, type: 'credit', sourceAccount: 'Conta Corrente Itaú' },
+  { id: 4, date: '2025-07-06', description: 'Supermercado Pão de Açúcar', amount: 432.80, type: 'debit', sourceAccount: 'Cartão de Débito Itaú' },
+  { id: 5, date: '2025-07-05', description: 'Cinema Cinemark', amount: 65.00, type: 'debit', sourceAccount: 'Cartão de Crédito Nubank' },
+  { id: 6, date: '2025-07-05', description: 'Pagamento Fatura Net', amount: 119.90, type: 'debit', sourceAccount: 'Conta Corrente Itaú' },
+  { id: 7, date: '2025-07-04', description: 'Farmácia Droga Raia', amount: 89.50, type: 'debit', sourceAccount: 'Cartão de Débito Itaú' },
+  { id: 8, date: '2025-07-03', description: 'Compra na Amazon.com.br', amount: 159.90, type: 'debit', sourceAccount: 'Cartão de Crédito Nubank' },
+];
+
+const initialOrcamentoData = [
+    { id: 'renda', nome: 'Renda', tipo: 'receita', icon: DollarSign, subItens: [ { id: 1, nome: 'Salário', atual: 7000, sugerido: 7000, categoriaId: null } ] },
+    { 
+        id: 'fixo', // O ID pode continuar como 'fixo' ou mudar para 'despesas-fixas'
+        nome: 'Despesas Fixas', // <-- NOME ALTERADO AQUI
+        tipo: 'despesa', 
+        icon: Home, 
+        // Adicionadas as categorias de Moradia e Serviços aqui
+        subItens: [ 
+            { id: 2, nome: 'Aluguel', atual: 1500, sugerido: 1500, categoriaId: 'moradia' }, 
+            { id: 3, nome: 'Energia', atual: 250, sugerido: 220, categoriaId: 'moradia' },
+            // Adicione mais itens fixos aqui se necessário
+        ] 
+    },
+    { 
+        id: 'variavel', 
+        nome: 'Despesas Variáveis', 
+        tipo: 'despesa', 
+        icon: ShoppingCart, 
+        // A lógica aqui agora permite adicionar qualquer despesa variável com uma categoria
+        subItens: [
+             { id: 4, nome: 'Supermercado', atual: 800, sugerido: 750, categoriaId: 'alimentacao' },
+             { id: 5, nome: 'Gasolina', atual: 300, sugerido: 350, categoriaId: 'transporte' }
+        ]
+    },
+    { id: 'investimento', nome: 'Investimento', tipo: 'despesa', icon: Briefcase, subItens: [ { id: 6, nome: 'Ações', atual: 500, sugerido: 700, categoriaId: 'outros' } ] },
+    { id: 'protecao', nome: 'Proteção', tipo: 'despesa', icon: Shield, subItens: [ { id: 7, nome: 'Seguro de Vida', atual: 100, sugerido: 100, categoriaId: 'outros' } ] },
+];
+
+const ModalObjetivo = ({ isOpen, onClose, onSave }) => {
+    const [nome, setNome] = useState('');
+    const [valorAlvo, setValorAlvo] = useState('');
+    
+    const iconesDisponiveis = [
+        { name: 'Casa', component: Home }, { name: 'Avião', component: Plane }, { name: 'Carro', component: Car },
+        { name: 'Escudo', component: Shield }, { name: 'Maleta', component: Briefcase }, { name: 'Educação', component: School },
+        { name: 'Presente', component: Gift }, { name: 'Coração', component: HeartHandshake },
+    ];
+    const [iconeSelecionado, setIconeSelecionado] = useState(iconesDisponiveis[0].component);
+    const [investimentosSelecionados, setInvestimentosSelecionados] = useState(new Set());
+
+    const handleToggleInvestimento = (invId) => {
+        setInvestimentosSelecionados(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(invId)) {
+                newSet.delete(invId);
+            } else {
+                newSet.add(invId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!nome || !valorAlvo) return;
+        
+        const dadosObjetivo = {
+            nome,
+            icon: iconeSelecionado,
+            valorAlvo: parseFloat(valorAlvo),
+            investimentosLinkados: Array.from(investimentosSelecionados)
+        };
+        
+        onSave(dadosObjetivo);
+        // Limpa o formulário para a próxima vez
+        setNome('');
+        setValorAlvo('');
+        setIconeSelecionado(iconesDisponiveis[0].component);
+        setInvestimentosSelecionados(new Set());
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 animate-fade-in">
+            <div className="bg-white dark:bg-[#201b5d] rounded-xl shadow-lg p-8 w-full max-w-lg">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">Novo Objetivo</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Nome do Objetivo</label><input type="text" value={nome} onChange={(e) => setNome(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/></div>
+                        <div><label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Valor Alvo (R$)</label><input type="number" value={valorAlvo} onChange={(e) => setValorAlvo(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/></div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Ícone</label>
+                        <div className="grid grid-cols-4 md:grid-cols-8 gap-2">{iconesDisponiveis.map((IconInfo, index) => { const Icone = IconInfo.component; const isSelected = iconeSelecionado === Icone; return ( <button key={index} type="button" onClick={() => setIconeSelecionado(Icone)} className={`p-3 rounded-lg flex items-center justify-center transition-all ${isSelected ? 'bg-[#00d971] text-white scale-110' : 'bg-slate-200 dark:bg-[#2a246f] text-gray-600 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-[#3e388b]'}`}><Icone size={24}/></button> )})}</div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Vincular Investimentos</label>
+                        <div className="space-y-2 max-h-40 overflow-y-auto p-2 bg-slate-100 dark:bg-[#2a246f] rounded-lg">
+                            {mockInvestimentos.map(inv => (
+                                <label key={inv.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-[#3e388b] cursor-pointer">
+                                    <input type="checkbox" checked={investimentosSelecionados.has(inv.id)} onChange={() => handleToggleInvestimento(inv.id)} className="form-checkbox h-4 w-4 text-[#00d971] bg-slate-300 dark:bg-gray-700 border-gray-600 rounded focus:ring-0"/>
+                                    <span className="text-sm text-slate-800 dark:text-gray-300">{inv.nome}</span>
+                                    <span className="ml-auto text-sm font-semibold text-slate-800 dark:text-white">{formatCurrency(inv.valor)}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cancelar</button>
+                        <button type="submit" className="px-6 py-2 text-sm font-medium text-black bg-[#00d971] rounded-lg hover:brightness-90">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+
+const TelaObjetivos = () => {
+    const { theme } = useContext(ThemeContext);
+    
+    const mockObjetivosInicial = [
+        { id: 1, nome: 'Casa na Praia', icon: Home, valorAlvo: 800000, investimentosLinkados: ['inv1', 'inv3'] },
+        { id: 2, nome: 'Viagem ao Japão', icon: Plane, valorAlvo: 40000, investimentosLinkados: ['inv2'] },
+        { id: 3, nome: 'Carro Novo', icon: Car, valorAlvo: 120000, investimentosLinkados: ['inv1'] },
+        { id: 4, nome: 'Fundo de Emergência', icon: Shield, valorAlvo: 50000, investimentosLinkados: ['inv1', 'inv2'] },
+    ];
+
+    const [objetivos, setObjetivos] = useState(mockObjetivosInicial);
+    const [objetivoSelecionadoId, setObjetivoSelecionadoId] = useState(null);
+    const [objetivoHoveredId, setObjetivoHoveredId] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const objetivosCalculados = useMemo(() => {
+        return objetivos.map(obj => {
+            const valorAtual = obj.investimentosLinkados.reduce((acc, invId) => {
+                const investimento = mockInvestimentos.find(i => i.id === invId);
+                return acc + (investimento ? investimento.valor : 0);
+            }, 0);
+            return { ...obj, valorAtual };
+        });
+    }, [objetivos]);
+
+    const metaSelecionada = useMemo(() => {
+        return objetivosCalculados.find(o => o.id === objetivoSelecionadoId);
+    }, [objetivosCalculados, objetivoSelecionadoId]);
+
+    const progressoMetaDetalhe = useMemo(() => {
+        if (!metaSelecionada) return null;
+        const percentual = metaSelecionada.valorAlvo > 0 ? (metaSelecionada.valorAtual / metaSelecionada.valorAlvo) * 100 : 0;
+        return {
+            percentual: Math.min(percentual, 100),
+            donutData: [
+                { name: 'Alcançado', value: metaSelecionada.valorAtual },
+                { name: 'Faltante', value: Math.max(0, metaSelecionada.valorAlvo - metaSelecionada.valorAtual) }
+            ]
+        }
+    }, [metaSelecionada]);
+
+    const handleSaveObjetivo = (dadosDoForm) => {
+        const novoObjetivo = { ...dadosDoForm, id: Date.now() };
+        setObjetivos(prev => [...prev, novoObjetivo]);
+        setIsModalOpen(false);
+    };
+
+    const handleDeleteObjetivo = (id) => {
+        if (window.confirm("Tem certeza que deseja excluir este objetivo?")) {
+            setObjetivos(prev => prev.filter(o => o.id !== id));
+            setObjetivoSelecionadoId(null);
+        }
+    };
+    
+    const raioBase = 120;
+    const objetivosPorAnel = [];
+    for (let i = 0; i < objetivosCalculados.length; i += 5) {
+        objetivosPorAnel.push(objetivosCalculados.slice(i, i + 5));
+    }
+
+    return (
+        <div className="max-w-6xl mx-auto">
+            <AnimatePresence mode="wait">
+                {metaSelecionada ? (
+                    <motion.div
+                        key="detalhe"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                    >
+                        <div className="max-w-xl mx-auto">
+                            <button onClick={() => setObjetivoSelecionadoId(null)} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white mb-4"><ArrowLeft size={16} /> Voltar para todos os objetivos</button>
+                            <Card>
+                                <div className="flex flex-col items-center text-center">
+                                    <div className="flex justify-end w-full gap-4 -mt-2 -mr-2">
+                                         <button onClick={() => handleDeleteObjetivo(metaSelecionada.id)} className="text-gray-500 dark:text-gray-400 hover:text-red-500"><Trash2 size={18}/></button>
+                                    </div>
+                                    <div className="p-4 bg-slate-200 dark:bg-[#2a246f] rounded-full mb-4 -mt-4">
+                                        <metaSelecionada.icon size={32} className="text-[#00d971]" />
+                                    </div>
+                                    <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{metaSelecionada.nome}</h1>
+                                    <p className="text-lg text-gray-500 dark:text-gray-400 mt-1">Alcançado: <span className="font-bold text-[#00d971]">{formatCurrency(metaSelecionada.valorAtual)}</span> de {formatCurrency(metaSelecionada.valorAlvo)}</p>
+                                    <div className="relative w-48 h-48 my-4">
+                                        <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={progressoMetaDetalhe.donutData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="70%" outerRadius="90%" startAngle={90} endAngle={-270} paddingAngle={2}><Cell fill="#00d971" stroke="none" /><Cell fill={theme === 'dark' ? '#2a246f' : '#e2e8f0'} stroke="none" /></Pie></PieChart></ResponsiveContainer>
+                                        <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl font-bold text-slate-800 dark:text-white">{progressoMetaDetalhe.percentual.toFixed(0)}%</span></div>
+                                    </div>
+                                    <div className="w-full text-left mt-4">
+                                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Investimentos Vinculados</h3>
+                                        <div className="space-y-2">
+                                            {metaSelecionada.investimentosLinkados.length > 0 ? metaSelecionada.investimentosLinkados.map(invId => {
+                                                const investimento = mockInvestimentos.find(i => i.id === invId);
+                                                return ( <div key={invId} className="flex justify-between items-center p-3 bg-slate-100 dark:bg-[#2a246f] rounded-lg"><span className="font-medium text-slate-700 dark:text-gray-300">{investimento ? investimento.nome : 'Investimento não encontrado'}</span><span className="font-bold text-slate-800 dark:text-white">{investimento ? formatCurrency(investimento.valor) : ''}</span></div> );
+                                            }) : <p className="text-sm text-center text-gray-500 dark:text-gray-400 py-4">Nenhum investimento vinculado a este objetivo.</p>}
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="geral"
+                        initial={{ opacity: 0, scale: 1.05 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.05 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                    >
+                        <div className="flex flex-col items-center justify-center pt-4 relative min-h-[500px] mb-4">
+                            <div className="relative flex items-center justify-center" style={{ width: `${(raioBase + objetivosPorAnel.length * 80) * 2}px`, height: `${(raioBase + objetivosPorAnel.length * 80) * 2}px` }}>
+                                <div className="absolute z-30"><img src={userImage} alt="Usuário" className="w-24 h-24 rounded-full border-4 border-white dark:border-[#201b5d] shadow-lg"/></div>
+                                {objetivosPorAnel.map((anel, anelIndex) => {
+                                    const raioAtual = raioBase + (anelIndex * 80);
+                                    const totalObjetivosNoAnel = anel.length;
+                                    return (
+                                        <React.Fragment key={anelIndex}>
+                                            <div className="absolute top-1/2 left-1/2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-full animate-spin-slow pointer-events-none" style={{ width: `${raioAtual * 2}px`, height: `${raioAtual * 2}px`, transform: 'translate(-50%, -50%)' }}></div>
+                                            {anel.map((objetivo, objIndex) => {
+                                                let angulo = (objIndex / totalObjetivosNoAnel) * 2 * Math.PI - (Math.PI / 2);
+                                                if (anelIndex % 2 !== 0) { const anguloOffset = Math.PI / totalObjetivosNoAnel; angulo += anguloOffset; }
+                                                const x = raioAtual * Math.cos(angulo);
+                                                const y = raioAtual * Math.sin(angulo);
+                                                const Icone = objetivo.icon;
+                                                const progressoData = [ { value: objetivo.valorAtual }, { value: Math.max(0, objetivo.valorAlvo - objetivo.valorAtual) } ];
+                                                const porcentagemAtingida = objetivo.valorAlvo > 0 ? (objetivo.valorAtual / objetivo.valorAlvo) * 100 : 0;
+                                                return (
+                                                    <div key={objetivo.id} className="absolute flex flex-col items-center z-10" style={{ top: '50%', left: '50%', transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }} onMouseEnter={() => setObjetivoHoveredId(objetivo.id)} onMouseLeave={() => setObjetivoHoveredId(null)}>
+                                                        <div className="relative w-20 h-20">
+                                                            <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={progressoData} dataKey="value" startAngle={90} endAngle={-270} innerRadius="85%" outerRadius="100%" cy="50%" cx="50%" paddingAngle={2}><Cell fill="#00d971" stroke="none" /><Cell fill={theme === 'dark' ? '#2a246f' : '#e2e8f0'} stroke="none"/></Pie></PieChart></ResponsiveContainer>
+                                                            <button onClick={() => setObjetivoSelecionadoId(objetivo.id)} className="absolute inset-2 bg-white dark:bg-[#2a246f] rounded-full flex items-center justify-center shadow-md transform transition-transform hover:scale-110" title={objetivo.nome}>
+                                                                {objetivoHoveredId === objetivo.id ? ( <span className="text-xs font-bold text-slate-800 dark:text-white">{porcentagemAtingida.toFixed(0)}%</span> ) : ( <Icone size={24} className="text-[#00d971]" /> )}
+                                                            </button>
+                                                        </div>
+                                                        <p className="mt-2 text-xs font-semibold text-center text-slate-600 dark:text-gray-400 w-24 truncate">{objetivo.nome}</p>
+                                                    </div>
+                                                )
+                                            })}
+                                        </React.Fragment>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <button onClick={() => setIsModalOpen(true)} className="fixed bottom-10 right-10 bg-[#00d971] text-black w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-30">
+                <PlusCircle size={32} />
+            </button>
+            <ModalObjetivo isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveObjetivo} />
+        </div>
+    );
+};
 
 
 // --- FUNÇÕES UTILITÁRIAS ---
@@ -156,29 +454,72 @@ const Card = ({ children, className = '' }) => (
     </div>
 );
 
-// --- TELA DE ORÇAMENTO ---
 const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
-    const [nome, setNome] = useState('');
-    const [valor, setValor] = useState('');
-    const isEditing = context.mode === 'edit';
+    const isEditing = !!context.item;
+    const [nome, setNome] = useState(isEditing ? context.item.nome : '');
+    const [valor, setValor] = useState(isEditing ? context.item.atual.toString() : '');
+    // Novo estado para a categoria selecionada
+    const [categoriaId, setCategoriaId] = useState(isEditing ? context.item.categoriaId : 'outros');
+
+    // Limpa o formulário quando o modal é fechado ou o contexto muda
     useEffect(() => {
-        if (isEditing && context.item) { setNome(context.item.nome); setValor(context.item.atual.toString()); }
-        else { setNome(''); setValor(''); }
-    }, [context, isEditing, isOpen]);
+        if (isOpen) {
+            if (isEditing) {
+                setNome(context.item.nome);
+                setValor(context.item.atual.toString());
+                setCategoriaId(context.item.categoriaId || 'outros');
+            } else {
+                setNome('');
+                setValor('');
+                setCategoriaId('outros');
+            }
+        }
+    }, [isOpen, context, isEditing]);
+
     if (!isOpen) return null;
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSave({ nome, valor: parseFloat(valor), id: isEditing ? context.item.id : null });
+        const dadosSalvos = {
+            nome,
+            valor: parseFloat(valor),
+            id: isEditing ? context.item.id : null,
+            categoriaId: context.category.tipo === 'despesa' ? categoriaId : null // Salva a categoria apenas para despesas
+        };
+        onSave(dadosSalvos);
         onClose();
     };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div className="bg-[#2a246f] rounded-lg p-8 w-full max-w-md">
-                <h2 className="text-xl font-bold text-white mb-4">{isEditing ? 'Editar Item' : `Adicionar em ${context.category.nome}`}</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4"><label className="block text-slate-800 dark:text-white text-sm font-bold mb-2">Nome</label><input value={nome} onChange={(e) => setNome(e.target.value)} type="text" required className="w-full px-3 py-2 mt-1 text-white bg-[#201b5d] border border-[#3e388b] rounded-md focus:outline-none focus:ring-2 focus:ring-[#00d971]" /></div>
-                    <div className="mb-6"><label className="block text-slate-800 dark:text-white text-sm font-bold mb-2">Valor (R$)</label><input value={valor} onChange={(e) => setValor(e.target.value)} type="number" step="0.01" required className="w-full px-3 py-2 mt-1 text-white bg-[#201b5d] border border-[#3e388b] rounded-md focus:outline-none focus:ring-2 focus:ring-[#00d971]" /></div>
-                    <div className="flex items-center justify-end gap-4"><button type="button" onClick={onClose} className="text-slate-800 dark:text-white hover:text-white transition">Cancelar</button><button type="submit" className="bg-[#00d971] hover:brightness-90 text-[#201b5d] font-bold py-2 px-4 rounded">Salvar</button></div>
+            <div className="bg-white dark:bg-[#201b5d] rounded-lg p-8 w-full max-w-md">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">{isEditing ? 'Editar Item' : `Adicionar em ${context.category.nome}`}</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Nome</label>
+                        <input value={nome} onChange={(e) => setNome(e.target.value)} type="text" required className="w-full mt-1 px-3 py-2 text-slate-900 dark:text-white bg-slate-100 dark:bg-[#2a246f] border border-slate-300 dark:border-[#3e388b] rounded-md"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Valor (R$)</label>
+                        <input value={valor} onChange={(e) => setValor(e.target.value)} type="number" step="0.01" required className="w-full mt-1 px-3 py-2 text-slate-900 dark:text-white bg-slate-100 dark:bg-[#2a246f] border border-slate-300 dark:border-[#3e388b] rounded-md"/>
+                    </div>
+                    
+                    {/* NOVO CAMPO: Seletor de Categoria (só aparece para despesas) */}
+                    {context.category.tipo === 'despesa' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Categoria</label>
+                            <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} className="w-full mt-1 px-3 py-2 text-slate-900 dark:text-white bg-slate-100 dark:bg-[#2a246f] border border-slate-300 dark:border-[#3e388b] rounded-md">
+                                {Object.entries(CATEGORIAS_FLUXO).map(([key, { label }]) => (
+                                    <option key={key} value={key}>{label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="flex items-center justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="text-gray-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition">Cancelar</button>
+                        <button type="submit" className="bg-[#00d971] hover:brightness-90 text-black font-bold py-2 px-4 rounded-lg">Salvar</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -225,27 +566,43 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
     const [sugeridoInputValue, setSugeridoInputValue] = useState("");
 
     const toggleCategory = (categoryId) => setExpandedCategories(prev => ({ ...prev, [categoryId]: !prev[categoryId] }));
-    const handleOpenModal = (mode, category, item = null) => { setModalContext({ mode, category, item }); setIsModalOpen(true); };
-    const handleSaveItem = ({ nome, valor, id }) => {
-        const categoryId = modalContext.category.id;
+    
+    const handleOpenModal = (mode, category, item = null) => {
+        setModalContext({ mode, category, item });
+        setIsModalOpen(true);
+    };
+
+    const handleSaveItem = ({ nome, valor, id, categoriaId }) => {
+        const categoryIdToUpdate = modalContext.category.id;
         setCategorias(prev => prev.map(cat => {
-            if (cat.id === categoryId) {
-                const subItens = id ? cat.subItens.map(item => item.id === id ? { ...item, nome, atual: valor } : item) : [...cat.subItens, { id: Date.now(), nome, atual: valor, sugerido: valor }];
-                return { ...cat, subItens };
+            if (cat.id === categoryIdToUpdate) {
+                let subItensAtualizados;
+                if (id) { // Modo de Edição
+                    subItensAtualizados = cat.subItens.map(item => 
+                        item.id === id ? { ...item, nome, atual: valor, categoriaId: categoriaId !== undefined ? categoriaId : item.categoriaId } : item
+                    );
+                } else { // Modo de Criação
+                    const novoItem = { id: Date.now(), nome, atual: valor, sugerido: valor, categoriaId };
+                    subItensAtualizados = [...cat.subItens, novoItem];
+                }
+                return { ...cat, subItens: subItensAtualizados };
             }
             return cat;
         }));
     };
+
     const handleDeleteItem = (categoryId, itemId) => {
         setCategorias(prev => prev.map(cat => {
             if (cat.id === categoryId) return { ...cat, subItens: cat.subItens.filter(item => item.id !== itemId) };
             return cat;
         }));
     };
+
     const handleEditSugeridoClick = (item) => {
         setEditingSugeridoId(item.id);
         setSugeridoInputValue(item.sugerido.toString());
     };
+
     const handleSugeridoSave = (categoryId, itemId) => {
         const newValue = parseFloat(sugeridoInputValue);
         if (!isNaN(newValue)) {
@@ -258,6 +615,7 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
         }
         setEditingSugeridoId(null);
     };
+
     const handleSugeridoInputKeyDown = (e, categoryId, itemId) => {
         if (e.key === 'Enter') handleSugeridoSave(categoryId, itemId);
         if (e.key === 'Escape') setEditingSugeridoId(null);
@@ -265,19 +623,9 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-3 gap-4">
                 <Card className="mb-4">
-                    <div className="grid grid-cols-3 gap-4 text-center text-sm">
-                        <div></div><div className="font-bold text-slate-800 dark:text-white">Atual</div><div className="font-bold text-slate-800 dark:text-white">Sugerido</div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-center mt-2 border-t border-[#3e388b] pt-3">
-                        <div className="text-left font-semibold text-slate-800 dark:text-white text-sm">Saldo esperado</div>
-                        <div className="font-semibold text-base text-[#00d971]">{formatCurrency(orcamentoCalculos.atual.receitas - orcamentoCalculos.atual.despesas)}</div>
-                        <div className="font-semibold text-base text-[#a39ee8]">{formatCurrency(orcamentoCalculos.sugerido.receitas - orcamentoCalculos.sugerido.despesas)}</div>
-                    </div>
-                </Card>
-                <Card>
-                    <div className="space-y-1">
+                    <div>
                         <div className="grid grid-cols-3 items-center gap-4 p-2 text-sm"><span className="font-semibold text-slate-800 dark:text-white"></span><span className="font-semibold text-slate-800 dark:text-white text-right">Atual</span><span className="font-semibold text-slate-800 dark:text-white text-right">Sugerido</span></div>
                         {categorias.map(cat => {
                             const Icon = cat.icon;
@@ -312,6 +660,16 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                                 </div>
                             );
                         })}
+                    </div>
+                </Card>
+                <Card>
+                    <div className="grid grid-cols-3 gap-4 text-center text-sm space-y-1">
+                        <div></div><div className="font-bold text-slate-800 dark:text-white">Atual</div><div className="font-bold text-slate-800 dark:text-white">Sugerido</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-center mt-2 border-t border-[#3e388b] pt-3">
+                        <div className="text-left font-semibold text-slate-800 dark:text-white text-sm">Saldo esperado</div>
+                        <div className="font-semibold text-base text-[#00d971]">{formatCurrency(orcamentoCalculos.atual.receitas - orcamentoCalculos.atual.despesas)}</div>
+                        <div className="font-semibold text-base text-[#a39ee8]">{formatCurrency(orcamentoCalculos.sugerido.receitas - orcamentoCalculos.sugerido.despesas)}</div>
                     </div>
                 </Card>
             </div>
@@ -542,8 +900,8 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm items-end">
                              <div className="md:col-span-1">
-                                <label className="block font-medium text-slate-800 dark:text-white">Patrimônio Total:</label>
-                                <input type="number" value={patrimonioTotal} readOnly className="mt-1 w-full bg-[white] dark:bg-[white] text-slate-800 dark:text-white rounded-md px-2 py-1 border border-[#3e388b] focus:outline-none focus:ring-1 focus:ring-[#00d971] opacity-70" />
+                                <label className="font-medium text-slate-800 dark:text-white">Patrimônio Total:</label>
+                                <input type="number" value={patrimonioTotal} readOnly className="mt-1 w-full bg-[white] dark:bg-[white] text-slate-800 dark:text-slate-800 rounded-md px-2 py-1 border border-[#3e388b] focus:outline-none focus:ring-1 focus:ring-[#00d971] opacity-70" />
                             </div>
                             <div className="flex items-end gap-4 md:col-span-2">
                                 <div>
@@ -1508,30 +1866,6 @@ const TelaAquisicaoAutomoveis = () => {
     );
 };
 
-// Definições de Categorias e Ícones para o Fluxo de Caixa
-const CATEGORIAS_FLUXO = {
-    alimentacao: { label: 'Alimentação', icon: Landmark, color: '#f97316' },
-    transporte: { label: 'Transporte', icon: Car, color: '#3b82f6' },
-    moradia: { label: 'Moradia', icon: Home, color: '#ef4444' },
-    lazer: { label: 'Lazer', icon: Film, color: '#14b8a6' },
-    compras: { label: 'Compras', icon: ShoppingCart, color: '#8b5cf6' },
-    saude: { label: 'Saúde', icon: Stethoscope, color: '#ec4899' },
-    servicos: { label: 'Serviços e Taxas', icon: Landmark, color: '#6b7280' },
-    outros: { label: 'Outros', icon: Package, color: '#facc15' }
-};
-
-// Dados de Exemplo - No futuro, isso viria de uma sincronização bancária
-const mockTransacoes = [
-  { id: 1, date: '2025-07-07', description: 'iFood Pedido #1234', amount: 54.90, type: 'debit', sourceAccount: 'Cartão de Crédito Nubank' },
-  { id: 2, date: '2025-07-07', description: 'Uber Viagens', amount: 22.50, type: 'debit', sourceAccount: 'Cartão de Crédito Nubank' },
-  { id: 3, date: '2025-07-06', description: 'Salário Empresa X', amount: 7000.00, type: 'credit', sourceAccount: 'Conta Corrente Itaú' },
-  { id: 4, date: '2025-07-06', description: 'Supermercado Pão de Açúcar', amount: 432.80, type: 'debit', sourceAccount: 'Cartão de Débito Itaú' },
-  { id: 5, date: '2025-07-05', description: 'Cinema Cinemark', amount: 65.00, type: 'debit', sourceAccount: 'Cartão de Crédito Nubank' },
-  { id: 6, date: '2025-07-05', description: 'Pagamento Fatura Net', amount: 119.90, type: 'debit', sourceAccount: 'Conta Corrente Itaú' },
-  { id: 7, date: '2025-07-04', description: 'Farmácia Droga Raia', amount: 89.50, type: 'debit', sourceAccount: 'Cartão de Débito Itaú' },
-  { id: 8, date: '2025-07-03', description: 'Compra na Amazon.com.br', amount: 159.90, type: 'debit', sourceAccount: 'Cartão de Crédito Nubank' },
-];
-
 const categorizeByAI = (description) => {
     const desc = description.toLowerCase();
     if (desc.includes('ifood') || desc.includes('restaurante')) return 'alimentacao';
@@ -1544,25 +1878,102 @@ const categorizeByAI = (description) => {
     return null; // Retorna null para que o usuário possa categorizar
 };
 
-const TelaFluxoDeCaixa = () => {
-    const [transacoes, setTransacoes] = useState([]);
+// PASSO 1: ADICIONE ESTE NOVO COMPONENTE AO SEU ARQUIVO
 
-    // ##### NOVO: Estado para controlar os filtros #####
-    const [filtros, setFiltros] = useState({
-        mes: 'todos',
-        ano: 'todos',
-        categoria: 'todas',
-        busca: '',
-    });
+const ModalNovaTransacao = ({ isOpen, onClose, onSave }) => {
+    const [descricao, setDescricao] = useState('');
+    const [valor, setValor] = useState('');
+    const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+    const [tipo, setTipo] = useState('debit');
+    const [categoriaId, setCategoriaId] = useState('outros');
 
-    useEffect(() => {
-        const transacoesCategorizadas = mockTransacoes.map(t => ({
-            ...t,
-            category: t.type === 'credit' ? 'receita' : categorizeByAI(t.description),
-            isIgnored: false
-        }));
-        setTransacoes(transacoesCategorizadas);
-    }, []);
+    if (!isOpen) return null;
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!descricao || !valor || !data) return;
+        
+        const novaTransacao = {
+            id: Date.now(),
+            date: data,
+            description: descricao,
+            amount: parseFloat(valor),
+            type: tipo,
+            sourceAccount: 'Conta Manual',
+            // Salva a categoria apenas se for uma despesa
+            category: tipo === 'debit' ? categoriaId : null, 
+            isIgnored: false,
+        };
+        
+        onSave(novaTransacao);
+        onClose(); // Fecha o modal após salvar
+    };
+    
+    // Limpa o formulário ao fechar
+    const handleClose = () => {
+        setDescricao('');
+        setValor('');
+        setData(new Date().toISOString().slice(0, 10));
+        setTipo('debit');
+        setCategoriaId('outros');
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 animate-fade-in">
+            <div className="bg-white dark:bg-[#201b5d] rounded-xl shadow-lg p-8 w-full max-w-md">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">Adicionar Transação</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Descrição</label>
+                        <input type="text" value={descricao} onChange={(e) => setDescricao(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Valor (R$)</label>
+                            <input type="number" value={valor} onChange={(e) => setValor(e.target.value)} required step="0.01" className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/>
+                        </div>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Data</label>
+                            <input type="date" value={data} onChange={(e) => setData(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <label className="flex items-center gap-2">
+                            <input type="radio" value="debit" checked={tipo === 'debit'} onChange={(e) => setTipo(e.target.value)} className="form-radio h-4 w-4 text-[#00d971] bg-slate-300 dark:bg-gray-700 border-gray-600 focus:ring-0"/>
+                            <span className="text-slate-800 dark:text-white">Despesa</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                            <input type="radio" value="credit" checked={tipo === 'credit'} onChange={(e) => setTipo(e.target.value)} className="form-radio h-4 w-4 text-[#00d971] bg-slate-300 dark:bg-gray-700 border-gray-600 focus:ring-0"/>
+                             <span className="text-slate-800 dark:text-white">Receita</span>
+                        </label>
+                    </div>
+
+                    {tipo === 'debit' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Categoria</label>
+                            <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} className="w-full mt-1 px-3 py-2 text-slate-900 dark:text-white bg-slate-100 dark:bg-[#2a246f] border border-slate-300 dark:border-[#3e388b] rounded-md">
+                                {Object.entries(CATEGORIAS_FLUXO).map(([key, { label }]) => (
+                                    <option key={key} value={key}>{label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={handleClose} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cancelar</button>
+                        <button type="submit" className="px-6 py-2 text-sm font-medium text-black bg-[#00d971] rounded-lg hover:brightness-90">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const TelaFluxoDeCaixa = ({ transacoes, handleCategoryChange, handleIgnoreToggle, onAdicionarClick }) => {
+    const [filtros, setFiltros] = useState({ mes: 'todos', ano: 'todos', categoria: 'todas', busca: '' });
 
     // ##### NOVO: Lógica para gerar as opções dos filtros dinamicamente #####
     const opcoesFiltro = useMemo(() => {
@@ -1611,14 +2022,6 @@ const TelaFluxoDeCaixa = () => {
         }, {});
         return Object.entries(totais).map(([key, value]) => ({ id: key, ...CATEGORIAS_FLUXO[key], total: value, })).sort((a, b) => b.total - a.total);
     }, [transacoesFiltradas]);
-
-    const handleCategoryChange = (transactionId, newCategory) => {
-        setTransacoes(prev => prev.map(t => t.id === transactionId ? { ...t, category: newCategory || null } : t));
-    };
-
-    const handleIgnoreToggle = (transactionId) => {
-        setTransacoes(prev => prev.map(t => t.id === transactionId ? { ...t, isIgnored: !t.isIgnored } : t));
-    };
 
     const handleFiltroChange = (e) => {
         const { name, value } = e.target;
@@ -1672,7 +2075,12 @@ const TelaFluxoDeCaixa = () => {
             </Card>
 
             <Card>
-                <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Transações</h2>
+                <div className="flex justify-between items-center border-b border-slate-200 dark:border-[#3e388b] pb-4 mb-4">
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Transações</h2>
+                    <button onClick={onAdicionarClick} className="text-xs flex items-center gap-1 text-[#00d971] hover:brightness-90 font-semibold">
+                        <PlusCircle size={14} /> Adicionar Transação
+                    </button>
+                </div>
                 <div className="space-y-2">
                     <div className="hidden md:grid grid-cols-12 gap-4 text-xs font-bold text-slate-800 dark:text-white px-4 py-2">
                         <div className="col-span-1">Data</div><div className="col-span-4">Descrição</div><div className="col-span-3">Categoria</div><div className="col-span-2 text-right">Valor</div><div className="col-span-2 text-center">Ações</div>
@@ -1684,7 +2092,7 @@ const TelaFluxoDeCaixa = () => {
                         return (
                             <div key={t.id} className={`grid grid-cols-12 gap-4 items-center p-3 rounded-lg transition-colors ${t.isIgnored ? 'bg-gray-800/50 opacity-60' : 'bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white hover:bg-[#2a246f]/70'}`}>
                                 <div className="col-span-4 md:col-span-1 text-sm text-slate-800 dark:text-white">{new Date(t.date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div>
-                                <div className="col-span-8 md:col-span-4 text-white font-medium">{t.description}</div>
+                                <div className="col-span-8 md:col-span-4 text-slate-800 dark:text-white font-medium">{t.description}</div>
                                 <div className="col-span-12 md:col-span-3">
                                     {isCredit ? <span className="text-xs font-bold bg-green-500/20 text-green-400 px-2 py-1 rounded-full">Receita</span> : (
                                         <select value={t.category || ''} onChange={(e) => handleCategoryChange(t.id, e.target.value)} className="w-full bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white text-sm rounded-md p-1 border border-[#3e388b] focus:ring-1 focus:ring-[#00d971]">
@@ -1698,6 +2106,267 @@ const TelaFluxoDeCaixa = () => {
                             </div>
                         )
                     })}
+                </div>
+            </Card>
+        </div>
+    );
+};
+
+const TelaPlanejamento = ({ orcamento, gastosReais }) => {
+    const { theme } = useContext(ThemeContext);
+
+    // Estado para os filtros (Mês e Ano)
+    const [filtroData, setFiltroData] = useState({
+        mes: new Date().getMonth() + 1, // Padrão para o mês atual
+        ano: new Date().getFullYear(),   // Padrão para o ano atual
+    });
+
+    // Lógica para gerar as opções dos filtros dinamicamente
+    const opcoesFiltro = useMemo(() => {
+        const datas = mockTransacoes.map(t => new Date(t.date));
+        const anos = [...new Set(datas.map(d => d.getFullYear()))].sort((a, b) => b - a);
+        const meses = [
+            { v: 1, n: 'Janeiro' }, { v: 2, n: 'Fevereiro' }, { v: 3, n: 'Março' },
+            { v: 4, n: 'Abril' }, { v: 5, n: 'Maio' }, { v: 6, n: 'Junho' },
+            { v: 7, n: 'Julho' }, { v: 8, n: 'Agosto' }, { v: 9, n: 'Setembro' },
+            { v: 10, n: 'Outubro' }, { v: 11, n: 'Novembro' }, { v: 12, n: 'Dezembro' }
+        ];
+        return { anos, meses };
+    }, []);
+
+    // Filtra os gastos reais com base no período selecionado
+    const gastosFiltrados = useMemo(() => {
+        const totais = mockTransacoes
+            .filter(t => {
+                const dataTransacao = new Date(t.date);
+                return t.type === 'debit' &&
+                       dataTransacao.getFullYear() === filtroData.ano &&
+                       (dataTransacao.getMonth() + 1) === filtroData.mes;
+            })
+            .reduce((acc, t) => {
+                const categoriaKey = categorizeByAI(t.description);
+                if (categoriaKey) {
+                    if (!acc[categoriaKey]) acc[categoriaKey] = 0;
+                    acc[categoriaKey] += t.amount;
+                }
+                return acc;
+            }, {});
+
+        return Object.entries(totais).map(([key, value]) => ({ id: key, total: value }));
+    }, [filtroData]);
+
+    // Compara as metas do orçamento com os gastos já filtrados
+    const dadosPlanejamento = useMemo(() => {
+        const metasAgrupadas = orcamento
+            .filter(cat => cat.tipo === 'despesa')
+            .flatMap(cat => cat.subItens)
+            .reduce((acc, item) => {
+                if (item.categoriaId) {
+                    if (!acc[item.categoriaId]) {
+                        acc[item.categoriaId] = {
+                            id: item.categoriaId,
+                            nome: CATEGORIAS_FLUXO[item.categoriaId]?.label || item.categoriaId,
+                            icon: CATEGORIAS_FLUXO[item.categoriaId]?.icon || Package,
+                            meta: 0
+                        };
+                    }
+                    acc[item.categoriaId].meta += item.sugerido;
+                }
+                return acc;
+            }, {});
+        
+        return Object.values(metasAgrupadas).map(meta => {
+            const gastoReal = gastosFiltrados.find(gasto => gasto.id === meta.id);
+            const realizado = gastoReal ? gastoReal.total : 0;
+            const percentual = meta.meta > 0 ? (realizado / meta.meta) * 100 : 0;
+            
+            return { ...meta, realizado, percentual };
+        });
+    }, [orcamento, gastosFiltrados]);
+
+    const handleFiltroChange = (e) => {
+        const { name, value } = e.target;
+        setFiltroData(prev => ({ ...prev, [name]: parseInt(value) }));
+    };
+
+    return (
+        <div className="max-w-4xl mx-auto space-y-6">
+            <Card>
+                {/* ##### FILTROS RESTAURADOS AQUI ##### */}
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-white">Planejamento de Metas</h2>
+                    <div className="flex gap-2">
+                        <select name="mes" value={filtroData.mes} onChange={handleFiltroChange} className="w-full bg-white dark:bg-[#2a246f] text-slate-900 dark:text-white text-sm rounded-md p-2 border border-slate-300 dark:border-[#3e388b] focus:ring-1 focus:ring-[#00d971]">
+                           {opcoesFiltro.meses.map(m => <option key={m.v} value={m.v}>{m.n}</option>)}
+                        </select>
+                        <select name="ano" value={filtroData.ano} onChange={handleFiltroChange} className="w-full bg-white dark:bg-[#2a246f] text-slate-900 dark:text-white text-sm rounded-md p-2 border border-slate-300 dark:border-[#3e388b] focus:ring-1 focus:ring-[#00d971]">
+                            {opcoesFiltro.anos.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="space-y-5">
+                    {dadosPlanejamento.map(item => {
+                        if (item.meta <= 0 && item.realizado <= 0) return null;
+                        const Icone = item.icon;
+                        const progressoCor = item.realizado > item.meta ? 'bg-red-500' : 'bg-green-500';
+                        const larguraBarra = Math.min(item.percentual, 100);
+
+                        return (
+                            <div key={item.id}>
+                                <div className="flex justify-between items-center mb-1">
+                                    <div className="flex items-center gap-2">
+                                        <Icone size={16} className="text-slate-600 dark:text-gray-300" />
+                                        <span className="font-bold text-slate-800 dark:text-white">{item.nome}</span>
+                                    </div>
+                                    <div className="text-sm font-semibold text-slate-600 dark:text-gray-300">
+                                        <span className={item.realizado > item.meta ? 'text-red-500' : 'text-green-500'}>{formatCurrency(item.realizado)}</span> / {formatCurrency(item.meta)}
+                                    </div>
+                                </div>
+                                <div className="relative w-full bg-slate-200 dark:bg-slate-700 rounded-full h-5">
+                                    <div className={`h-full rounded-full transition-all duration-500 ${progressoCor}`} style={{ width: `${larguraBarra}%` }}></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs font-bold text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]">
+                                            {item.percentual.toFixed(0)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            </Card>
+        </div>
+    );
+};
+
+const TelaMilhas = () => (
+    <div>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">Planejamento de Milhas</h1>
+        <Card>
+            <p className="text-slate-800 dark:text-white">Em breve: Uma ferramenta completa para gerenciar suas milhas e pontos.</p>
+        </Card>
+    </div>
+);
+
+// --- Dados de Exemplo para a Tela de Cartões ---
+const mockCartoesDeCredito = [
+    {
+        id: 'chase-sapphire',
+        nome: 'Chase Sapphire Preferred Card',
+        banco: 'Chase',
+        imagem: 'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png', // Substitua pela URL da imagem real
+        anuidade: 95,
+        pontuacao: '1x - 5x',
+        beneficios: ['Pontos em supermercados e streaming', 'Créditos em parceiros'],
+        salaVip: false,
+        matchScore: 4, // de 5
+    },
+    {
+        id: 'c6-carbon',
+        nome: 'C6 Carbon',
+        banco: 'C6',
+        imagem: 'https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/282f62376e7dee24e9b8036f0c53a697.jpg', // Substitua pela URL da imagem real
+        anuidade: 1176,
+        pontuacao: '2,2 a 3,5 pontos por dólar',
+        beneficios: ['Dragon Pass 4 acessos por ano, Dragon Pass ilimitado (mediante R$ 20 mil em gastos por mês ou R$ 1 milhão em investimentos), Mastercard GRU'], salaVip: true, matchScore: 3,
+    },
+    {  
+        id: 'xp-visa-infinite',
+        nome: 'XP Visa Infinite',
+        banco: 'XP',
+        imagem: 'https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/9cec9f331bd29669c91e521df8eda121.png', // Substitua pela URL da imagem real
+        anuidade: false,
+        pontuacao: '2,2 pontos por dólar',
+        beneficios: ['Dragon Pass 4 acessos por ano', '(mediante R$ 3 mil em gastos por mês ou R$ 300 mil em investimentos)'],
+        salaVip: true,
+        matchScore: 5,
+    },
+];
+
+// Componente reutilizável para exibir as informações de UM cartão
+const CardDeComparacao = ({ cartao }) => {
+    if (!cartao) {
+        return (
+            <div className="border border-dashed border-slate-300 dark:border-slate-700 rounded-lg h-full flex items-center justify-center">
+                <p className="text-slate-500 dark:text-gray-400">Selecione um cartão</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="p-4 bg-slate-100 dark:bg-[#2a246f] rounded-lg flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">{cartao.nome}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{cartao.banco}</p>
+                </div>
+                <img src={cartao.imagem} alt={cartao.nome} className="h-10 w-auto object-contain" />
+            </div>
+            
+            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Seu Match Score</p>
+                <div className="flex gap-1">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className={`h-2 flex-1 rounded-full ${i < cartao.matchScore ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Pontuação:</span><span className="font-semibold text-slate-800 dark:text-white">{cartao.pontuacao}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Anuidade:</span><span className="font-semibold text-slate-800 dark:text-white">{formatCurrency(cartao.anuidade)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Sala VIP:</span><span className={`font-semibold ${cartao.salaVip ? 'text-green-500' : 'text-red-500'}`}>{cartao.salaVip ? 'Sim' : 'Não'}</span></div>
+                <div className="pt-2">
+                    <p className="font-medium text-gray-500 dark:text-gray-400 mb-1">Outros Benefícios:</p>
+                    <ul className="list-disc list-inside text-slate-800 dark:text-white">
+                        {cartao.beneficios.map((b, i) => <li key={i}>{b}</li>)}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+// Componente principal da tela
+const TelaCartoes = () => {
+    const [cartao1Id, setCartao1Id] = useState(mockCartoesDeCredito[0].id);
+    const [cartao2Id, setCartao2Id] = useState(mockCartoesDeCredito[1].id);
+
+    const cartao1 = useMemo(() => mockCartoesDeCredito.find(c => c.id === cartao1Id), [cartao1Id]);
+    const cartao2 = useMemo(() => mockCartoesDeCredito.find(c => c.id === cartao2Id), [cartao2Id]);
+
+    const opcoesDisponiveis1 = useMemo(() => mockCartoesDeCredito.filter(c => c.id !== cartao2Id), [cartao2Id]);
+    const opcoesDisponiveis2 = useMemo(() => mockCartoesDeCredito.filter(c => c.id !== cartao1Id), [cartao1Id]);
+
+    return (
+        <div className="max-w-6xl mx-auto">
+            <Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Coluna da Esquerda */}
+                    <div>
+                        <select 
+                            value={cartao1Id} 
+                            onChange={(e) => setCartao1Id(e.target.value)}
+                            className="w-full p-2 mb-4 rounded-md bg-slate-100 dark:bg-[#2a246f] text-slate-800 dark:text-white border border-slate-300 dark:border-[#3e388b]"
+                        >
+                            {opcoesDisponiveis1.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                        <CardDeComparacao cartao={cartao1} />
+                    </div>
+
+                    {/* Coluna da Direita */}
+                    <div>
+                        <select 
+                            value={cartao2Id} 
+                            onChange={(e) => setCartao2Id(e.target.value)}
+                            className="w-full p-2 mb-4 rounded-md bg-slate-100 dark:bg-[#2a246f] text-slate-800 dark:text-white border border-slate-300 dark:border-[#3e388b]"
+                        >
+                            {opcoesDisponiveis2.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                        <CardDeComparacao cartao={cartao2} />
+                    </div>
                 </div>
             </Card>
         </div>
@@ -1724,6 +2393,7 @@ const { theme, toggleTheme } = useContext(ThemeContext);
   const [openMenu, setOpenMenu] = useState(null);
   // Estado para controlar o menu móvel
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [transacoes, setTransacoes] = useState([]);
 
   // Hooks useMemo (lógica interna completa restaurada)
   const { orcamentoCalculos, pieChartData } = useMemo(() => {
@@ -1766,24 +2436,91 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             .reduce((acc, key) => acc + patrimonioData[key].reduce((sum, item) => sum + item.valor, 0), 0);
         const totalDividas = patrimonioData.dividas.reduce((sum, item) => sum + item.valor, 0);
         return totalAtivos - totalDividas;
-    }, [patrimonioData]);
+    }, [patrimonioData])
+
+    const gastosReais = useMemo(() => {
+    // Calcula os totais a partir do ESTADO 'transacoes', não do mock original
+    const totais = transacoes
+        .filter(t => t.type === 'debit' && !t.isIgnored) // Garante que transações ignoradas não sejam somadas
+        .reduce((acc, t) => {
+            const categoriaKey = t.category;
+            if (categoriaKey) {
+                if (!acc[categoriaKey]) {
+                    acc[categoriaKey] = 0;
+                }
+                acc[categoriaKey] += t.amount;
+            }
+            return acc;
+        }, {});
+
+    // Mapeia para o formato esperado pela tela de Planejamento
+    return Object.entries(totais).map(([key, value]) => ({
+        id: key,
+        label: CATEGORIAS_FLUXO[key]?.label || key,
+        total: value
+    }));
+  }, [transacoes]); // O hook agora depende do estado 'transacoes' para recalcular
+
+    useEffect(() => {
+        const transacoesCategorizadas = mockTransacoes.map(t => ({
+            ...t,
+            category: t.type === 'credit' ? 'receita' : categorizeByAI(t.description),
+            isIgnored: false
+        }));
+        setTransacoes(transacoesCategorizadas);
+    }, []);
+
+    const handleCategoryChange = (transactionId, newCategory) => {
+        setTransacoes(prev => prev.map(t => t.id === transactionId ? { ...t, category: newCategory || null } : t));
+    };
+
+    const handleIgnoreToggle = (transactionId) => {
+        setTransacoes(prev => prev.map(t => t.id === transactionId ? { ...t, isIgnored: !t.isIgnored } : t));
+    };
+
+    const [isTransacaoModalOpen, setIsTransacaoModalOpen] = useState(false);
+
+    const handleSaveTransacao = (novaTransacao) => {
+    // Simula a categorização por IA se não for uma receita
+    const transacaoFinal = {
+        ...novaTransacao,
+        category: novaTransacao.type === 'credit' ? 'receita' : categorizeByAI(novaTransacao.description) || novaTransacao.category
+    };
+    setTransacoes(prev => [transacaoFinal, ...prev].sort((a, b) => new Date(b.date) - new Date(a.date)));
+    setIsTransacaoModalOpen(false); // Fecha o modal
+  };
 
   const menuItems = [
+    { id: 'objetivos', label: 'Objetivos', icon: Target },
     { id: 'orcamento', label: 'Orçamento', icon: BarChart2 },
+    { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft,
+        subItems: [
+            { id: 'fluxoTransacoes', label: 'Transações', icon: Coins },
+            { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare },
+        ]
+    },
     { id: 'protecao', label: 'Proteção', icon: Shield },
     { id: 'reserva', label: 'Reserva', icon: PiggyBank },
-    { id: 'aposentadoria', label: 'Aposentadoria', icon: Home },
-    { id: 'patrimonio', label: 'Patrimônio', icon: Briefcase },
-    { id: 'fluxo-caixa', label: 'Fluxo de Caixa', icon: TrendingUp },
+    { id: 'aposentadoria', label: 'Aposentadoria', icon: TreePalm },
+    { id: 'patrimonio', label: 'Patrimônio', icon: Landmark },
     { 
       id: 'aquisicao', 
-      label: 'Aquisição de Bens', 
+      label: 'Aquisição', 
       icon: ShoppingCart,
       subItems: [
         { id: 'aquisicaoImoveis', label: 'Imóveis', icon: Building2 },
         { id: 'aquisicaoAutomoveis', label: 'Automóveis', icon: Car },
       ] 
     },
+    {
+      id: 'outros',
+      label: 'Outros',
+      icon: Award,
+      subItems: [
+        { id: 'outrosMilhas', label: 'Planejamento de Milhas', icon: PlaneTakeoff },
+        { id: 'outrosCartoes', label: 'Cartões de Crédito', icon: CreditCard },
+      ]
+    }
   ];
 
   const renderPage = () => {
@@ -1798,10 +2535,14 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             case 'reserva': content = <TelaReservaEmergencia orcamentoCalculos={orcamentoCalculos} />; break;
             case 'aposentadoria': content = <TelaAposentadoria />; break;
             case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} setPatrimonioData={setPatrimonioData} patrimonioTotal={patrimonioTotal} />; break;
-            case 'fluxo-caixa': content = <TelaFluxoDeCaixa />; break;
+            case 'fluxoTransacoes': return <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={handleCategoryChange} handleIgnoreToggle={handleIgnoreToggle} onAdicionarClick={() => setIsTransacaoModalOpen(true)} />;
+            case 'fluxoPlanejamento': return <TelaPlanejamento orcamento={categorias} gastosReais={gastosReais} />;
             case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis />; break;
             case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis />; break;
-            default: content = <TelaOrcamento categorias={categorias} setCategorias={setCategorias} orcamentoCalculos={orcamentoCalculos} pieChartData={pieChartData} />; break;
+            case 'objetivos': return <TelaObjetivos />; break;
+            case 'outrosMilhas': return <TelaMilhas />; break;
+            case 'outrosCartoes': return <TelaCartoes />; break;
+            default: content = <TelaObjetivos />; break;
         }
     }
 
@@ -1826,8 +2567,8 @@ return (
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
              <div className="flex-shrink-0 flex items-center gap-2">
-                <img src={logo} alt="Logo SeuConsultor" className="h-9 w-auto" style={{ filter: 'invert(42%) sepia(93%) saturate(2000%) hue-rotate(133deg) brightness(100%) contrast(107%)' }} />
-                <span className="font-montserrat text-slate-900 dark:text-white text-xl font-extrabold">SeuConsultor</span>
+                <img src={logo} alt="Logo SeuConsultor" className="h-6 w-auto" style={{ filter: 'invert(42%) sepia(93%) saturate(2000%) hue-rotate(133deg) brightness(100%) contrast(107%)' }} />
+                <span className="font-montserrat text-slate-900 dark:text-white text-xs font-extrabold">SeuConsultor</span>
              </div>
              
              <div className="hidden md:flex items-center text-slate-800 space-x-1">
@@ -1874,6 +2615,12 @@ return (
       )}
       
       <main className="p-4 md:p-6">{renderPage()}</main>
+      {/* ADICIONE O NOVO MODAL AQUI */}
+      <ModalNovaTransacao 
+        isOpen={isTransacaoModalOpen} 
+        onClose={() => setIsTransacaoModalOpen(false)} 
+        onSave={handleSaveTransacao}
+      />
     </div>
   );
 }

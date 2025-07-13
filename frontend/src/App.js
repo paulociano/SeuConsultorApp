@@ -3,21 +3,21 @@ import ReactECharts from 'echarts-for-react';
 import { PieChart, Pie, Cell, LabelList, Brush, LineChart, Line, BarChart, Bar, ResponsiveContainer, Legend, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import logo from './assets/logo.svg';
 import userImage from './assets/persona.jpg';
+import dadosDosCartoes from './data/cartoes_credito.json';
 import { ThemeContext } from './ThemeContext';
 import { 
     Home, UserPlus, LogIn, PiggyBank, BarChart2, Shield, ShoppingCart, 
-    Briefcase, TrendingUp, Menu, X, PlusCircle, ChevronDown, ChevronRight, 
+    Briefcase, Menu, X, PlusCircle, ChevronDown, ChevronRight, 
     Trash2, Edit, DollarSign, HeartHandshake, Users, 
     Stethoscope, Car, Target, Landmark, Coins, CarFront, Building2, 
     Gift, Package, Film, Eye, EyeOff, School, Plane, ArrowLeft, CheckSquare, ArrowRightLeft,
     TreePalm,
     Utensils,
-    BrushCleaning,
     HandCoins,
-    Rocket,
     CreditCard,
     Award,
-    PlaneTakeoff
+    PlaneTakeoff,
+    Pencil
 } from 'lucide-react';
 import { motion, AnimatePresence} from 'framer-motion';
 import { Sun, Moon } from 'lucide-react';
@@ -2240,131 +2240,278 @@ const TelaPlanejamento = ({ orcamento, gastosReais }) => {
     );
 };
 
-const TelaMilhas = () => (
-    <div>
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">Planejamento de Milhas</h1>
-        <Card>
-            <p className="text-slate-800 dark:text-white">Em breve: Uma ferramenta completa para gerenciar suas milhas e pontos.</p>
-        </Card>
-    </div>
-);
+// PASSO 1: ADICIONE ESTE NOVO COMPONENTE AO SEU ARQUIVO
 
-// --- Dados de Exemplo para a Tela de Cartões ---
-const mockCartoesDeCredito = [
-    {
-        id: 'chase-sapphire',
-        nome: 'Chase Sapphire Preferred Card',
-        banco: 'Chase',
-        imagem: 'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png', // Substitua pela URL da imagem real
-        anuidade: 95,
-        pontuacao: '1x - 5x',
-        beneficios: ['Pontos em supermercados e streaming', 'Créditos em parceiros'],
-        salaVip: false,
-        matchScore: 4, // de 5
-    },
-    {
-        id: 'c6-carbon',
-        nome: 'C6 Carbon',
-        banco: 'C6',
-        imagem: 'https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/282f62376e7dee24e9b8036f0c53a697.jpg', // Substitua pela URL da imagem real
-        anuidade: 1176,
-        pontuacao: '2,2 a 3,5 pontos por dólar',
-        beneficios: ['Dragon Pass 4 acessos por ano, Dragon Pass ilimitado (mediante R$ 20 mil em gastos por mês ou R$ 1 milhão em investimentos), Mastercard GRU'], salaVip: true, matchScore: 3,
-    },
-    {  
-        id: 'xp-visa-infinite',
-        nome: 'XP Visa Infinite',
-        banco: 'XP',
-        imagem: 'https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/9cec9f331bd29669c91e521df8eda121.png', // Substitua pela URL da imagem real
-        anuidade: false,
-        pontuacao: '2,2 pontos por dólar',
-        beneficios: ['Dragon Pass 4 acessos por ano', '(mediante R$ 3 mil em gastos por mês ou R$ 300 mil em investimentos)'],
-        salaVip: true,
-        matchScore: 5,
-    },
-];
-
-// Componente reutilizável para exibir as informações de UM cartão
-const CardDeComparacao = ({ cartao }) => {
-    if (!cartao) {
-        return (
-            <div className="border border-dashed border-slate-300 dark:border-slate-700 rounded-lg h-full flex items-center justify-center">
-                <p className="text-slate-500 dark:text-gray-400">Selecione um cartão</p>
+const TicketDeViagem = ({ viagem, onEdit, onDelete }) => {
+    const { theme } = useContext(ThemeContext);
+    const progresso = viagem.valorAlvo > 0 ? (viagem.milhasAtuais / viagem.milhasNecessarias) * 100 : 0;
+    
+    return (
+        <Card className="flex flex-col md:flex-row overflow-hidden p-0">
+            {/* Seção Esquerda - Informações do Voo */}
+            <div className="p-4 md:p-6 flex-grow">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{viagem.companhia}</p>
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">{viagem.nomeDestino}</h3>
+                    </div>
+                    <Plane size={24} className="text-[#00d971]" />
+                </div>
+                <div className="flex items-end justify-between mt-4">
+                    <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Origem</p>
+                        <p className="text-2xl font-mono text-slate-800 dark:text-white">{viagem.origem}</p>
+                    </div>
+                    <div className="flex-grow flex items-center mx-4">
+                        <div className="w-full border-t border-dashed border-slate-400 dark:border-slate-600"></div>
+                    </div>
+                    <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 text-right">Destino</p>
+                        <p className="text-2xl font-mono text-slate-800 dark:text-white">{viagem.destino}</p>
+                    </div>
+                </div>
             </div>
-        );
-    }
+
+            {/* Seção Direita - Progresso e Ações */}
+            <div className="bg-slate-100 dark:bg-[#2a246f] p-4 md:p-6 md:border-l-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col justify-between md:w-1/3">
+                <div>
+                    <p className="text-sm font-medium text-slate-600 dark:text-gray-300">Progresso da Meta</p>
+                    <p className="text-2xl font-bold text-slate-800 dark:text-white">{viagem.milhasAtuais.toLocaleString('pt-BR')} / <span className="text-lg text-gray-500 dark:text-gray-400">{viagem.milhasNecessarias.toLocaleString('pt-BR')}</span></p>
+                    <div className="w-full bg-slate-300 dark:bg-slate-700 rounded-full h-2 mt-1">
+                        <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.min(progresso, 100)}%` }}></div>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-4 mt-4">
+                    <button onClick={onEdit} className="text-gray-500 dark:text-gray-400 hover:text-blue-500"><Pencil size={18}/></button>
+                    <button onClick={onDelete} className="text-gray-500 dark:text-gray-400 hover:text-red-500"><Trash2 size={18}/></button>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+const ModalNovaViagem = ({ isOpen, onClose, onSave, viagemExistente }) => {
+    const isEditing = !!viagemExistente;
+    const [origem, setOrigem] = useState(isEditing ? viagemExistente.origem : 'GRU');
+    const [destino, setDestino] = useState(isEditing ? viagemExistente.destino : 'NRT');
+    const [nomeDestino, setNomeDestino] = useState(isEditing ? viagemExistente.nomeDestino : 'Tóquio, Japão');
+    const [companhia, setCompanhia] = useState(isEditing ? viagemExistente.companhia : 'LATAM Pass');
+    const [milhasNecessarias, setMilhasNecessarias] = useState(isEditing ? viagemExistente.milhasNecessarias : '');
+    const [milhasAtuais, setMilhasAtuais] = useState(isEditing ? viagemExistente.milhasAtuais : 0);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave({ 
+            ...viagemExistente, // Mantém o ID e outras propriedades se estiver editando
+            origem, destino, nomeDestino, companhia, 
+            milhasNecessarias: parseFloat(milhasNecessarias), 
+            milhasAtuais: parseFloat(milhasAtuais)
+        });
+        onClose();
+    };
+
+    if (!isOpen) return null;
 
     return (
-        <div className="space-y-4">
-            <div className="p-4 bg-slate-100 dark:bg-[#2a246f] rounded-lg flex items-center justify-between">
-                <div>
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">{cartao.nome}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{cartao.banco}</p>
-                </div>
-                <img src={cartao.imagem} alt={cartao.nome} className="h-10 w-auto object-contain" />
-            </div>
-            
-            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Seu Match Score</p>
-                <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                        <div key={i} className={`h-2 flex-1 rounded-full ${i < cartao.matchScore ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Pontuação:</span><span className="font-semibold text-slate-800 dark:text-white">{cartao.pontuacao}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Anuidade:</span><span className="font-semibold text-slate-800 dark:text-white">{formatCurrency(cartao.anuidade)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Sala VIP:</span><span className={`font-semibold ${cartao.salaVip ? 'text-green-500' : 'text-red-500'}`}>{cartao.salaVip ? 'Sim' : 'Não'}</span></div>
-                <div className="pt-2">
-                    <p className="font-medium text-gray-500 dark:text-gray-400 mb-1">Outros Benefícios:</p>
-                    <ul className="list-disc list-inside text-slate-800 dark:text-white">
-                        {cartao.beneficios.map((b, i) => <li key={i}>{b}</li>)}
-                    </ul>
-                </div>
+         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 animate-fade-in">
+            <div className="bg-white dark:bg-[#201b5d] rounded-xl shadow-lg p-8 w-full max-w-lg">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">{isEditing ? 'Editar Viagem' : 'Nova Meta de Viagem'}</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Nome do Destino</label><input type="text" value={nomeDestino} onChange={e => setNomeDestino(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/></div>
+                        <div><label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Companhia/Programa</label><input type="text" value={companhia} onChange={e => setCompanhia(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/></div>
+                        <div><label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Origem (Sigla)</label><input type="text" value={origem} onChange={e => setOrigem(e.target.value.toUpperCase())} maxLength="3" required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/></div>
+                        <div><label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Destino (Sigla)</label><input type="text" value={destino} onChange={e => setDestino(e.target.value.toUpperCase())} maxLength="3" required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/></div>
+                        <div><label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Milhas Necessárias</label><input type="number" value={milhasNecessarias} onChange={e => setMilhasNecessarias(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/></div>
+                        <div><label className="block font-medium text-gray-600 dark:text-gray-400">Milhas Atuais</label><input type="number" value={milhasAtuais} onChange={e => setMilhasAtuais(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/></div>
+                    </div>
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cancelar</button>
+                        <button type="submit" className="px-6 py-2 text-sm font-medium text-black bg-[#00d971] rounded-lg hover:brightness-90">Salvar</button>
+                    </div>
+                </form>
             </div>
         </div>
     );
 };
 
+// PASSO 3: SUBSTITUA O PLACEHOLDER DA TelaMilhas POR ESTE CÓDIGO
 
-// Componente principal da tela
+// Dados de exemplo para iniciar a tela
+const mockViagens = [
+    { id: 1, origem: 'GRU', destino: 'NRT', nomeDestino: 'Tóquio, Japão', companhia: 'LATAM Pass', milhasNecessarias: 120000, milhasAtuais: 45000 },
+    { id: 2, origem: 'GIG', destino: 'CDG', nomeDestino: 'Paris, França', companhia: 'Smiles', milhasNecessarias: 85000, milhasAtuais: 85000 },
+];
+
+const TelaMilhas = () => {
+    const [viagens, setViagens] = useState(mockViagens);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [viagemParaEditar, setViagemParaEditar] = useState(null);
+
+    const handleOpenModalParaCriar = () => {
+        setViagemParaEditar(null);
+        setIsModalOpen(true);
+    };
+
+    const handleOpenModalParaEditar = (viagem) => {
+        setViagemParaEditar(viagem);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setViagemParaEditar(null);
+    };
+
+    const handleSaveViagem = (dadosViagem) => {
+        if (viagemParaEditar) {
+            // Edita uma viagem existente
+            setViagens(prev => prev.map(v => v.id === viagemParaEditar.id ? { ...v, ...dadosViagem } : v));
+        } else {
+            // Adiciona uma nova viagem
+            setViagens(prev => [...prev, { ...dadosViagem, id: Date.now() }]);
+        }
+    };
+    
+    const handleDeleteViagem = (id) => {
+        if (window.confirm("Tem certeza que deseja excluir esta meta de viagem?")) {
+            setViagens(prev => prev.filter(v => v.id !== id));
+        }
+    };
+
+    return (
+        <div className="max-w-6xl mx-auto space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Planejamento de Milhas</h1>
+                <button onClick={handleOpenModalParaCriar} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-[#00d971] text-black rounded-lg hover:brightness-90 transition-transform hover:scale-105">
+                    <PlusCircle size={18} />
+                    Adicionar Viagem
+                </button>
+            </div>
+
+            <div className="space-y-6">
+                {viagens.map(viagem => (
+                    <TicketDeViagem 
+                        key={viagem.id} 
+                        viagem={viagem}
+                        onEdit={() => handleOpenModalParaEditar(viagem)}
+                        onDelete={() => handleDeleteViagem(viagem.id)}
+                    />
+                ))}
+            </div>
+
+            <ModalNovaViagem
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+                onSave={handleSaveViagem}
+                viagemExistente={viagemParaEditar}
+            />
+        </div>
+    );
+};
+
+const CardDeComparacao = ({ cartao }) => {
+    // Se nenhum cartão for selecionado, mostra o placeholder
+    if (!cartao) {
+        return (
+            <div className="border border-dashed border-slate-300 dark:border-slate-700 rounded-lg h-[200px] flex items-center justify-center">
+                <p className="text-slate-500 dark:text-gray-400">Selecione um cartão acima</p>
+            </div>
+        );
+    }
+
+    // Lógica para processar os dados do JSON
+    const anuidadeNumerica = parseFloat(cartao.anuidade?.replace('R$', '').replace('.', '').replace(',', '.')) || 0;
+    const beneficiosLista = cartao.outros_beneficios?.split('|').map(b => b.trim()) || [];
+    const temSalaVip = cartao.salas_vip && cartao.salas_vip.toLowerCase() !== 'não tem';
+
+    return (
+        // O componente agora começa diretamente com os detalhes
+        <div className="space-y-4">
+            {cartao.matchScore && (
+                <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Seu Match Score</p>
+                    <div className="flex gap-1">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className={`h-2 flex-1 rounded-full ${i < cartao.matchScore ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg space-y-3 text-sm">
+                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Pontuação:</span><span className="font-semibold text-slate-800 dark:text-white text-right">{cartao.acúmulo_de_pontos}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Anuidade:</span><span className="font-semibold text-slate-800 dark:text-white">{formatCurrency(anuidadeNumerica)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Sala VIP:</span><span className={`font-semibold ${temSalaVip ? 'text-green-500' : 'text-red-500'}`}>{temSalaVip ? 'Sim' : 'Não'}</span></div>
+                
+                {beneficiosLista.length > 0 && (
+                    <div className="pt-2">
+                        <p className="font-medium text-gray-500 dark:text-gray-400 mb-1">Outros Benefícios:</p>
+                        <ul className="list-disc list-inside text-slate-800 dark:text-white space-y-1">
+                            {beneficiosLista.map((b, i) => <li key={i}>{b}</li>)}
+                        </ul>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const TelaCartoes = () => {
-    const [cartao1Id, setCartao1Id] = useState(mockCartoesDeCredito[0].id);
-    const [cartao2Id, setCartao2Id] = useState(mockCartoesDeCredito[1].id);
+    // A lógica de estado e `useMemo` permanece a mesma
+    const [cartao1Id, setCartao1Id] = useState(dadosDosCartoes[0]?.id || '');
+    const [cartao2Id, setCartao2Id] = useState(dadosDosCartoes[1]?.id || '');
 
-    const cartao1 = useMemo(() => mockCartoesDeCredito.find(c => c.id === cartao1Id), [cartao1Id]);
-    const cartao2 = useMemo(() => mockCartoesDeCredito.find(c => c.id === cartao2Id), [cartao2Id]);
+    const cartao1 = useMemo(() => dadosDosCartoes.find(c => c.id === cartao1Id), [cartao1Id]);
+    const cartao2 = useMemo(() => dadosDosCartoes.find(c => c.id === cartao2Id), [cartao2Id]);
 
-    const opcoesDisponiveis1 = useMemo(() => mockCartoesDeCredito.filter(c => c.id !== cartao2Id), [cartao2Id]);
-    const opcoesDisponiveis2 = useMemo(() => mockCartoesDeCredito.filter(c => c.id !== cartao1Id), [cartao1Id]);
+    const opcoesDisponiveis1 = useMemo(() => dadosDosCartoes.filter(c => c.id !== cartao2Id), [cartao2Id]);
+    const opcoesDisponiveis2 = useMemo(() => dadosDosCartoes.filter(c => c.id !== cartao1Id), [cartao1Id]);
 
     return (
         <div className="max-w-6xl mx-auto">
             <Card>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    
                     {/* Coluna da Esquerda */}
-                    <div>
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-white text-center">ATUAL</h2>
                         <select 
                             value={cartao1Id} 
                             onChange={(e) => setCartao1Id(e.target.value)}
-                            className="w-full p-2 mb-4 rounded-md bg-slate-100 dark:bg-[#2a246f] text-slate-800 dark:text-white border border-slate-300 dark:border-[#3e388b]"
+                            className="w-full p-2 rounded-md bg-slate-100 dark:bg-[#2a246f] text-slate-800 dark:text-white border border-slate-300 dark:border-[#3e388b]"
                         >
                             {opcoesDisponiveis1.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                         </select>
+                        
+                        {/* Imagem grande do cartão */}
+                        <div className="w-full h-48 flex items-center justify-center p-4 rounded-lg">
+                            {cartao1 ? (
+                                <img src={cartao1.imagem_url} alt={cartao1.nome} className="max-w-full max-h-full object-contain" />
+                            ) : null}
+                        </div>
+                        
                         <CardDeComparacao cartao={cartao1} />
                     </div>
 
                     {/* Coluna da Direita */}
-                    <div>
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-white text-center">SUGESTÃO</h2>
                         <select 
                             value={cartao2Id} 
                             onChange={(e) => setCartao2Id(e.target.value)}
-                            className="w-full p-2 mb-4 rounded-md bg-slate-100 dark:bg-[#2a246f] text-slate-800 dark:text-white border border-slate-300 dark:border-[#3e388b]"
+                            className="w-full p-2 rounded-md bg-slate-100 dark:bg-[#2a246f] text-slate-800 dark:text-white border border-slate-300 dark:border-[#3e388b]"
                         >
                             {opcoesDisponiveis2.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                         </select>
+                        
+                        {/* Imagem grande do cartão */}
+                         <div className="w-full h-48 flex items-center justify-center p-4 rounded-lg">
+                            {cartao2 ? (
+                                <img src={cartao2.imagem_url} alt={cartao2.nome} className="max-w-full max-h-full object-contain" />
+                            ) : null}
+                        </div>
+                        
                         <CardDeComparacao cartao={cartao2} />
                     </div>
                 </div>

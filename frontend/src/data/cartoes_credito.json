@@ -1,0 +1,919 @@
+[
+  {
+    "id": "bradesco-american-express-centurion",
+    "posicao": "1°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/fd17392878dc6a40dc462472592bd942.jpg",
+    "nome": "Bradesco American Express Centurion",
+    "anuidade": "R$ 25.000",
+    "acúmulo_de_pontos": "| 5 a 7 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Priority Pass ilimitado com 12 convidados por visita | Salas Bradesco com convidado | Salas American Express | Salas Delta (voando na cia)",
+    "outros_beneficios": "7 pontos por dólar em gastos em companhias aéreas, hotéis, locação de veículos e agências de viagens | Status elite em locadoras de veículos e redes de hotéis | Pontos podem ser resgatados na Livelo ou Membership Rewards | 4 cartões adicionais grátis"
+  },
+  {
+    "id": "brb-dux-visa-infinite",
+    "posicao": "2°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/7c7ea60be661a39e72fbbb36472a2059.png",
+    "nome": "BRB Dux Visa Infinite",
+    "anuidade": "R$ 1.680",
+    "spread": "4%",
+    "acúmulo_de_pontos": "| 5 a 7 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey, Priority Pass e Dragon Pass ilimitados com convidados | Salas BRB com convidados | (mediante R$ 5 mil em gastos por mês)",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 35 mil por mês | 7 pontos por dólar em compras no exterior | 4 cartões adicionais grátis | Também disponível nas versões Eurobike, Casacor e Flamengo"
+  },
+  {
+    "id": "caixa-investidor-visa-infinite",
+    "posicao": "3°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/4ba98dc7df6d6665664149ae837ccbd8.png",
+    "nome": "Caixa Investidor Visa Infinite",
+    "anuidade": "R$ 1.440",
+    "acúmulo_de_pontos": "| 4 a 6 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey ilimitado com 10 convidados por ano | Dragon Pass ilimitado com 10 convidados por ano",
+    "outros_beneficios": "6 pontos por dólar em compras internacionais | Anuidade grátis para gastos acima de R$ 25 mil por mês ou clientes Private | Exige R$ 1 milhão em investimentos | 5 cartões adicionais grátis"
+  },
+  {
+    "id": "item-1752429314456"
+  },
+  {
+    "id": "bradesco-aeternum-visa-infinite",
+    "posicao": "4°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/8d68b010902a31819aaef2a56606bbdf.png",
+    "nome": "Bradesco Aeternum Visa Infinite",
+    "anuidade": "R$ 1.920",
+    "acúmulo_de_pontos": "| 4 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey e Dragon Pass ilimitado com 12 convidados por ano | Salas Bradesco e parceiras com convidado",
+    "outros_beneficios": "Anuidade grátis para clientes com R$ 5 milhões em investimentos | 5 cartões adicionais grátis"
+  },
+  {
+    "id": "c6-bank-graphene-mastercard-black",
+    "posicao": "5°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/65f9c8af0677ad59efecebd4b61e2acb.jpg",
+    "nome": "C6 Bank Graphene Mastercard Black",
+    "anuidade": "R$ 3.960",
+    "acúmulo_de_pontos": "| 4 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Dragon Pass ilimitado com convidados | Mastercard GRU",
+    "outros_beneficios": "Exige R$ 5 milhões em investimentos | 4 cartões adicionais grátis | Pontos podem ser transferidos para a Livelo"
+  },
+  {
+    "id": "unicred-impar-visa-infinite",
+    "posicao": "6°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/c4daf73fd98cdbb6da16b1ede7959740.png",
+    "nome": "Unicred Ímpar Visa Infinite",
+    "anuidade": "R$ 3.000",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 3 a 3,5 pontos por dólar | Expiram em 5 anos",
+    "salas_vip": "| LoungeKey e Dragon Pass ilimitado com convidado",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 40 mil ou R$ 3 milhões em investimentos | 3,5 pontos por dólar nas faturas a partir de R$ 25.000"
+  },
+  {
+    "id": "itau-the-one-mastercard-black-private",
+    "posicao": "7°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/c21e531dcaacd3541db5c399ec7a74fe.png",
+    "nome": "Itaú The One Mastercard Black Private",
+    "anuidade": "R$ 4.000",
+    "acúmulo_de_pontos": "| 4 pontos por dólar até 31/12/25 | 3 a 3,5 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey ilimitado com 20 convidados por ano | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 60 mil por mês ou R$ 5 milhões em investimentos | 3,5 pontos por dólar em compras no exterior | 6 cartões adicionais grátis"
+  },
+  {
+    "id": "itau-the-one-mastercard-black-personnalite",
+    "posicao": "8°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/770ebc32def8652692de1f5885569f11.png",
+    "nome": "Itaú The One Mastercard Black Personnalité",
+    "anuidade": "R$ 4.000",
+    "acúmulo_de_pontos": "| 3 a 3,5 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey ilimitado com 12 convidados por ano | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 60 mil ou Nível 5 no Minhas Vantagens do Itaú | 3,5 pontos por dólar em compras no exterior | 6 cartões adicionais grátis"
+  },
+  {
+    "id": "btg-pactual-ultrablue-mastercard-black",
+    "posicao": "9°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/0ff30920f0b71a9beb7a9581b7d03773.png",
+    "nome": "BTG Pactual Ultrablue Mastercard Black",
+    "anuidade": "R$ 4.800",
+    "acúmulo_de_pontos": "| 3 a 3,5 pontos por dólar ou 1,5% a 1,7% de cashback",
+    "salas_vip": "| LoungeKey ilimitado com 12 convidados por ano | Mastercard GRU",
+    "outros_beneficios": "Exige R$ 1 milhão em investimentos | Anuidade grátis para gastos acima de R$ 40 mil por mês ou R$ 400 mil em investimentos | 3,5 pontos por dólar ou 1,7% de cashback em compras internacionais | 7 cartões adicionais grátis"
+  },
+  {
+    "id": "santander-american-express-centurion",
+    "posicao": "10°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/6a1c1b4facb70c7de98065a16e9e5b47.png",
+    "nome": "Santander American Express Centurion",
+    "anuidade": "R$ 25.000",
+    "acúmulo_de_pontos": "| 0 a 3,8 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Priority Pass ilimitado com 8 convidados por ano | Salas American Express | Salas Delta (voando na cia)",
+    "outros_beneficios": "550 mil pontos ao gastar R$ 720 mil ao ano | 800 mil pontos ao gastar R$ 1,32 milhão ao ano | 1 milhão de pontos ao gastar R$ 1,92 milhão ao ano | Status elite em locadoras de veículos e redes de hotéis | Pontos podem ser resgatados na Esfera ou Membership Rewards | 7 cartões adicionais grátis"
+  },
+  {
+    "id": "sicredi-visa-infinite",
+    "posicao": "11°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/035737d5a349d59008be780c74bfa316.jpg",
+    "nome": "Sicredi Visa Infinite",
+    "anuidade": "R$ 1.200",
+    "acúmulo_de_pontos": "| 3 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey e Dragon Pass ilimitado com convidados",
+    "outros_beneficios": "Sem regra para anuidade grátis"
+  },
+  {
+    "id": "banescard-visa-infinite",
+    "posicao": "12°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/7c2c5e49680fae406f156b6afcb33d15.png",
+    "nome": "Banescard Visa Infinite",
+    "anuidade": "R$ 900",
+    "acúmulo_de_pontos": "| 2,7 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 2 acessos por ano | Dragon Pass 2 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 12 mil ou R$ 150 mil em investimentos | 5 cartões adicionais grátis | Pontos podem ser transferidos para a Livelo"
+  },
+  {
+    "id": "santander-unlimited-visa-infinite",
+    "posicao": "13°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/41f779e7c0a8a1ddf2502a814e90ee65.png",
+    "nome": "Santander Unlimited Visa Infinite",
+    "anuidade": "R$ 2.000",
+    "acúmulo_de_pontos": "| 2,6 a 4 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Dragon Pass ilimitado com 8 convidados por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 30 mil por mês ou R$ 5 milhões em investimentos | 3,6 pontos por dólar em compras no exterior para Select | 4 pontos por dólar em compras no exterior para Private | 7 cartões adicionais grátis"
+  },
+  {
+    "id": "santander-unlimited-mastercard-black",
+    "posicao": "14°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/c22a52008087c645526b59a26811f5d9.png",
+    "nome": "Santander Unlimited Mastercard Black",
+    "anuidade": "R$ 2.000",
+    "acúmulo_de_pontos": "| 2,6 a 4 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey ilimitado com 8 convidados por ano | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 30 mil por mês ou R$ 5 milhões em investimentos | 3,6 pontos por dólar em compras no exterior para Select | 4 pontos por dólar em compras no exterior para Private | 7 cartões adicionais grátis"
+  },
+  {
+    "id": "c6-carbon-mastercard-black",
+    "posicao": "15°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/282f62376e7dee24e9b8036f0c53a697.jpg",
+    "nome": "C6 Carbon Mastercard Black",
+    "anuidade": "R$ 1.176",
+    "acúmulo_de_pontos": "| 2,5 a 3,5 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Dragon Pass 4 acessos por ano | Dragon Pass ilimitado (mediante R$ 20 mil em gastos por mês ou R$ 1 milhão em investimentos) | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 8 mil por mês ou R$ 50 mil em investimentos | 2,7 pontos por dólar com investimentos a partir de R$ 250 mil | 3 pontos por dólar com investimentos a partir de R$ 500 mil | 3,5 pontos por dólar com investimentos a partir de R$ 1 milhão | 6 cartões adicionais grátis"
+  },
+  {
+    "id": "caixa-elo-diners-club",
+    "posicao": "16°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/68f5ec2ba5e4fb6e453bff3e53823528.png",
+    "nome": "Caixa ELO Diners Club",
+    "anuidade": "R$ 1.100",
+    "acúmulo_de_pontos": "| 2,5 a 3,5 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Priority Pass 4 acessos por ano",
+    "outros_beneficios": "Valor da anuidade de volta em crédito da fatura gastando a partir de R$ 10 mil por mês | 3,5 pontos por dólar em compras no exterior | 2 transfers para o aeroporto por ano"
+  },
+  {
+    "id": "itau-private-visa-infinite",
+    "posicao": "17°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/cf099f33706aa33e4d30bd9fb6ad2475.jpg",
+    "nome": "Itaú Private Visa Infinite",
+    "anuidade": "R$ 0",
+    "acúmulo_de_pontos": "| 2,5 a 3 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Dragon Pass 10 acessos por ano",
+    "outros_beneficios": "Anuidade grátis | 3 pontos por dólar em compras no exterior | 6 cartões adicionais grátis | Exclusivo para clientes Private"
+  },
+  {
+    "id": "bradesco-principal-visa-infinite",
+    "posicao": "18°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/25c8e8d0bc78e586d31acd931a45ad90.png",
+    "nome": "Bradesco Principal Visa Infinite",
+    "anuidade": "R$ 1.500",
+    "acúmulo_de_pontos": "| 2,5 a 3 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Dragon Pass 4 acessos por ano | Salas Bradesco 4 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 15 mil por mês ou R$ 300 mil em investimentos | 3 pontos por dólar em compras internacionais | 4 cartões adicionais grátis"
+  },
+  {
+    "id": "banco-do-brasil-altus-visa-infinite-pontos",
+    "posicao": "19°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/671d6301bd4c2c86450c9af517f52f76.png",
+    "nome": "Banco do Brasil Altus Visa Infinite Pontos",
+    "anuidade": "R$ 1.800",
+    "acúmulo_de_pontos": "| 4 pontos por dólar até 30/09/25 | 2,5 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey e Dragon Pass ilimitado com convidados",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 25 mil por mês | 8 cartões adicionais grátis | Exclusivo para clientes Private Bank"
+  },
+  {
+    "id": "banco-industrial-do-brasil-visa-infinite",
+    "posicao": "20°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/0d015a9f06f8097a48bb93fec661cc01.png",
+    "nome": "Banco Industrial do Brasil Visa Infinite",
+    "anuidade": "R$ 0",
+    "acúmulo_de_pontos": "| 2,5 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey e Dragon Pass ilimitado com 1 convidado por ano",
+    "outros_beneficios": "Anuidade grátis | 10 cartões adicionais grátis | Exclusivos para clientes com R$ 250 mil em investimentos e que passem por uma avaliação interna"
+  },
+  {
+    "id": "porto-bank-mastercard-black",
+    "posicao": "21°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/cd829632690155ebdc5bf7c012112635.png",
+    "nome": "Porto Bank Mastercard Black",
+    "anuidade": "R$ 990",
+    "acúmulo_de_pontos": "| 2,5 a 3,5 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey 10 acessos por ano | BRB Coworking CGH | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 10 mil por mês ou R$ 100 mil em investimentos | 3,5 pontos por dólar em gastos acima de R$ 20 mil por mês | 3 cartões adicionais grátis"
+  },
+  {
+    "id": "porto-bank-visa-infinite",
+    "posicao": "22°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/e65f3edc8282e842f816f6a0d410fc0e.jpg",
+    "nome": "Porto Bank Visa Infinite",
+    "anuidade": "R$ 990",
+    "acúmulo_de_pontos": "| 2,5 a 3,5 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Dragon Pass 10 acessos por ano | BRB Coworking CGH",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 10 mil por mês ou R$ 100 mil em investimentos | 3,5 pontos por dólar em gastos acima de R$ 20 mil por mês | 3 cartões adicionais grátis"
+  },
+  {
+    "id": "sicoob-mastercard-black-merit",
+    "posicao": "23°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/e3893760c8884e373c7383fbf205639e.png",
+    "nome": "Sicoob Mastercard Black Merit",
+    "anuidade": "R$ 770",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 2,5 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 12 acessos por ano | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 10 mil por mês"
+  },
+  {
+    "id": "caixa-elo-nanquim",
+    "posicao": "24°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/e78e36ae17fa750226d60555a4c77f0e.png",
+    "nome": "Caixa ELO Nanquim",
+    "anuidade": "R$ 828",
+    "acúmulo_de_pontos": "| 2,3 a 3,2 pontos por dólar | Expiram em 3 anos",
+    "salas_vip": "| Priority Pass 2 acessos por ano",
+    "outros_beneficios": "Valor da anuidade de volta em crédito da fatura gastando a partir de R$ 8 mil por mês | 3,2 pontos por dólar em compras no exterior"
+  },
+  {
+    "id": "caixa-visa-infinite",
+    "posicao": "25°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/8eaa6b673ac0570ff2adc0ec7c85d3c4.jpg",
+    "nome": "Caixa Visa Infinite",
+    "anuidade": "R$ 921",
+    "acúmulo_de_pontos": "| 2,3 a 3,2 pontos por dólar | Expiram em 3 anos",
+    "salas_vip": "| Dragon Pass 2 acessos por ano",
+    "outros_beneficios": "Valor da anuidade de volta em crédito da fatura gastando a partir de R$ 8 mil por mês | 3,2 pontos por dólar em compras no exterior"
+  },
+  {
+    "id": "bradesco-elo-diners-club",
+    "posicao": "26°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/bb1c54e9955999f1847482c3825e45ad.png",
+    "nome": "Bradesco ELO Diners Club",
+    "anuidade": "R$ 1.728",
+    "acúmulo_de_pontos": "| 2,2 a 3,3 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Priority Pass 4 acessos por ano | Salas Bradesco com convidado",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 10 mil por mês | 3,3 pontos por dólar em compras no exterior | 2 transfers para o aeroporto por ano | 2 cartões adicionais grátis"
+  },
+  {
+    "id": "ourocard-elo-diners-club-pontos",
+    "posicao": "27°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/3a698226d09fe1765ad8082ea33cde44.webp",
+    "nome": "Ourocard ELO Diners Club Pontos",
+    "anuidade": "R$ 1.380",
+    "acúmulo_de_pontos": "| 2,2 a 3 pontos por dólar | Expiram em 4 anos",
+    "salas_vip": "| Priority Pass 4 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 10 mil por mês para clientes Estilo ou acima de R$ 15 mil para demais | 3 pontos por dólar em compras no exterior | 2 transfers para o aeroporto por ano | 6 cartões adicionais grátis"
+  },
+  {
+    "id": "bradesco-american-express-the-platinum-card",
+    "posicao": "28°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/ac2ffd88832f0d6a9c3a81fad0d11699.png",
+    "nome": "Bradesco American Express The Platinum Card",
+    "anuidade": "R$ 1.812",
+    "acúmulo_de_pontos": "| 2,2 a 3 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Salas Bradesco com convidado | Salas American Express | Salas Delta (voando na cia)",
+    "outros_beneficios": "3 pontos por dólar em compras no exterior | Status elite em locadoras de veículos e redes de hotéis | 2 cartões adicionais grátis"
+  },
+  {
+    "id": "unicred-visa-infinite",
+    "posicao": "29°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/fcefc3021c393972f14fcfc9af2229ee.png",
+    "nome": "Unicred Visa Infinite",
+    "anuidade": "R$ 900",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 2,2 a 2,5 pontos por dólar | Expiram em 3 anos",
+    "salas_vip": "| LoungeKey e Dragon Pass 12 acessos por ano",
+    "outros_beneficios": "2,5 pontos por dólar em compras no exterior ou nas faturas a partir de R$ 15 mil"
+  },
+  {
+    "id": "sisprime-mastercard-black",
+    "posicao": "30°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/b44ee378085258a44eed1e29b8096a88.png",
+    "nome": "Sisprime Mastercard Black",
+    "anuidade": "R$ 840",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 12 acessos por ano | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de 30% do limite do cartão por mês | 0,7 ponto por dólar no débito"
+  },
+  {
+    "id": "santander-american-express-the-platinum-card",
+    "posicao": "31°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/0e3cb42b20b3268c67030137c426d4f1.png",
+    "nome": "Santander American Express The Platinum Card",
+    "anuidade": "R$ 1.450",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Priority Pass 2 acessos por ano | Salas American Express | Salas Delta (voando na cia)",
+    "outros_beneficios": "Status elite em locadoras de veículos e redes de hotéis | Pontos podem ser resgatados na Esfera ou Membership Rewards"
+  },
+  {
+    "id": "cresol-mastercard-black",
+    "posicao": "32°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/3f0f900355981cca9e759f13737969b0.png",
+    "nome": "Cresol Mastercard Black",
+    "anuidade": "R$ 900",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 4 acessos por ano | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 12 mil por mês"
+  },
+  {
+    "id": "sicoob-visa-infinite",
+    "posicao": "33°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/025eab7cc226c7ef88194442ae2e38d0.jpg",
+    "nome": "Sicoob Visa Infinite",
+    "anuidade": "R$ 770",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 4 acessos por ano",
+    "outros_beneficios": "Sem regra para anuidade grátis"
+  },
+  {
+    "id": "btg-pactual-mastercard-black",
+    "posicao": "34°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/5a59ace3ec852780a911e261ee385631.png",
+    "nome": "BTG Pactual Mastercard Black",
+    "anuidade": "R$ 1.320",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar ou 1% de cashback",
+    "salas_vip": "| LoungeKey 4 acessos por ano | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 14 mil por mês ou R$ 120 mil em investimentos | 7 cartões adicionais grátis"
+  },
+  {
+    "id": "banrisul-visa-infinite",
+    "posicao": "35°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/e204559d3a1830a15bfdcce2d4576957.png",
+    "nome": "Banrisul Visa Infinite",
+    "anuidade": "R$ 996",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey e Dragon Pass 4 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 8 mil por mês | 3 cartões adicionais grátis"
+  },
+  {
+    "id": "banrisul-mastercard-black",
+    "posicao": "36°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/fdbe656238150bb5c2b8c45004ba66a0.png",
+    "nome": "Banrisul Mastercard Black",
+    "anuidade": "R$ 888",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 4 acesso por ano | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 8 mil por mês | 3 cartões adicionais grátis"
+  },
+  {
+    "id": "banese-card-elo-nanquim",
+    "posicao": "37°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/986fbe198fa63409d5227cbed12171d2.png",
+    "nome": "Banese Card ELO Nanquim",
+    "anuidade": "R$ 720",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| Priority Pass 2 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 5.500 por mês"
+  },
+  {
+    "id": "sicoob-mastercard-black",
+    "posicao": "38°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/78f00f5c0664c27a0ba653cd0b09a522.png",
+    "nome": "Sicoob Mastercard Black",
+    "anuidade": "R$ 750",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| Mastercard GRU",
+    "outros_beneficios": ""
+  },
+  {
+    "id": "banpara-mastercard-black-exclusive",
+    "posicao": "39°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/4f1fcb484c168fb6d0e5871c5302e50a.jpg",
+    "nome": "Banpará Mastercard Black Exclusive",
+    "anuidade": "R$ 1.080",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| Mastercard GRU",
+    "outros_beneficios": "Sem regra para anuidade grátis"
+  },
+  {
+    "id": "banescard-visa-platinum",
+    "posicao": "40°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/b88f6de5d01c2c9fff9fe8432d4cf87a.png",
+    "nome": "Banescard Visa Platinum",
+    "anuidade": "R$ 300",
+    "acúmulo_de_pontos": "| 2,2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 4.500 por mês ou R$ 60 mil em investimentos | 5 cartões adicionais grátis"
+  },
+  {
+    "id": "caixa-mastercard-black",
+    "posicao": "41°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/3cb6fafaf627ab944c0e51f1a04547cf.jpg",
+    "nome": "Caixa Mastercard Black",
+    "anuidade": "R$ 921",
+    "acúmulo_de_pontos": "| 2,1 pontos por dólar | Expiram em 3 anos",
+    "salas_vip": "| LoungeKey 2 acessos por ano | Mastercard GRU",
+    "outros_beneficios": "Valor da anuidade de volta em crédito da fatura gastando a partir de R$ 8 mil por mês"
+  },
+  {
+    "id": "itau-pao-de-acucar-mastercard-black",
+    "posicao": "42°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/00eb5910a69edb16497346f2ab5aa53a.png",
+    "nome": "Itaú Pão de Açúcar Mastercard Black",
+    "anuidade": "R$ 678",
+    "acúmulo_de_pontos": "| 2 a 5 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| Mastercard GRU",
+    "outros_beneficios": "5 pontos por dólar em compras na rede GPA | 3 pontos em compras internacionais"
+  },
+  {
+    "id": "ourocard-visa-infinite-pontos",
+    "posicao": "43°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/dcc010686707c19bbd5ea59ec53f7fd5.png",
+    "nome": "Ourocard Visa Infinite Pontos",
+    "anuidade": "R$ 996",
+    "acúmulo_de_pontos": "| 2 a 3 pontos por dólar | Expiram em 4 anos",
+    "salas_vip": "| Dragon Pass 4 acessos por ano",
+    "outros_beneficios": "3 pontos por dólar em compras no exterior | Anuidade grátis para gastos acima de R$ 10 mil por mês para clientes Estilo ou acima de R$ 15 mil para demais | 6 cartões adicionais grátis"
+  },
+  {
+    "id": "itau-personnalite-mastercard-black",
+    "posicao": "44°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/9f34f628e0df3cbd0e036b36d4caa75e.png",
+    "nome": "Itaú Personnalité Mastercard Black",
+    "anuidade": "R$ 1.056",
+    "acúmulo_de_pontos": "| 2 a 3 pontos por dólar | Nunca expiram",
+    "salas_vip": "| LoungeKey 2 acessos por ano | Mastercard GRU",
+    "outros_beneficios": "3 pontos por dólar em compras no exterior | Anuidade grátis para gastos acima de R$ 10 mil por mês ou R$ 50 mil em investimentos | 6 cartões adicionais grátis"
+  },
+  {
+    "id": "ourocard-elo-nanquim-estilo-pontos",
+    "posicao": "45°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/c0a71252575d3f0b272fc6202f400427.png",
+    "nome": "Ourocard ELO Nanquim Estilo Pontos",
+    "anuidade": "R$ 1.009",
+    "acúmulo_de_pontos": "| 2 a 3 pontos por dólar | Expiram em 4 anos",
+    "salas_vip": "| Priority Pass 2 acessos por ano",
+    "outros_beneficios": "3 pontos por dólar em compras no exterior | Anuidade grátis para gastos acima de R$ 10 mil por mês para Estilo ou acima de R$ 15 mil para demais ou R$ 250 mil em investimentos | 6 cartões adicionais grátis"
+  },
+  {
+    "id": "itau-personnalite-visa-infinite",
+    "posicao": "46°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/aa430e06a2f1c450ab7d17f9435e2c19.png",
+    "nome": "Itaú Personnalité Visa Infinite",
+    "anuidade": "R$ 967",
+    "acúmulo_de_pontos": "| 2 a 3 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Dragon Pass 2 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 10 mil por mês ou R$ 50 mil em investimentos | 3 pontos por dólar em compras no exterior | 6 cartões adicionais grátis"
+  },
+  {
+    "id": "safra-visa-infinite",
+    "posicao": "47°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/22f4c9d236b2bfd03d4ab63dc1b47fa7.jpg",
+    "nome": "Safra Visa Infinite",
+    "anuidade": "R$ 1.200",
+    "acúmulo_de_pontos": "| 2 a 3 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Sala VIP Espaço Safra (GRU) com convidado",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 8 mil por mês ou R$ 500 mil em investimentos | 2,5 pontos em gastos acima de R$ 20 mil por mês | 3 pontos em gastos no exterior"
+  },
+  {
+    "id": "ourocard-mastercard-black-pontos",
+    "posicao": "48°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/d957616c45862eff88536e6f0f09f376.png",
+    "nome": "Ourocard Mastercard Black Pontos",
+    "anuidade": "R$ 1.021",
+    "acúmulo_de_pontos": "| 2 a 3 pontos por dólar | Expiram em 4 anos",
+    "salas_vip": "| Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 15 mil por mês | 3 pontos por dólar em compras no exterior"
+  },
+  {
+    "id": "santander-unique-visa-infinite-pontos",
+    "posicao": "49°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/d32b4d8c92ed73111048fd5ebdb186eb.png",
+    "nome": "Santander Unique Visa Infinite Pontos",
+    "anuidade": "R$ 1.050",
+    "acúmulo_de_pontos": "| 2 a 3 pontos por dólar | Expiram em 3 anos",
+    "salas_vip": "| Dragon Pass 2 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 8 mil por mês ou R$ 50 mil em investimentos para correntistas | 3 pontos por dólar em compras internacionais | 5 cartões adicionais grátis"
+  },
+  {
+    "id": "santander-unique-mastercard-black-pontos",
+    "posicao": "50°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/02a828008706142a6db591350ccc1b1b.jpg",
+    "nome": "Santander Unique Mastercard Black Pontos",
+    "anuidade": "R$ 1.050",
+    "acúmulo_de_pontos": "| 2 a 3 pontos por dólar | Expiram em 3 anos",
+    "salas_vip": "| LoungeKey 2 acessos por ano | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 8 mil por mês ou R$ 50 mil em investimentos para correntistas | 3 pontos por dólar em compras internacionais | 5 cartões adicionais grátis"
+  },
+  {
+    "id": "sicredi-mastercard-black",
+    "posicao": "51°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/aa7351b83c2ae0dd34f36ba2ebfc3d69.png",
+    "nome": "Sicredi Mastercard Black",
+    "anuidade": "R$ 750",
+    "acúmulo_de_pontos": "| 2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 12 acessos por ano | Mastercard GRU",
+    "outros_beneficios": "Sem regra para anuidade grátis"
+  },
+  {
+    "id": "brb-visa-infinite",
+    "posicao": "52°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/5bb7f4b969143fb9d2623a58bdf16e9e.png",
+    "nome": "BRB Visa Infinite",
+    "anuidade": "R$ 996",
+    "acúmulo_de_pontos": "| 2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 3 acessos por ano | Dragon Pass 3 acessos por ano | 4 acessos BRB VIP Club BSB e GYN e ilimitado inter BSB | 4 acessos coworking BRB SDU | 4 acessos coworking BRB CGH | (mediante R$ 5 mil em gastos por mês)",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 12.500 por mês"
+  },
+  {
+    "id": "brb-mastercard-black",
+    "posicao": "53°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/08129409055ced2943c988ae011fcd87.png",
+    "nome": "BRB Mastercard Black",
+    "anuidade": "R$ 996",
+    "acúmulo_de_pontos": "| 2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 3 acessos por ano | 4 acessos BRB VIP Club BSB e GYN e ilimitado inter BSB | 4 acessos coworking BRB SDU | 4 acessos coworking BRB CGH | (mediante R$ 5 mil em gastos por mês) | Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 12.500 por mês"
+  },
+  {
+    "id": "bradesco-visa-infinite",
+    "posicao": "54°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/78045f3a0254628b2b386cbf358789ee.png",
+    "nome": "Bradesco Visa Infinite",
+    "anuidade": "R$ 1.200",
+    "acúmulo_de_pontos": "| 2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| Dragon Pass 4 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 10 mil por mês ou R$ 250 mil em investimentos"
+  },
+  {
+    "id": "banco-do-nordeste-visa-infinite",
+    "posicao": "55°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/374d830daa7c63ede2ffbb73119fb3d9.png",
+    "nome": "Banco do Nordeste Visa Infinite",
+    "anuidade": "R$ 996",
+    "acúmulo_de_pontos": "| 2 pontos por dólar",
+    "salas_vip": "| LoungeKey 2 acessos por ano | Dragon Pass 2 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 8 mil por mês"
+  },
+  {
+    "id": "banpara-mastercard-black",
+    "posicao": "56°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/a40dfc4b67bd847fb838390542ea5032.jpg",
+    "nome": "Banpará Mastercard Black",
+    "anuidade": "R$ 960",
+    "acúmulo_de_pontos": "| 2 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| Mastercard GRU",
+    "outros_beneficios": "Sem regra para anuidade grátis"
+  },
+  {
+    "id": "bradesco-elo-nanquim",
+    "posicao": "57°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/e30a709bcd87391af413f0e855c25215.png",
+    "nome": "Bradesco ELO Nanquim",
+    "anuidade": "R$ 1.356",
+    "acúmulo_de_pontos": "| 1,8 a 2,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Priority Pass 2 acessos por ano",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 10 mil por mês | 2,5 pontos por dólar em compras no exterior"
+  },
+  {
+    "id": "bradesco-mastercard-black",
+    "posicao": "58°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/e73df2b1dfdf94e25b8039ebfa37c1d1.png",
+    "nome": "Bradesco Mastercard Black",
+    "anuidade": "R$ 1.356",
+    "acúmulo_de_pontos": "| 1,8 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| LoungeKey 2 acessos por ano | Mastercard GRU",
+    "outros_beneficios": "Também disponível na versão Prime"
+  },
+  {
+    "id": "itau-uniclass-mastercard-black",
+    "posicao": "59°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/b7e167fcae0a9fd2566bc01bf62381b0.png",
+    "nome": "Itaú Uniclass Mastercard Black",
+    "anuidade": "R$ 918",
+    "acúmulo_de_pontos": "| 1,8 ponto por dólar | Expiram em 3 anos",
+    "salas_vip": "| Mastercard GRU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 8 mil por mês ou R$ 50 mil em investimentos | 3 cartões adicionais grátis"
+  },
+  {
+    "id": "itau-uniclass-visa-infinite",
+    "posicao": "60°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/62a4fcc7aa5d61465ad8f8dd4052b62c.png",
+    "nome": "Itaú Uniclass Visa Infinite",
+    "anuidade": "R$ 918",
+    "acúmulo_de_pontos": "| 1,8 ponto por dólar | Expiram em 3 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 8 mil por mês ou R$ 50 mil em investimentos | 3 cartões adicionais grátis"
+  },
+  {
+    "id": "ourocard-elo-grafite-estilo-pontos",
+    "posicao": "61°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/9b75d4732613ace60bb9f59979b5ac9a.jpg",
+    "nome": "Ourocard ELO Grafite Estilo Pontos",
+    "anuidade": "R$ 472",
+    "acúmulo_de_pontos": "| 1,7 ponto por dólar | Expiram em 3 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 6 mil por mês"
+  },
+  {
+    "id": "nomad-explorer-visa-infinite",
+    "posicao": "62°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/b87d15ad6d35aea6af2d6b97654fb773.png",
+    "nome": "Nomad Explorer Visa Infinite",
+    "anuidade": "R$ 0",
+    "acúmulo_de_pontos": "| 1,6 a 3 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Dragon Pass 4 acessos por ano | Lounge Nomad com convidado",
+    "outros_beneficios": "Anuidade grátis | Exige US$ 1.000 em investimentos | 2 pontos por dólar com investimentos a partir de US$ 2.500 | 3 pontos por dólar com investimentos a partir de US$ 5.000"
+  },
+  {
+    "id": "xp-visa-infinite-pontos",
+    "posicao": "63°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/9cec9f331bd29669c91e521df8eda121.png",
+    "nome": "XP Visa Infinite Pontos",
+    "anuidade": "R$ 0",
+    "acúmulo_de_pontos": "| 1,6 a 2,2 pontos por dólar | Nunca expiram",
+    "salas_vip": "| Dragon Pass 4 acessos por ano (mediante R$ 3 mil em gastos por mês ou R$ 300 mil em investimentos)",
+    "outros_beneficios": "Anuidade grátis | 1,6 ponto nas faturas até R$ 7.500 | 2,2 pontos nas faturas acima de R$ 7.500 | Exige R$ 50 mil em investimentos | 6 cartões adicionais grátis"
+  },
+  {
+    "id": "caixa-elo-grafite",
+    "posicao": "64°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/d3f11277a24f229cb079f4a3466f602b.jpg",
+    "nome": "Caixa ELO Grafite",
+    "anuidade": "R$ 414",
+    "acúmulo_de_pontos": "| 1,6 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade com 90% de desconto ao receber o salário na Caixa | Benefícios ELO Flex"
+  },
+  {
+    "id": "itau-pao-de-acucar-mastercard-platinum",
+    "posicao": "65°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/3136ea818f61167c3a0911196d7658db.png",
+    "nome": "Itaú Pão de Açúcar Mastercard Platinum",
+    "anuidade": "R$ 421",
+    "acúmulo_de_pontos": "| 1,5 a 3 pontos por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "3 pontos por dólar em compras na rede GPA"
+  },
+  {
+    "id": "pan-visa-platinum",
+    "posicao": "66°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/f7229615ed30be3485f43e6c74d4e818.png",
+    "nome": "Pan Visa Platinum",
+    "anuidade": "R$ 499",
+    "acúmulo_de_pontos": "| 1,5 a 1,8 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "1,8 ponto por dólar e anuidade grátis para faturas acima de R$ 5 mil por mês | Pontos podem ser transferidos para a Livelo"
+  },
+  {
+    "id": "pan-mastercard-platinum",
+    "posicao": "67°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/a39fab56e82bb96e42e2c1846f2a14ae.png",
+    "nome": "Pan Mastercard Platinum",
+    "anuidade": "R$ 499",
+    "acúmulo_de_pontos": "| 1,5 a 1,8 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "1,8 ponto por dólar e anuidade grátis para faturas acima de R$ 5 mil por mês | Pontos podem ser transferidos para a Livelo"
+  },
+  {
+    "id": "bradesco-american-express-gold-card",
+    "posicao": "68°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/93ee31b2fbbdecee24e42ce4e48ac97b.png",
+    "nome": "Bradesco American Express Gold Card",
+    "anuidade": "R$ 747",
+    "acúmulo_de_pontos": "| 1,5 a 1,8 ponto por dólar | Nunca expiram",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "1,8 ponto por dólar em compras no exterior"
+  },
+  {
+    "id": "brb-visa-platinum",
+    "posicao": "69°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/841582d0fb63befaeb5c43bfb0e7e5e1.png",
+    "nome": "BRB Visa Platinum",
+    "anuidade": "R$ 558",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| 4 acessos BRB VIP Club GYN | 4 acessos coworking BRB SDU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 6.200 por mês"
+  },
+  {
+    "id": "brb-mastercard-platinum",
+    "posicao": "70°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/d0a988b7eaf340aacc387cb87501654a.png",
+    "nome": "BRB Mastercard Platinum",
+    "anuidade": "R$ 558",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| 4 acessos BRB VIP Club GYN | 4 acessos coworking BRB SDU",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 6.200 por mês"
+  },
+  {
+    "id": "sisprime-mastercard-platinum",
+    "posicao": "71°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/5d62234b6c66bf2f5d3a010d8465b750.png",
+    "nome": "Sisprime Mastercard Platinum",
+    "anuidade": "R$ 420",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de 30% do limite do cartão por mês | 0,6 ponto por dólar no débito"
+  },
+  {
+    "id": "santander-elite-visa-signature",
+    "posicao": "72°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/389e5632ee85559d5f90729a82d94689.png",
+    "nome": "Santander Elite Visa Signature",
+    "anuidade": "R$ 600",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 3 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 2 mil por mês para correntistas | Cashback limitado a R$ 500 por mês | 5 cartões adicionais grátis"
+  },
+  {
+    "id": "santander-elite-mastercard-platinum",
+    "posicao": "73°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/17a503bfe64943ffa5df1303abf64fab.png",
+    "nome": "Santander Elite Mastercard Platinum",
+    "anuidade": "R$ 600",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 3 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 2 mil por mês para correntistas | 5 cartões adicionais grátis"
+  },
+  {
+    "id": "banrisul-visa-platinum",
+    "posicao": "74°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/8108b13bb9b53d9c91a8ab34d1a3b84a.png",
+    "nome": "Banrisul Visa Platinum",
+    "anuidade": "R$ 528",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 4 mil por mês | 3 cartões adicionais gratuitos"
+  },
+  {
+    "id": "banrisul-mastercard-platinum",
+    "posicao": "75°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/b8a5a60841f653cbdb7f2386e54e5e11.png",
+    "nome": "Banrisul Mastercard Platinum",
+    "anuidade": "R$ 480",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 4 mil por mês | 3 cartões adicionais gratuitos"
+  },
+  {
+    "id": "cresol-mastercard-platinum",
+    "posicao": "76°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/761678ae1389489a18de8afcc1be9b18.png",
+    "nome": "Cresol Mastercard Platinum",
+    "anuidade": "R$ 358",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 4.200 por mês"
+  },
+  {
+    "id": "porto-bank-visa-platinum",
+    "posicao": "77°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/ad5d1ed1f588151af2bc893b8469b67f.png",
+    "nome": "Porto Bank Visa Platinum",
+    "anuidade": "R$ 648",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 7.000 por mês ou R$ 50 mil em investimentos | 4 cartões adicionais grátis"
+  },
+  {
+    "id": "porto-bank-mastercard-platinum",
+    "posicao": "78°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/5f009ffebe5f739a4e96a63dd49dd567.png",
+    "nome": "Porto Bank Mastercard Platinum",
+    "anuidade": "R$ 648",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 7.000 por mês ou R$ 50 mil em investimentos | 4 cartões adicionais grátis"
+  },
+  {
+    "id": "itau-personnalite-visa-signature",
+    "posicao": "79°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/ce16cf94e99cb8a58e2491a1932b12bb.png",
+    "nome": "Itaú Personnalité Visa Signature",
+    "anuidade": "R$ 678",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 3 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis com R$ 150 mil em investimentos"
+  },
+  {
+    "id": "sicredi-mastercard-platinum",
+    "posicao": "80°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/b55d8995911df1d65148fde9a178b516.png",
+    "nome": "Sicredi Mastercard Platinum",
+    "anuidade": "R$ 240",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": ""
+  },
+  {
+    "id": "sicoob-mastercard-platinum",
+    "posicao": "81°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/975b37713e6ce974dae7de4d22b2423b.png",
+    "nome": "Sicoob Mastercard Platinum",
+    "anuidade": "R$ 250",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": ""
+  },
+  {
+    "id": "unicred-mastercard-platinum",
+    "posicao": "82°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/889c4882501aeed7d91fe620a5a869b5.png",
+    "nome": "Unicred Mastercard Platinum",
+    "anuidade": "R$ 299",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": ""
+  },
+  {
+    "id": "unicred-visa-platinum",
+    "posicao": "83°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/1a4343e8e1bc42a5230a1992a79f5f9c.png",
+    "nome": "Unicred Visa Platinum",
+    "anuidade": "R$ 300",
+    "spread": "0%",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": ""
+  },
+  {
+    "id": "sicredi-visa-platinum",
+    "posicao": "84°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/6ba678884b4cbd2eca3ae81fe9927021.jpg",
+    "nome": "Sicredi Visa Platinum",
+    "anuidade": "R$ 400",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": ""
+  },
+  {
+    "id": "banpara-mastercard-platinum",
+    "posicao": "85°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/5d8e3b54bad01ea13959248950b1f4b5.jpg",
+    "nome": "Banpará Mastercard Platinum",
+    "anuidade": "R$ 400",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": ""
+  },
+  {
+    "id": "banco-do-nordeste-visa-platinum",
+    "posicao": "86°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/526c118fae3b6938e5da2c5092b98a7f.png",
+    "nome": "Banco do Nordeste Visa Platinum",
+    "anuidade": "R$ 430",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 2 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Pontos podem ser transferidos para a Livelo"
+  },
+  {
+    "id": "itau-personnalite-mastercard-platinum",
+    "posicao": "87°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/7f5696b5a093ea1b9f47fccd82bc2e43.png",
+    "nome": "Itaú Personnalité Mastercard Platinum",
+    "anuidade": "R$ 678",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 3 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis com R$ 150 mil em investimentos"
+  },
+  {
+    "id": "ourocard-visa-platinum-estilo-pontos",
+    "posicao": "88°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/93d837ae59e92a86736c82876554b6f6.png",
+    "nome": "Ourocard Visa Platinum Estilo Pontos",
+    "anuidade": "R$ 498",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Expiram em 3 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 6 mil por mês"
+  },
+  {
+    "id": "santander-dufry-mastercard-platinum",
+    "posicao": "89°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/61963d552d22417da68d5437f04f33b9.png",
+    "nome": "Santander Dufry Mastercard Platinum",
+    "anuidade": "R$ 624",
+    "acúmulo_de_pontos": "| 1,5 ponto por dólar | Nunca expiram",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "5 cartões adicionais grátis"
+  },
+  {
+    "id": "ourocard-elo-grafite",
+    "posicao": "90°",
+    "imagem_url": "https://imgmd.net/image/upload/c_limit,w_400/v1/cartoes/4fb2463b0f7c620e8b2261c784292e4a.png",
+    "nome": "Ourocard ELO Grafite",
+    "anuidade": "R$ 460",
+    "acúmulo_de_pontos": "| 1,4 ponto por dólar | Expiram em 3 anos",
+    "salas_vip": "| Não há",
+    "outros_beneficios": "Anuidade grátis para gastos acima de R$ 6 mil por mês"
+  }
+]

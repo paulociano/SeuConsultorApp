@@ -4,6 +4,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { Edit, PlusCircle, Trash2 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { ThemeContext } from '../../ThemeContext';
+import { v4 as uuidv4 } from 'uuid';
 
 const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS }) => {
     const { theme } = useContext(ThemeContext);
@@ -68,7 +69,7 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS }) => {
     const handleAddCaso = (e) => {
         e.preventDefault();
         if (!novoCaso.descricao || !novoCaso.valorTotal) return;
-        const casoAdicionado = { ...novoCaso, id: crypto.randomUUID() };
+        const casoAdicionado = { ...novoCaso, id: uuidv4() };
         setCasos(prev => [...prev, casoAdicionado]);
         setCasoSelecionado(casoAdicionado);
     };

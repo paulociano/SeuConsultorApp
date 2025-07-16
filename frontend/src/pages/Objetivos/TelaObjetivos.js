@@ -10,6 +10,7 @@ import { mockInvestimentos } from '../../components/mocks/mockInvestimentos';
 import userImage from '../../assets/persona.jpg';
 import { Home, Plane, Car, Shield } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
+import { v4 as uuidv4 } from 'uuid';
 
 const TelaObjetivos = () => {
     const { theme } = useContext(ThemeContext);
@@ -26,15 +27,15 @@ const TelaObjetivos = () => {
     const [objetivoHoveredId, setObjetivoHoveredId] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const objetivosCalculados = useMemo(() => {
-        return objetivos.map(obj => {
-            const valorAtual = obj.investimentosLinkados.reduce((acc, invId) => {
-                const investimento = mockInvestimentos.find(i => i.id === invId);
-                return acc + (investimento ? investimento.valor : 0);
-            }, 0);
-            return { ...obj, valorAtual };
-        });
-    }, [objetivos]);
+     const objetivosCalculados = useMemo(() => {
+    return objetivos.map(obj => {
+      const valorAtual = obj.investimentosLinkados.reduce((acc, invId) => {
+        const investimento = mockInvestimentos.find(i => i.id === invId);
+        return acc + (investimento ? investimento.valor : 0);
+      }, 0);
+      return { ...obj, valorAtual };
+    });
+  }, [objetivos]);
 
     const metaSelecionada = useMemo(() => {
         return objetivosCalculados.find(o => o.id === objetivoSelecionadoId);
@@ -53,7 +54,7 @@ const TelaObjetivos = () => {
     }, [metaSelecionada]);
 
     const handleSaveObjetivo = (dadosDoForm) => {
-        const novoObjetivo = { ...dadosDoForm, id: Crypto.randomUUID() };
+        const novoObjetivo = { ...dadosDoForm, id: uuidv4() };
         setObjetivos(prev => [...prev, novoObjetivo]);
         setIsModalOpen(false);
     };

@@ -3,6 +3,7 @@ import { mockViagens } from "../../components/mocks/mockViagens";
 import { TicketDeViagem } from "../../components/constants/TicketViagem";
 import { useState } from "react";
 import { PlusCircle } from "lucide-react";
+import { v4 as uuidv4 } from 'uuid';
 
 const TelaMilhas = () => {
     const [viagens, setViagens] = useState(mockViagens);
@@ -30,7 +31,7 @@ const TelaMilhas = () => {
             setViagens(prev => prev.map(v => v.id === viagemParaEditar.id ? { ...v, ...dadosViagem } : v));
         } else {
             // Adiciona uma nova viagem
-            setViagens(prev => [...prev, { ...dadosViagem, id: crypto.randomUUID() }]);
+            setViagens(prev => [...prev, { ...dadosViagem, id: uuidv4() }]);
         }
     };
     

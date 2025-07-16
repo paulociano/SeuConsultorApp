@@ -6,6 +6,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import ModalItemOrcamento from '../../components/Modals/ModalItemOrcamento';
 import { PIE_COLORS } from '../../components/constants/PieColors';
 import CustomPieLegend from '../../components/Custom/CustomPieLegend';
+import { v4 as uuidv4 } from 'uuid';
 
 const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartData }) => {
     const [expandedCategories, setExpandedCategories] = useState({});
@@ -44,7 +45,7 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                         item.id === id ? { ...item, nome, atual: valor, categoriaId: categoriaId !== undefined ? categoriaId : item.categoriaId } : item
                     );
                 } else { // Modo de Criação
-                    const novoItem = { id: crypto.randomUUID(), nome, atual: valor, sugerido: valor, categoriaId };
+                    const novoItem = { id: uuidv4(), nome, atual: valor, sugerido: valor, categoriaId };
                     subItensAtualizados = [...cat.subItens, novoItem];
                 }
                 return { ...cat, subItens: subItensAtualizados };

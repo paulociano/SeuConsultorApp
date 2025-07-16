@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 // ... outras importações ...
 import { Sun, Moon } from 'lucide-react'; // Importe os ícones Sun e Moon
+import { v4 as uuidv4 } from 'uuid';
 
 // --- DADOS MOCK (Substituir por chamadas de API no futuro) ---
 const initialOrcamentoData = [
@@ -356,7 +357,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
 
     const handleAddProtecaoTemporaria = (tipo) => {
         const newProtecao = {
-            id: crypto.randomUUID(),
+            id: uuidv4();
             nome: `Proteção Temporária (${tipo === 'renda' ? 'Renda' : 'Custo de Vida'})`,
             cobertura: tipo === 'renda' ? rendaMensal : custoDeVidaMensal,
             observacoes: 'Contratado'

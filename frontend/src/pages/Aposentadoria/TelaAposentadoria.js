@@ -3,6 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import Card from '../../components/Card/Card';
 import { PlusCircle } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
+import { v4 as uuidv4 } from 'uuid';
 
 const TelaAposentadoria = () => {
     const [idadeAtual, setIdadeAtual] = useState(30);
@@ -73,7 +74,7 @@ const TelaAposentadoria = () => {
             const proximoAno = prev.length + 1;
             const anosContribuicao = idadeAposentadoria - idadeAtual;
             if (proximoAno >= anosContribuicao) return prev;
-            return [...prev, {id: crypto.randomUUID(), ano: proximoAno, valor: prev[prev.length - 1]?.valor || 1000}]
+            return [...prev, {id: uuidv4(), ano: proximoAno, valor: prev[prev.length - 1]?.valor || 1000}]
         });
     };
 

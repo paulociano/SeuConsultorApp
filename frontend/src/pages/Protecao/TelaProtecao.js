@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { PlusCircle, Edit, Trash2, Users, Stethoscope, HeartHandshake, Car } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
     const [rentabilidadeAnual, setRentabilidadeAnual] = useState(10);
@@ -77,7 +78,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
 
     const handleAddProtecaoTemporaria = (tipo) => {
         const newProtecao = {
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             nome: `Proteção Temporária (${tipo === 'renda' ? 'Renda' : 'Custo de Vida'})`,
             cobertura: tipo === 'renda' ? rendaMensal : custoDeVidaMensal,
             observacoes: 'Contratado'
@@ -107,7 +108,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
 
     const handleAddDespesaFutura = () => {
         const newDespesa = {
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             nome: 'Nova Despesa',
             anoInicio: new Date().getFullYear(),
             valorMensal: 1000,
@@ -138,7 +139,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
 
     const handleAddPatrimonial = () => {
         const newItem = {
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             nome: 'Seguro Auto',
             dataVencimento: new Date().toISOString().split('T')[0],
             empresa: 'Empresa Exemplo',

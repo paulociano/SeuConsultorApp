@@ -5,6 +5,7 @@ import Card from '../../components/Card/Card';
 import { Coins, CarFront, Building2, Landmark, Gift, Package, DollarSign, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { PIE_COLORS } from '../../components/constants/PieColors';
 import { ThemeContext } from '../../ThemeContext';
+import { v4 as uuidv4 } from 'uuid';
 
 const TelaPatrimonio = ({ patrimonioData, setPatrimonioData, patrimonioTotal }) => {
     // --- ESTADO E CONFIGURAÇÕES DO COMPONENTE ---
@@ -96,7 +97,7 @@ const TelaPatrimonio = ({ patrimonioData, setPatrimonioData, patrimonioTotal }) 
     };
 
     // --- HANDLERS PARA A LISTA DE ITENS ---
-    const handleAddItem = () => { const newItem = { id: crypto.randomUUID(), nome: 'Novo Item', valor: 0 }; setPatrimonioData(prev => ({ ...prev, [abaAtiva]: [...prev[abaAtiva], newItem] })); };
+    const handleAddItem = () => { const newItem = { id: uuidv4(), nome: 'Novo Item', valor: 0 }; setPatrimonioData(prev => ({ ...prev, [abaAtiva]: [...prev[abaAtiva], newItem] })); };
     const handleDeleteItem = (id) => { setPatrimonioData(prev => ({ ...prev, [abaAtiva]: prev[abaAtiva].filter(item => item.id !== id) })); };
     const handleStartEdit = (item) => { setEditingItemId(item.id); setEditingItemData({ nome: item.nome, valor: item.valor }); };
     const handleCancelEdit = () => { setEditingItemId(null); };

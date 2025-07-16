@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { v4 as uuidv4 } from 'uuid';
 import { CATEGORIAS_FLUXO } from '../constants/Categorias';
 
 const ModalNovaTransacao = ({ isOpen, onClose, onSave }) => {
@@ -15,7 +16,7 @@ const ModalNovaTransacao = ({ isOpen, onClose, onSave }) => {
         if (!descricao || !valor || !data) return;
         
         const novaTransacao = {
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             date: data,
             description: descricao,
             amount: parseFloat(valor),

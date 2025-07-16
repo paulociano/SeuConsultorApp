@@ -1,0 +1,1 @@
+export const PIE_COLORS = ['#00d971', '#a39ee8', '#FFBB28', '#FF8042', '#AF19FF'];

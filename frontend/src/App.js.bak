@@ -356,7 +356,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
 
     const handleAddProtecaoTemporaria = (tipo) => {
         const newProtecao = {
-            id: Date.now(),
+            id: crypto.randomUUID(),
             nome: `Proteção Temporária (${tipo === 'renda' ? 'Renda' : 'Custo de Vida'})`,
             cobertura: tipo === 'renda' ? rendaMensal : custoDeVidaMensal,
             observacoes: 'Contratado'

@@ -4,7 +4,7 @@ import { CATEGORIAS_FLUXO } from '../../components/constants/Categorias';
 import { formatCurrency } from '../../utils/formatters';
 import { PlusCircle, Eye, EyeOff } from 'lucide-react';
 
-const TelaFluxoDeCaixa = ({ transacoes, handleCategoryChange, handleIgnoreToggle, onAdicionarClick }) => {
+const TelaFluxoDeCaixa = ({ transacoes, handleCategoryChange, handleIgnoreToggle, handleEditTransacao, onAdicionarClick }) => {
     const [filtros, setFiltros] = useState({ mes: 'todos', ano: 'todos', categoria: 'todas', busca: '' });
 
     // ##### NOVO: Lógica para gerar as opções dos filtros dinamicamente #####

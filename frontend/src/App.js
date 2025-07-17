@@ -86,37 +86,6 @@ const { theme, toggleTheme } = useContext(ThemeContext);
         return totalAtivos - totalDividas;
     }, [patrimonioData])
 
-    const gastosReais = useMemo(() => {
-    // Calcula os totais a partir do ESTADO 'transacoes', não do mock original
-    const totais = transacoes
-        .filter(t => t.type === 'debit' && !t.isIgnored) // Garante que transações ignoradas não sejam somadas
-        .reduce((acc, t) => {
-            const categoriaKey = t.category;
-            if (categoriaKey) {
-                if (!acc[categoriaKey]) {
-                    acc[categoriaKey] = 0;
-                }
-                acc[categoriaKey] += t.amount;
-            }
-            return acc;
-        }, {});
-
-    // Mapeia para o formato esperado pela tela de Planejamento
-    return Object.entries(totais).map(([key, value]) => ({
-        id: key,
-        label: CATEGORIAS_FLUXO[key]?.label || key,
-        total: value
-    }));
-  }, [transacoes]); // O hook agora depende do estado 'transacoes' para recalcular
-    useEffect(() => {
-        const transacoesCategorizadas = mockTransacoes.map(t => ({
-            ...t,
-            category: t.type === 'credit' ? 'receita' : categorizeByAI(t.description),
-            isIgnored: false
-        }));
-        setTransacoes(transacoesCategorizadas);
-    }, []);
-
     const handleCategoryChange = (transactionId, newCategory) => {
         setTransacoes(prev => prev.map(t => t.id === transactionId ? { ...t, category: newCategory || null } : t));
     };
@@ -135,7 +104,24 @@ const { theme, toggleTheme } = useContext(ThemeContext);
     };
     setTransacoes(prev => [transacaoFinal, ...prev].sort((a, b) => new Date(b.date) - new Date(a.date)));
     setIsTransacaoModalOpen(false); // Fecha o modal
-  };
+    };
+
+    const handleEditTransacao = (id, novosDados) => {
+        setTransacoes(prev =>
+            prev.map(t =>
+            t.id === id
+                ? {
+                    ...t,
+                    ...novosDados,
+                    category:
+                    novosDados.type === 'credit'
+                        ? 'receita'
+                        : categorizeByAI(novosDados.description) || t.category,
+                }
+                : t
+            )
+        );
+        };
 
   const menuItems = [
     { id: 'objetivos', label: 'Objetivos', icon: Target },
@@ -191,8 +177,8 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             case 'reserva': content = <TelaReservaEmergencia orcamentoCalculos={orcamentoCalculos} />; break;
             case 'aposentadoriaAportes': content = <TelaAposentadoria />; break;
             case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} setPatrimonioData={setPatrimonioData} patrimonioTotal={patrimonioTotal} />; break;
-            case 'fluxoTransacoes': return <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={handleCategoryChange} handleIgnoreToggle={handleIgnoreToggle} onAdicionarClick={() => setIsTransacaoModalOpen(true)} />;
-            case 'fluxoPlanejamento': return <TelaPlanejamento orcamento={categorias} gastosReais={gastosReais} />;
+            case 'fluxoTransacoes': return <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={handleCategoryChange} handleIgnoreToggle={handleIgnoreToggle} handleEditTransacao={handleEditTransacao} onAdicionarClick={() => setIsTransacaoModalOpen(true)} />;
+            case 'fluxoPlanejamento': return <TelaPlanejamento orcamento={categorias} gastosReais={transacoes} />;
             case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis />; break;
             case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis />; break;
             case 'objetivos': return <TelaObjetivos />;

@@ -3,7 +3,8 @@ import logo from './assets/logo.svg';
 import { ThemeContext } from './ThemeContext';
 import { 
     PiggyBank, BarChart2, Shield, ShoppingCart, Menu, X, ChevronDown, Car, Target, Landmark, Coins, Building2, 
-    CheckSquare, ArrowRightLeft, TreePalm, CreditCard, Award, PlaneTakeoff, BookOpen
+    CheckSquare, ArrowRightLeft, TreePalm, CreditCard, Award, PlaneTakeoff, BookOpen, HandCoins,
+    ChartLine
 } from 'lucide-react';
 import { Sun, Moon } from 'lucide-react';
 import TelaObjetivos from './pages/Objetivos/TelaObjetivos';
@@ -20,6 +21,7 @@ import TelaPlanejamento from './pages/Planejamento/TelaPlanejamento';
 import TelaMilhas from './pages/Outros/TelaMilhas';
 import TelaCartoes from './pages/Outros/TelaCartoes';
 import TelaEducacaoFinanceira from './pages/Outros/TelaEducacaoFinanceira';
+import TelaSimuladorPGBL from './pages/Aposentadoria/TelaSimuladorPGBL';
 import ModalNovaTransacao from './components/Modals/ModalNovaTransacao';
 import { CATEGORIAS_FLUXO } from './components/constants/Categorias';
 import { mockTransacoes } from './components/mocks/mockTransacoes';
@@ -147,7 +149,15 @@ const { theme, toggleTheme } = useContext(ThemeContext);
      { id: 'patrimonio', label: 'Patrimônio', icon: Landmark },
     { id: 'protecao', label: 'Proteção', icon: Shield },
     { id: 'reserva', label: 'Reserva', icon: PiggyBank },
-    { id: 'aposentadoria', label: 'Aposentadoria', icon: TreePalm },
+    { 
+        id: 'aposentadoria',
+        label: 'Aposentadoria',
+        icon: TreePalm,
+        subItems: [
+            { id:'aposentadoriaAportes', label: 'Aportes', icon: ChartLine},
+            { id:'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins},
+        ]
+    },
     { 
       id: 'aquisicao', 
       label: 'Aquisição', 
@@ -179,7 +189,7 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             case 'orcamento': content = <TelaOrcamento categorias={categorias} setCategorias={setCategorias} orcamentoCalculos={orcamentoCalculos} pieChartData={pieChartData} />; break;
             case 'protecao': content = <TelaProtecao rendaMensal={orcamentoCalculos.atual.receitas} custoDeVidaMensal={custoDeVidaMensal} patrimonioTotal={patrimonioTotal}/>; break;
             case 'reserva': content = <TelaReservaEmergencia orcamentoCalculos={orcamentoCalculos} />; break;
-            case 'aposentadoria': content = <TelaAposentadoria />; break;
+            case 'aposentadoriaAportes': content = <TelaAposentadoria />; break;
             case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} setPatrimonioData={setPatrimonioData} patrimonioTotal={patrimonioTotal} />; break;
             case 'fluxoTransacoes': return <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={handleCategoryChange} handleIgnoreToggle={handleIgnoreToggle} onAdicionarClick={() => setIsTransacaoModalOpen(true)} />;
             case 'fluxoPlanejamento': return <TelaPlanejamento orcamento={categorias} gastosReais={gastosReais} />;
@@ -189,6 +199,7 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             case 'outrosMilhas': return <TelaMilhas />;
             case 'outrosCartoes': return <TelaCartoes />;
             case 'outrosEducacaoFinanceira': return <TelaEducacaoFinanceira />;
+            case 'aposentadoriaPGBL': return <TelaSimuladorPGBL />;
             default: content = <TelaObjetivos />; break;
         }
     }

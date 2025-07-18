@@ -60,23 +60,42 @@ const TelaFluxoDeCaixa = ({ transacoes, handleCategoryChange, handleIgnoreToggle
         setFiltros(prev => ({...prev, [name]: value}));
     };
 
+    const handleDeleteTransacao = (id) => {
+        const confirm = window.confirm("Tem certeza que deseja excluir esta transação?");
+        if (confirm) {
+            const novas = transacoes.filter(t => t.id !== id);
+            handleEditTransacao(novas); // dispara atualização
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto space-y-6">
             
             {/* ##### NOVO: Barra de Filtros e Busca ##### */}
             <Card>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Resumo por Categoria (Gastos)</h2>
-                <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-6 gap-2 border-rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {sumarioPorCategoria.map(cat => {
                         const Icon = cat.icon;
+                        const crescimento = "+5%"; // <-- Substituir por lógica real se desejar
                         return (
-                            <div key={cat.id} className="p-4 rounded-lg flex items-center gap-4" style={{ backgroundColor: `${cat.color}50` }}>
-                                <div className="p-2 rounded-full" style={{ backgroundColor: `${cat.color}80`}}><Icon size={20} style={{ color: cat.color }}/></div>
-                                <div><p className="text-sm text-slate-800 dark:text-white">{cat.label}</p><p className="text-lg font-bold text-slate-600 dark:text-white ">{formatCurrency(cat.total)}</p></div>
+                        <div key={cat.id} className="bg-white dark:bg-[#201b5d] rounded-xl p-4 shadow-md border border-slate-200 dark:border-[#3e388b] flex flex-col justify-between">
+                            <div className="flex items-center justify-between">
+                            <div className="rounded-full p-2" style={{ backgroundColor: `${cat.color}20` }}>
+                                <Icon size={20} style={{ color: cat.color }} />
                             </div>
-                        )
+                            </div>
+                            <div className="mt-6">
+                            <p className="text-2xl font-bold text-slate-800 dark:text-white">{formatCurrency(cat.total)}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-300">{cat.label}</p>
+                            </div>
+                            <div className="mt-2">
+                            <p className="text-sm font-semibold text-green-500">{crescimento} desde o mês passado</p>
+                            </div>
+                        </div>
+                        );
                     })}
-                </div>
+                    </div>
             </Card>
             <Card>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -134,7 +153,29 @@ const TelaFluxoDeCaixa = ({ transacoes, handleCategoryChange, handleIgnoreToggle
                                     )}
                                 </div>
                                 <div className={`col-span-6 md:col-span-2 text-right font-semibold ${isCredit ? 'text-green-400' : 'text-red-400'}`}>{isCredit ? '+' : '-'} {formatCurrency(t.amount)}</div>
-                                <div className="col-span-6 md:col-span-2 flex justify-center"><button onClick={() => handleIgnoreToggle(t.id)} title={t.isIgnored ? "Restaurar Transação" : "Ignorar Transação"} className="text-slate-800 dark:text-white hover:text-white">{t.isIgnored ? <Eye size={18} /> : <EyeOff size={18} />}</button></div>
+                                <div className="col-span-6 md:col-span-2 flex justify-center gap-2">
+                                    <button
+                                        onClick={() => handleEditTransacao(t)}
+                                        title="Editar Transação"
+                                        className="text-blue-500 hover:text-white"
+                                    >
+                                        ✏️
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteTransacao(t.id)}
+                                        title="Excluir Transação"
+                                        className="text-red-500 hover:text-white"
+                                    >
+                                        🗑️
+                                    </button>
+                                    <button
+                                        onClick={() => handleIgnoreToggle(t.id)}
+                                        title={t.isIgnored ? "Restaurar Transação" : "Ignorar Transação"}
+                                        className="text-slate-800 dark:text-white hover:text-white"
+                                    >
+                                        {t.isIgnored ? <Eye size={18} /> : <EyeOff size={18} />}
+                                    </button>
+                                </div>
                             </div>
                         )
                     })}

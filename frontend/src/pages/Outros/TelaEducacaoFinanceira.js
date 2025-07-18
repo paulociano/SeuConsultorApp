@@ -1,12 +1,12 @@
-import Card from "../../components/Card/Card";
-import { ArrowRight } from "lucide-react";
 import { useContext } from "react";
 import { ThemeContext } from "../../ThemeContext";
+import Card from "../../components/Card/Card";
+import BlogCard from "../../components/Card/BlogCard"; // Novo componente para blog
+import { ArrowRight } from "lucide-react";
 
 const TelaEducacaoFinanceira = () => {
-    const { theme } = useContext(ThemeContext); // Para usar o tema se necessário
+    const { theme } = useContext(ThemeContext);
 
-    // Dados de exemplo para tópicos de educação financeira
     const topicosEducacao = [
         {
             id: 'basico-investimentos',
@@ -18,7 +18,7 @@ const TelaEducacaoFinanceira = () => {
             id: 'controle-gastos',
             titulo: 'Ebook de Gestão de Finanças Pessoais',
             conteudo: 'Dicas práticas para criar um orçamento, identificar despesas desnecessárias e poupar dinheiro. A importância de registrar todas as suas movimentações financeiras.',
-            link: 'https://www.bcb.gov.br/content/cidadaniafinanceira/documentos_cidadania/Cuidando_do_seu_dinheiro_Gestao_de_Financas_Pessoais/caderno_cidadania_financeira.pdf'
+            link: 'https://www.bcb.gov.br/content/cidadaniafinanceira/documentos_cidadania_financeira.pdf'
         },
         {
             id: 'gerenciamento-dividas',
@@ -34,43 +34,66 @@ const TelaEducacaoFinanceira = () => {
         },
     ];
 
+    const quizzes = [
+        { id: 'quiz-financeiro', titulo: 'Teste seus Conhecimentos em Finanças', link: '/quiz/financeiro' },
+        { id: 'quiz-investimentos', titulo: 'Você está preparado para Investir?', link: '/quiz/investimentos' },
+    ];
+
     return (
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-                <div className="mt-10 p-6 bg-slate-100 dark:bg-[#2a246f] rounded-xl text-center">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-3">Sua jornada para a independência financeira começa aqui!</h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                    Explore os tópicos, aplique o conhecimento e veja suas finanças prosperarem.
-                </p>
-            </div>
-                <Card>
-                        <div className="relative w-full" style={{ paddingBottom: '56.25%'}}>
+        <div className="max-w-6xl mx-auto text-center">
+            <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">Sua jornada para a independência financeira começa aqui!</h3>
+            <p className="text-gray-600 dark:text-gray-300">
+                Explore os tópicos, assista vídeos, resolva quizzes e aplique o conhecimento no seu dia a dia.
+            </p>
+            {/* Seção de Blog com BlogCards */}
+                <div className="col-span-1 p-6">
+                    <Card>
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Artigos e Leitura</h3>
+                        <div className="grid grid-cols-2 gap-6 space-y-4">
+                            {topicosEducacao.map(topico => (
+                                <BlogCard
+                                    key={topico.id}
+                                    titulo={topico.titulo}
+                                    conteudo={topico.conteudo}
+                                    link={topico.link}
+                                />
+                            ))}
+                        </div>
+                    </Card>
+                </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6 p-5">
+                {/* Seção de Vídeo */}
+                <div className="col-span-1">
+                    <Card>
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-3">Morning Call</h3>
+                        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                             <iframe
                                 className="absolute top-0 left-0 w-full h-full rounded-lg"
-                                src= 'https://www.youtube.com/embed/TsrQDU8EvBg?autoplay=0&controls=1&showinfo=0&rel=0'
-                                title='Morning Call W1 Capital'
+                                src='https://www.youtube.com/embed/TsrQDU8EvBg?autoplay=0&controls=1&showinfo=0&rel=0'
+                                title='Vídeo Educativo'
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                             ></iframe>
                         </div>
                     </Card>
-                {topicosEducacao.map(topico => (
-                    <Card key={topico.id}>
-                        <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-3">{topico.titulo}</h2>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{topico.conteudo}</p>
-                        {topico.link && (
-                            <a
-                                href={topico.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center text-[#00d971] hover:underline text-sm font-medium"
-                            >
-                                Ler Mais <ArrowRight size={16} className="ml-1" />
-                            </a>
-                        )}
+                </div>
+
+                {/* Seção de Quizzes */}
+                <div className="col-span-1">
+                    <Card>
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Quizzes Interativos</h3>
+                        {quizzes.map(quiz => (
+                            <div key={quiz.id} className="mb-4">
+                                <h4 className="text-md font-semibold text-slate-800 dark:text-white">{quiz.titulo}</h4>
+                                <a href={quiz.link} className="text-[#00d971] hover:underline text-sm flex items-center">
+                                    Participe do Quiz <ArrowRight size={16} className="ml-1" />
+                                </a>
+                            </div>
+                        ))}
                     </Card>
-                ))}
+                </div>
             </div>
         </div>
     );

@@ -185,8 +185,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Coluna Esquerda */}
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                 <div className="space-y-6">
                     <Card>
                         <div className="flex items-center gap-3 mb-4">
@@ -230,10 +229,10 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                                         <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 hover:bg-[#3e388b]/30 rounded">
                                             {editingFuturaId === item.id ? (
                                                 <>
-                                                    <input type="text" value={editingFuturaData.nome} onChange={e => setEditingFuturaData({...editingFuturaData, nome: e.target.value})} className="col-span-3 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                                    <input type="number" value={editingFuturaData.anoInicio} onChange={e => setEditingFuturaData({...editingFuturaData, anoInicio: e.target.value})} className="col-span-2 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                                    <input type="number" value={editingFuturaData.valorMensal} onChange={e => setEditingFuturaData({...editingFuturaData, valorMensal: e.target.value})} className="col-span-2 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                                    <input type="number" value={editingFuturaData.prazoMeses} onChange={e => setEditingFuturaData({...editingFuturaData, prazoMeses: e.target.value})} className="col-span-2 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
+                                                    <input type="text" value={editingFuturaData.nome} onChange={e => setEditingFuturaData({...editingFuturaData, nome: e.target.value})} className="col-span-3 bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
+                                                    <input type="number" value={editingFuturaData.anoInicio} onChange={e => setEditingFuturaData({...editingFuturaData, anoInicio: e.target.value})} className="col-span-2 bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
+                                                    <input type="number" value={editingFuturaData.valorMensal} onChange={e => setEditingFuturaData({...editingFuturaData, valorMensal: e.target.value})} className="col-span-2 bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
+                                                    <input type="number" value={editingFuturaData.prazoMeses} onChange={e => setEditingFuturaData({...editingFuturaData, prazoMeses: e.target.value})} className="col-span-2 bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
                                                     <div className="col-span-3 flex justify-end items-center gap-3">
                                                         <button onClick={() => handleSaveEditFutura(item.id)} className="text-slate-800 dark:text-white hover:text-[#00d971]">Salvar</button>
                                                         <button onClick={handleCancelEditFutura} className="text-slate-800 dark:text-white hover:text-red-400">X</button>
@@ -245,7 +244,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                                                     <p className="col-span-2 text-slate-800 dark:text-white">{item.anoInicio}</p>
                                                     <p className="col-span-2 text-slate-800 dark:text-white">{formatCurrency(item.valorMensal)}</p>
                                                     <p className="col-span-2 text-slate-800 dark:text-white">{item.prazoMeses} meses</p>
-                                                    <p className="col-span-1 font-semibold text-white">{formatCurrency(item.valorMensal * item.prazoMeses)}</p>
+                                                    <p className="col-span-1 font-semibold text-slate-800 dark:text-white">{formatCurrency(item.valorMensal * item.prazoMeses)}</p>
                                                     <div className="col-span-2 flex justify-end items-center gap-3">
                                                         <button onClick={() => handleStartEditFutura(item)} className="text-slate-800 dark:text-white hover:text-[#00d971]"><Edit size={16} /></button>
                                                         <button onClick={() => handleDeleteDespesaFutura(item.id)} className="text-slate-800 dark:text-white hover:text-red-400"><Trash2 size={16} /></button>

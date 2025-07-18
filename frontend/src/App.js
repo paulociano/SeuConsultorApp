@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect, useContext } from 'react';
+import { useState, useMemo, useContext } from 'react';
 import logo from './assets/logo.svg';
 import { ThemeContext } from './ThemeContext';
 import { 
-    PiggyBank, BarChart2, Shield, ShoppingCart, Menu, X, ChevronDown, Car, Target, Landmark, Coins, Building2, 
+    PiggyBank, BarChart2, Shield, ShoppingCart, ChevronDown, Car, Target, Landmark, Coins, Building2, 
     CheckSquare, ArrowRightLeft, TreePalm, CreditCard, Award, PlaneTakeoff, BookOpen, HandCoins,
     ChartLine
 } from 'lucide-react';
@@ -23,13 +23,12 @@ import TelaCartoes from './pages/Outros/TelaCartoes';
 import TelaEducacaoFinanceira from './pages/Outros/TelaEducacaoFinanceira';
 import TelaSimuladorPGBL from './pages/Aposentadoria/TelaSimuladorPGBL';
 import ModalNovaTransacao from './components/Modals/ModalNovaTransacao';
-import { CATEGORIAS_FLUXO } from './components/constants/Categorias';
-import { mockTransacoes } from './components/mocks/mockTransacoes';
 import { categorizeByAI } from './components/constants/categorizeByAI';
 import { initialPatrimonioData } from './components/constants/initialPatrimonioData';
 import { initialOrcamentoData } from './components/constants/initialOrcamentoData';
 import PageTransition from './utils/PageTransition';
 import { Scrollbar } from 'react-scrollbars-custom';
+import ModalEditarTransacao from './components/Modals/ModalEditTransacao';
 
 
 export default function App() {
@@ -44,6 +43,35 @@ const { theme, toggleTheme } = useContext(ThemeContext);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [transacoes, setTransacoes] = useState([]);
   const [perfilAberto, setPerfilAberto] = useState(false);
+  const [transacaoSelecionada, setTransacaoSelecionada] = useState(null);
+
+  const handleEditTransacao = (id, novosDadosOuLista) => {
+  if (Array.isArray(novosDadosOuLista)) {
+    setTransacoes(novosDadosOuLista);
+    return;
+  }
+
+  setTransacoes(prev =>
+    prev.map(t =>
+      t.id === id
+        ? {
+            ...t,
+            ...novosDadosOuLista,
+            category:
+              novosDadosOuLista.type === 'credit'
+                ? 'receita'
+                : categorizeByAI(novosDadosOuLista.description) || novosDadosOuLista.category || t.category,
+          }
+       : t
+    )
+  );
+};
+
+  // para editar:
+  const handleEditClick = (transacao) => {
+  setTransacaoSelecionada(transacao);
+  setIsTransacaoModalOpen(true);
+  };
 
   // Hooks useMemo (lógica interna completa restaurada)
   const { orcamentoCalculos, pieChartData } = useMemo(() => {
@@ -99,31 +127,30 @@ const { theme, toggleTheme } = useContext(ThemeContext);
     const [isTransacaoModalOpen, setIsTransacaoModalOpen] = useState(false);
 
     const handleSaveTransacao = (novaTransacao) => {
-    // Simula a categorização por IA se não for uma receita
-    const transacaoFinal = {
-        ...novaTransacao,
-        category: novaTransacao.type === 'credit' ? 'receita' : categorizeByAI(novaTransacao.description) || novaTransacao.category
-    };
-    setTransacoes(prev => [transacaoFinal, ...prev].sort((a, b) => new Date(b.date) - new Date(a.date)));
-    setIsTransacaoModalOpen(false); // Fecha o modal
-    };
-
-    const handleEditTransacao = (id, novosDados) => {
-        setTransacoes(prev =>
-            prev.map(t =>
-            t.id === id
-                ? {
-                    ...t,
-                    ...novosDados,
-                    category:
-                    novosDados.type === 'credit'
-                        ? 'receita'
-                        : categorizeByAI(novosDados.description) || t.category,
-                }
-                : t
-            )
-        );
+        const transacaoFinal = {
+            ...novaTransacao,
+            category:
+            novaTransacao.type === 'credit'
+                ? 'receita'
+                : novaTransacao.category || categorizeByAI(novaTransacao.description),
         };
+
+        if (transacaoSelecionada) {
+            setTransacoes(prev =>
+            prev.map(t => t.id === transacaoSelecionada.id ? { ...t, ...transacaoFinal } : t)
+            );
+        } else {
+            setTransacoes(prev => [
+            { ...transacaoFinal, id: Date.now().toString() },
+            ...prev
+            ]);
+        }
+
+        setIsTransacaoModalOpen(false);
+        setTransacaoSelecionada(null);
+        };
+
+
 
     const menuItems = [
         { id: 'objetivos', label: 'Objetivos', icon: Target },
@@ -179,12 +206,12 @@ const { theme, toggleTheme } = useContext(ThemeContext);
                 case 'reserva': content = <TelaReservaEmergencia orcamentoCalculos={orcamentoCalculos} />; break;
                 case 'aposentadoriaAportes': content = <TelaAposentadoria />; break;
                 case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} setPatrimonioData={setPatrimonioData} patrimonioTotal={patrimonioTotal} />; break;
-                case 'fluxoTransacoes': return <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={handleCategoryChange} handleIgnoreToggle={handleIgnoreToggle} handleEditTransacao={handleEditTransacao} onAdicionarClick={() => setIsTransacaoModalOpen(true)} />;
+                case 'fluxoTransacoes':  return <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={handleCategoryChange} handleIgnoreToggle={handleIgnoreToggle} handleEditTransacao={handleEditTransacao} onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} onEditClick={(transacao) => {setTransacaoSelecionada(transacao); setIsTransacaoModalOpen(true);}}/>;
                 case 'fluxoPlanejamento': return <TelaPlanejamento orcamento={categorias} gastosReais={transacoes} />;
                 case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis />; break;
                 case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis />; break;
                 case 'objetivos': return <TelaObjetivos />;
-                case 'outrosMilhas': return <TelaMilhas />; break;
+                case 'outrosMilhas': return <TelaMilhas />;
                 case 'outrosCartoes': return <TelaCartoes />;
                 case 'outrosEducacaoFinanceira': return <TelaEducacaoFinanceira />;
                 case 'aposentadoriaPGBL': return <TelaSimuladorPGBL />;
@@ -305,21 +332,25 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             </div>
             </div>
         </aside>
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-[#201b5d] shadow-lg">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                {menuItems.map(item => ( !item.subItems ? ( <a key={item.id} href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(item.id); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium ${currentPage === item.id ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-white' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}> <item.icon size={20}/>{item.label}</a> ) : ( <div key={item.id} className="text-gray-600 dark:text-white"> <div className="px-3 pt-2 pb-1 text-sm font-bold text-slate-800 dark:text-white">{item.label}</div> {item.subItems.map(subItem => ( <a key={subItem.id} href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(subItem.id); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 pl-8 pr-3 py-2 rounded-md text-base font-medium ${currentPage === subItem.id ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}> <subItem.icon size={20}/>{subItem.label}</a>))}</div>)))}
+        {isMobileMenuOpen && (
+            <div className="md:hidden bg-white dark:bg-[#201b5d] shadow-lg">
+                <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    {menuItems.map(item => ( !item.subItems ? ( <a key={item.id} href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(item.id); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium ${currentPage === item.id ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-white' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}> <item.icon size={20}/>{item.label}</a> ) : ( <div key={item.id} className="text-gray-600 dark:text-white"> <div className="px-3 pt-2 pb-1 text-sm font-bold text-slate-800 dark:text-white">{item.label}</div> {item.subItems.map(subItem => ( <a key={subItem.id} href="#" onClick={(e) => { e.preventDefault(); setCurrentPage(subItem.id); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 pl-8 pr-3 py-2 rounded-md text-base font-medium ${currentPage === subItem.id ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}> <subItem.icon size={20}/>{subItem.label}</a>))}</div>)))}
+                </div>
             </div>
-        </div>
-      )}
-      
-      <main className="ml-64 p-4 md:p-6 transition-all duration-300">{renderPage()}</main>
-      {/* ADICIONE O NOVO MODAL AQUI */}
-      <ModalNovaTransacao 
-        isOpen={isTransacaoModalOpen} 
-        onClose={() => setIsTransacaoModalOpen(false)} 
+        )}
+        <main className="ml-64 p-4 md:p-6 transition-all duration-300">{renderPage()}</main>
+        {/* ADICIONE O NOVO MODAL AQUI */}
+    {isTransacaoModalOpen && (
+    <ModalNovaTransacao 
+        transacao={transacaoSelecionada}
         onSave={handleSaveTransacao}
-      />
+        onClose={() => {
+        setIsTransacaoModalOpen(false);
+        setTransacaoSelecionada(null);
+        }}
+    />
+    )};
     </div>
-  );
+    )
 }

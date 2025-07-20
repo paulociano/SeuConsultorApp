@@ -5,7 +5,8 @@ import {
     PiggyBank, BarChart2, Shield, ShoppingCart, ChevronDown, Car, Target, Landmark, Coins, Building2, 
     CheckSquare, ArrowRightLeft, TreePalm, CreditCard, Award, PlaneTakeoff, BookOpen, HandCoins,
     ChartLine,
-    Plane
+    Plane,
+    CalendarDays
 } from 'lucide-react';
 import { Sun, Moon } from 'lucide-react';
 import TelaObjetivos from './pages/Objetivos/TelaObjetivos';
@@ -24,6 +25,7 @@ import TelaCartoes from './pages/Viagens/TelaCartoes';
 import TelaEducacaoFinanceira from './pages/Educacao/TelaEducacaoFinanceira';
 import TelaSimuladorPGBL from './pages/Aposentadoria/TelaSimuladorPGBL';
 import TelaConfiguracoesPerfil from './pages/Configuracoes/TelaConfiguracoesPerfil';
+import TelaReunioesAgenda from './pages/Agenda/TelaReunioesAgenda';
 import ModalNovaTransacao from './components/Modals/ModalNovaTransacao';
 import { categorizeByAI } from './components/constants/categorizeByAI';
 import { initialPatrimonioData } from './components/constants/initialPatrimonioData';
@@ -207,7 +209,13 @@ const { theme, toggleTheme } = useContext(ThemeContext);
         { 
         id: 'EducacaoFinanceira',
         label: 'Educação Financeira',
-        icon: BookOpen }
+        icon: BookOpen,
+        },
+        {
+        id: 'agendaReunioes',
+        label: 'Reuniões e Agenda',
+        icon: CalendarDays,
+        }
     ];
 
     const renderPage = () => {
@@ -231,7 +239,8 @@ const { theme, toggleTheme } = useContext(ThemeContext);
                 case 'viagensCartoes': return <TelaCartoes />;
                 case 'EducacaoFinanceira': return <TelaEducacaoFinanceira />;
                 case 'aposentadoriaPGBL': return <TelaSimuladorPGBL />;
-               case 'configuracoesPerfil': return <TelaConfiguracoesPerfil usuario={usuario} setUsuario={setUsuario} />;
+                case 'configuracoesPerfil': return <TelaConfiguracoesPerfil usuario={usuario} setUsuario={setUsuario} />;
+                case 'agendaReunioes': return <TelaReunioesAgenda />;
                 default: content = <TelaObjetivos />; break;
             }
         }

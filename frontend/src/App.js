@@ -4,7 +4,8 @@ import { ThemeContext } from './ThemeContext';
 import { 
     PiggyBank, BarChart2, Shield, ShoppingCart, ChevronDown, Car, Target, Landmark, Coins, Building2, 
     CheckSquare, ArrowRightLeft, TreePalm, CreditCard, Award, PlaneTakeoff, BookOpen, HandCoins,
-    ChartLine
+    ChartLine,
+    Plane
 } from 'lucide-react';
 import { Sun, Moon } from 'lucide-react';
 import TelaObjetivos from './pages/Objetivos/TelaObjetivos';
@@ -18,17 +19,17 @@ import TelaAquisicaoImoveis from './pages/Aquisicao/TelaAquisicaoImoveis';
 import TelaAquisicaoAutomoveis from './pages/Aquisicao/TelaAquisicaoAutomoveis';
 import TelaFluxoDeCaixa from './pages/Fluxo/TelaFluxoCaixa';
 import TelaPlanejamento from './pages/Planejamento/TelaPlanejamento';
-import TelaMilhas from './pages/Outros/TelaMilhas';
-import TelaCartoes from './pages/Outros/TelaCartoes';
-import TelaEducacaoFinanceira from './pages/Outros/TelaEducacaoFinanceira';
+import TelaMilhas from './pages/Viagens/TelaMilhas';
+import TelaCartoes from './pages/Viagens/TelaCartoes';
+import TelaEducacaoFinanceira from './pages/Educacao/TelaEducacaoFinanceira';
 import TelaSimuladorPGBL from './pages/Aposentadoria/TelaSimuladorPGBL';
+import TelaConfiguracoesPerfil from './pages/Configuracoes/TelaConfiguracoesPerfil';
 import ModalNovaTransacao from './components/Modals/ModalNovaTransacao';
 import { categorizeByAI } from './components/constants/categorizeByAI';
 import { initialPatrimonioData } from './components/constants/initialPatrimonioData';
 import { initialOrcamentoData } from './components/constants/initialOrcamentoData';
 import PageTransition from './utils/PageTransition';
 import { Scrollbar } from 'react-scrollbars-custom';
-import ModalEditarTransacao from './components/Modals/ModalEditTransacao';
 
 
 export default function App() {
@@ -44,6 +45,12 @@ const { theme, toggleTheme } = useContext(ThemeContext);
   const [transacoes, setTransacoes] = useState([]);
   const [perfilAberto, setPerfilAberto] = useState(false);
   const [transacaoSelecionada, setTransacaoSelecionada] = useState(null);
+
+  const [usuario, setUsuario] = useState({
+    nome: 'Paulo Henrique',
+    email: 'paulo@email.com',
+    imagem: null
+  });
 
   useEffect(() => {
   if (theme !== 'dark') {
@@ -189,15 +196,18 @@ const { theme, toggleTheme } = useContext(ThemeContext);
         ] 
         },
         {
-        id: 'outros',
-        label: 'Outros',
-        icon: Award,
+        id: 'viagens',
+        label: 'Viagens',
+        icon: Plane,
         subItems: [
-            { id: 'outrosMilhas', label: 'Planejamento de Milhas', icon: PlaneTakeoff },
-            { id: 'outrosCartoes', label: 'Cartões de Crédito', icon: CreditCard },
-            { id: 'outrosEducacaoFinanceira', label: 'Educação Financeira', icon: BookOpen },
+            { id: 'viagensMilhas', label: 'Planejamento de Milhas', icon: PlaneTakeoff },
+            { id: 'viagensCartoes', label: 'Cartões de Crédito', icon: CreditCard },
         ]
-        }
+        },
+        { 
+        id: 'EducacaoFinanceira',
+        label: 'Educação Financeira',
+        icon: BookOpen }
     ];
 
     const renderPage = () => {
@@ -217,10 +227,11 @@ const { theme, toggleTheme } = useContext(ThemeContext);
                 case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis />; break;
                 case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis />; break;
                 case 'objetivos': return <TelaObjetivos />;
-                case 'outrosMilhas': return <TelaMilhas />;
-                case 'outrosCartoes': return <TelaCartoes />;
-                case 'outrosEducacaoFinanceira': return <TelaEducacaoFinanceira />;
+                case 'viagensMilhas': return <TelaMilhas />;
+                case 'viagensCartoes': return <TelaCartoes />;
+                case 'EducacaoFinanceira': return <TelaEducacaoFinanceira />;
                 case 'aposentadoriaPGBL': return <TelaSimuladorPGBL />;
+               case 'configuracoesPerfil': return <TelaConfiguracoesPerfil usuario={usuario} setUsuario={setUsuario} />;
                 default: content = <TelaObjetivos />; break;
             }
         }
@@ -316,8 +327,20 @@ const { theme, toggleTheme } = useContext(ThemeContext);
                 className="w-full flex items-center justify-between hover:bg-slate-100 dark:hover:bg-[#3e388b]/50 px-3 py-2 rounded-md transition"
             >
                 <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#00d971] text-black font-bold flex items-center justify-center">PH</div>
-                <span className="text-sm font-medium text-slate-800 dark:text-white">Paulo Henrique</span>
+                {usuario.imagem ? (
+                    <img
+                    src={usuario.imagem}
+                    alt="avatar"
+                    className="w-8 h-8 rounded-full object-cover border"
+                    />
+                ) : (
+                    <div className="w-8 h-8 rounded-full bg-[#00d971] text-black font-bold flex items-center justify-center">
+                    {usuario.nome?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                )}
+                <span className="text-sm font-medium text-slate-800 dark:text-white">
+                    {usuario.nome}
+                </span>
                 </div>
                 <ChevronDown
                 size={16}
@@ -331,7 +354,15 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             >
                 <div className="min-h-0">
                 <div className="space-y-2 pl-11">
-                    <button className="w-full text-left text-sm text-gray-600 dark:text-gray-300 hover:underline">⚙️ Configurações</button>
+                    <button
+                        onClick={() => {
+                            setCurrentPage('configuracoesPerfil');
+                            setPerfilAberto(false);
+                        }}
+                        className="w-full text-left text-sm text-gray-600 dark:text-gray-300 hover:underline"
+                        >
+                        ⚙️ Configurações
+                    </button>
                     <button onClick={() => {
                          if (theme !== 'dark') toggleTheme();
                         setIsAuthenticated(false);
@@ -352,7 +383,6 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             </div>
         )}
         <main className="ml-64 p-4 md:p-6 transition-all duration-300">{renderPage()}</main>
-        {/* ADICIONE O NOVO MODAL AQUI */}
     {isTransacaoModalOpen && (
     <ModalNovaTransacao 
         transacao={transacaoSelecionada}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useContext } from 'react';
+import { useState, useMemo, useContext, useEffect } from 'react';
 import logo from './assets/logo.svg';
 import { ThemeContext } from './ThemeContext';
 import { 
@@ -44,6 +44,12 @@ const { theme, toggleTheme } = useContext(ThemeContext);
   const [transacoes, setTransacoes] = useState([]);
   const [perfilAberto, setPerfilAberto] = useState(false);
   const [transacaoSelecionada, setTransacaoSelecionada] = useState(null);
+
+  useEffect(() => {
+  if (theme !== 'dark') {
+    toggleTheme();
+  }
+    }, []);
 
   const handleEditTransacao = (id, novosDadosOuLista) => {
   if (Array.isArray(novosDadosOuLista)) {
@@ -326,7 +332,13 @@ const { theme, toggleTheme } = useContext(ThemeContext);
                 <div className="min-h-0">
                 <div className="space-y-2 pl-11">
                     <button className="w-full text-left text-sm text-gray-600 dark:text-gray-300 hover:underline">⚙️ Configurações</button>
-                    <button className="w-full text-left text-sm text-red-500 hover:underline">⏻ Sair</button>
+                    <button onClick={() => {
+                         if (theme !== 'dark') toggleTheme();
+                        setIsAuthenticated(false);
+                        setCurrentPage('login');
+                        setPerfilAberto(false);
+                    }} className="w-full text-left text-sm text-red-500 hover:underline">⏻ Sair
+                    </button>
                 </div>
                 </div>
             </div>

@@ -84,8 +84,9 @@ const TelaAposentadoria = () => {
         <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className='space-y-4'>
+                    
                     <Card>
-                        <h2 className="text-lg font-bold text-white mb-4">Parâmetros Iniciais</h2>
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Parâmetros Iniciais</h2>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <label className="block font-medium text-slate-800 dark:text-white">Idade Atual</label>
@@ -118,7 +119,7 @@ const TelaAposentadoria = () => {
                     </Card>
                      <Card>
                         <div className="flex justify-between items-center mb-2">
-                             <h2 className="text-lg font-bold text-white">Plano de Aportes</h2>
+                             <h2 className="text-lg font-bold text-slate-800 dark:text-white">Plano de Aportes</h2>
                              <button onClick={addAporteAno} disabled={anosRestantes <= 0} className="text-xs flex items-center gap-1 text-[#00d971] hover:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed"><PlusCircle size={14} /> Adicionar Ano</button>
                         </div>
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-2">

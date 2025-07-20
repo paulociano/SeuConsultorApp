@@ -3,6 +3,8 @@ import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { PlusCircle, Edit, Trash2, Users, Stethoscope, HeartHandshake, Car } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
     const [rentabilidadeAnual, setRentabilidadeAnual] = useState(10);
@@ -167,6 +169,55 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
         ));
         setEditingPatrimonialId(null);
     };
+    const exportarPropostaPDF = () => {
+    const doc = new jsPDF();
+
+        doc.setFontSize(16);
+        doc.text('Proposta de Seguro de Vida Personalizada', 14, 20);
+
+        doc.setFontSize(12);
+        doc.text(`Data: ${new Date().toLocaleDateString()}`, 14, 30);
+        doc.text('Resumo das Coberturas Recomendadas:', 14, 40);
+
+        autoTable(doc, {
+            startY: 45,
+            head: [['Cobertura', 'Valor']],
+            body: [
+                ['Invalidez Total', formatCurrency(totalCoberturaInvalidez)],
+                ['Morte (Inventário + Despesas)', formatCurrency(totalCoberturaMorte)],
+                ['Doenças Graves', formatCurrency(coberturaDoencasGraves)],
+            ],
+        });
+
+        doc.text('Detalhamento das Despesas Futuras:', 14, doc.lastAutoTable.finalY + 10);
+
+        autoTable(doc, {
+            startY: doc.lastAutoTable.finalY + 15,
+            head: [['Nome', 'Ano Início', 'Valor Mensal', 'Prazo (meses)', 'Total']],
+            body: despesasFuturas.map(item => [
+                item.nome,
+                item.anoInicio,
+                formatCurrency(item.valorMensal),
+                item.prazoMeses,
+                formatCurrency(item.valorMensal * item.prazoMeses),
+            ]),
+        });
+
+        doc.text('Seguros Patrimoniais Ativos:', 14, doc.lastAutoTable.finalY + 10);
+
+        autoTable(doc, {
+            startY: doc.lastAutoTable.finalY + 15,
+            head: [['Nome', 'Empresa', 'Vencimento', 'Valor']],
+            body: protecaoPatrimonial.map(item => [
+                item.nome,
+                item.empresa,
+                item.dataVencimento,
+                formatCurrency(item.valor),
+            ]),
+        });
+
+        doc.save('proposta_seguro_vida.pdf');
+    };
 
     return (
         <div className="max-w-6xl mx-auto">
@@ -329,8 +380,8 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                                 <div className="flex justify-between items-center bg-[#201b5d]/50 dark:bg-[#00d971] p-2 rounded-t-lg">
                                     <h3 className="font-bold text-white">Invalidez Temporária</h3>
                                     <div className="flex gap-4">
-                                        <button onClick={() => handleAddProtecaoTemporaria('renda')} className="text-xs flex items-center gap-1 text-[#00d971] hover:brightness-90"><PlusCircle size={14} /> Renda</button>
-                                        <button onClick={() => handleAddProtecaoTemporaria('custo')} className="text-xs flex items-center gap-1 text-[#00d971] hover:brightness-90"><PlusCircle size={14} /> Custo de Vida</button>
+                                        <button onClick={() => handleAddProtecaoTemporaria('renda')} className="text-xs flex items-center gap-1  text-[#00d971] text-bold dark:text-white hover:brightness-90"><PlusCircle size={14} /> Renda</button>
+                                        <button onClick={() => handleAddProtecaoTemporaria('custo')} className="text-xs flex items-center gap-1 text-[#00d971] text-bold dark:text-white hover:brightness-90"><PlusCircle size={14} /> Custo de Vida</button>
                                     </div>
                                 </div>
                                 <div className="space-y-1 bg-[#201b5d]/20 dark:bg-[#00d971]/20 p-2 rounded-b-lg">
@@ -406,6 +457,17 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                                 </div>
                             )) : <p className="text-center text-slate-800 dark:text-white p-2 text-xs">Nenhum seguro patrimonial adicionado.</p>}
                         </div>
+                    </Card>
+                     <Card>
+                            <div className="flex justify-between items-center p-3">
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-white">Exportar Proposta</h2>
+                                <button
+                                onClick={exportarPropostaPDF}
+                                className="bg-[#00d971] hover:brightness-90 text-white px-4 py-2 rounded-md text-sm"
+                                >
+                                Exportar PDF
+                                </button>
+                            </div>
                     </Card>
                 </div>
             </div>

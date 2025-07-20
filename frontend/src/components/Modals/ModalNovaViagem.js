@@ -9,13 +9,16 @@ const ModalNovaViagem = ({ isOpen, onClose, onSave, viagemExistente }) => {
     const [milhasNecessarias, setMilhasNecessarias] = useState(isEditing ? viagemExistente.milhasNecessarias : '');
     const [milhasAtuais, setMilhasAtuais] = useState(isEditing ? viagemExistente.milhasAtuais : 0);
 
+    const [flightCostBRL, setFlightCostBRL] = useState(viagemExistente?.flightCostBRL || '');
+
     const handleSubmit = (e) => {
         e.preventDefault();
         onSave({ 
             ...viagemExistente, // Mantém o ID e outras propriedades se estiver editando
             origem, destino, nomeDestino, companhia, 
             milhasNecessarias: parseFloat(milhasNecessarias), 
-            milhasAtuais: parseFloat(milhasAtuais)
+            milhasAtuais: parseFloat(milhasAtuais),
+            flightCostBRL: parseFloat(flightCostBRL)
         });
         onClose();
     };

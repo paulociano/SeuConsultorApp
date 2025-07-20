@@ -1,7 +1,8 @@
 import { formatCurrency } from "../../utils/formatters";
+import { Info } from 'lucide-react';
 
-const CardDeComparacao = ({ cartao }) => {
-    // Se nenhum cartão for selecionado, mostra o placeholder
+
+const CardDeComparacao = ({ cartao, destaque }) => {
     if (!cartao) {
         return (
             <div className="border border-dashed border-slate-300 dark:border-slate-700 rounded-lg h-[200px] flex items-center justify-center">
@@ -10,13 +11,13 @@ const CardDeComparacao = ({ cartao }) => {
         );
     }
 
-    // Lógica para processar os dados do JSON
     const anuidadeNumerica = parseFloat(cartao.anuidade?.replace('R$', '').replace('.', '').replace(',', '.')) || 0;
     const beneficiosLista = cartao.outros_beneficios?.split('|').map(b => b.trim()) || [];
     const temSalaVip = cartao.salas_vip && cartao.salas_vip.toLowerCase() !== 'não tem';
 
+    const destaqueClasse = (campo) => destaque?.[campo] === cartao.id ? 'bg-green-100 dark:bg-green-900' : '';
+
     return (
-        // O componente agora começa diretamente com os detalhes
         <div className="space-y-4">
             {cartao.matchScore && (
                 <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -30,10 +31,27 @@ const CardDeComparacao = ({ cartao }) => {
             )}
 
             <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Pontuação:</span><span className="font-semibold text-slate-800 dark:text-white text-right">{cartao.acúmulo_de_pontos}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Anuidade:</span><span className="font-semibold text-slate-800 dark:text-white">{formatCurrency(anuidadeNumerica)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Sala VIP:</span><span className={`font-semibold ${temSalaVip ? 'text-green-500' : 'text-red-500'}`}>{temSalaVip ? 'Sim' : 'Não'}</span></div>
-                
+                <div className={`flex justify-between items-center ${destaqueClasse('pontos')}`}>
+                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        Pontuação:
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-white text-right">{cartao.acúmulo_de_pontos}</span>
+                </div>
+
+                <div className={`flex justify-between items-center ${destaqueClasse('anuidade')}`}>
+                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        Anuidade:
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-white">{formatCurrency(anuidadeNumerica)}</span>
+                </div>
+
+                <div className={`flex justify-between items-center ${destaqueClasse('salavip')}`}>
+                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        Sala VIP:
+                    </span>
+                    <span className={`font-semibold ${temSalaVip ? 'text-green-500' : 'text-red-500'}`}>{temSalaVip ? 'Sim' : 'Não'}</span>
+                </div>
+
                 {beneficiosLista.length > 0 && (
                     <div className="pt-2">
                         <p className="font-medium text-gray-500 dark:text-gray-400 mb-1">Outros Benefícios:</p>

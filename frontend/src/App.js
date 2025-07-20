@@ -54,6 +54,15 @@ const { theme, toggleTheme } = useContext(ThemeContext);
     imagem: null
   });
 
+  const [protecao, setProtecao] = useState([
+  { id: '1', tipo: 'renda', nome: 'Seguro de Renda', valor: 80000 },
+  { id: '2', tipo: 'morte', nome: 'Seguro de Vida', valor: 150000 },
+  { id: '3', tipo: 'invalidez', nome: 'Seguro de Invalidez', valor: 60000 },
+  { id: '4', tipo: 'doenca', nome: 'Cobertura Doença Grave', valor: 30000 },
+  { id: '5', tipo: 'auto', nome: 'Seguro Auto', valor: 45000, vencimento: '2025-08-10' },
+  ]);
+
+
   useEffect(() => {
   if (theme !== 'dark') {
     toggleTheme();
@@ -86,6 +95,12 @@ const { theme, toggleTheme } = useContext(ThemeContext);
   const handleEditClick = (transacao) => {
   setTransacaoSelecionada(transacao);
   setIsTransacaoModalOpen(true);
+  };
+
+  function handleUpdateCobertura(id, novoValor) {
+  setProtecao(prev =>
+    prev.map(p => p.id === id ? { ...p, valor: novoValor } : p)
+  );
   };
 
   // Hooks useMemo (lógica interna completa restaurada)
@@ -165,6 +180,23 @@ const { theme, toggleTheme } = useContext(ThemeContext);
         setTransacaoSelecionada(null);
         };
 
+        const handleEditarMeta = (categoriaId, novaMeta) => {
+            setCategorias(prev => 
+                prev.map(cat => {
+                    if (cat.tipo !== 'despesa') return cat;
+
+                    return {
+                        ...cat,
+                        subItens: cat.subItens.map(sub => 
+                            sub.categoriaId === categoriaId 
+                                ? { ...sub, sugerido: novaMeta }
+                                : sub
+                        )
+                    };
+                })
+            );
+        };
+
 
 
     const menuItems = [
@@ -226,12 +258,12 @@ const { theme, toggleTheme } = useContext(ThemeContext);
         } else {
             switch (currentPage) {
                 case 'orcamento': content = <TelaOrcamento categorias={categorias} setCategorias={setCategorias} orcamentoCalculos={orcamentoCalculos} pieChartData={pieChartData} />; break;
-                case 'protecao': content = <TelaProtecao rendaMensal={orcamentoCalculos.atual.receitas} custoDeVidaMensal={custoDeVidaMensal} patrimonioTotal={patrimonioTotal}/>; break;
+                case 'protecao': content = <TelaProtecao rendaMensal={orcamentoCalculos.atual.receitas} custoDeVidaMensal={custoDeVidaMensal} patrimonioTotal={patrimonioTotal} protecao={protecao} onUpdateCobertura={handleUpdateCobertura}/>; break;
                 case 'reserva': content = <TelaReservaEmergencia orcamentoCalculos={orcamentoCalculos} />; break;
                 case 'aposentadoriaAportes': content = <TelaAposentadoria />; break;
                 case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} setPatrimonioData={setPatrimonioData} patrimonioTotal={patrimonioTotal} />; break;
                 case 'fluxoTransacoes':  return <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={handleCategoryChange} handleIgnoreToggle={handleIgnoreToggle} handleEditTransacao={handleEditTransacao} onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} onEditClick={(transacao) => {setTransacaoSelecionada(transacao); setIsTransacaoModalOpen(true);}}/>;
-                case 'fluxoPlanejamento': return <TelaPlanejamento orcamento={categorias} gastosReais={transacoes} />;
+                case 'fluxoPlanejamento': return <TelaPlanejamento orcamento={categorias} gastosReais={transacoes} onEditarMeta={handleEditarMeta} />;
                 case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis />; break;
                 case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis />; break;
                 case 'objetivos': return <TelaObjetivos />;

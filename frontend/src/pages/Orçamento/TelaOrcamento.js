@@ -1,5 +1,4 @@
-// TelaOrcamento Melhorada com melhorias de UX/UI e funcionalidades adicionais
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { ChevronDown, ChevronRight, Edit, PlusCircle, Trash2 } from 'lucide-react';
@@ -43,7 +42,7 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                 let subItensAtualizados;
                 if (id) {
                     subItensAtualizados = cat.subItens.map(item =>
-                        item.id === id ? { ...item, nome, atual: valor, categoriaId: categoriaId !== undefined ? categoriaId : item.categoriaId } : item
+                        item.id === id ? { ...item, nome, atual: valor, categoriaId: categoriaId ?? item.categoriaId } : item
                     );
                 } else {
                     const novoItem = { id: uuidv4(), nome, atual: valor, sugerido: valor, categoriaId };
@@ -77,7 +76,12 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
             setCategorias(prev => prev.map(cat => {
                 if (cat.id === categoryId) {
                     toast.success('Valor sugerido atualizado');
-                    return { ...cat, subItens: cat.subItens.map(item => item.id === itemId ? { ...item, sugerido: newValue } : item) };
+                    return {
+                        ...cat,
+                        subItens: cat.subItens.map(item =>
+                            item.id === itemId ? { ...item, sugerido: newValue } : item
+                        )
+                    };
                 }
                 return cat;
             }));
@@ -113,13 +117,13 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                         const corTexto = cat.tipo === 'receita' ? 'text-[#00d971]' : 'text-red-400';
                         return (
                             <div key={cat.id} className="border-t border-[#3e388b]">
-                                <div className="grid grid-cols-3 items-center gap-4 px-4 py-2 hover:bg-[#3e388b]/30 rounded-lg cursor-pointer text-slate-800" onClick={() => toggleCategory(cat.id)}>
+                                <div className="grid grid-cols-3 items-center gap-4 px-4 py-2 hover:bg-[#3e388b]/30 rounded-lg cursor-pointer text-slate-800 transition-all duration-300" onClick={() => toggleCategory(cat.id)}>
                                     <div className="flex items-center gap-2">
-                                        <button className="text-slate-800 dark:text-white hover:text-white">
+                                        <button title="Expandir/recolher categoria" className="text-slate-800 dark:text-white hover:text-white">
                                             {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                         </button>
                                         <Icon size={18} className="text-slate-800 dark:text-white" />
-                                        <span className="font-bold text-slate-600 dark:text-white">{cat.nome}</span>
+                                        <span className="font-bold text-slate-600 dark:text-white text-base">{cat.nome}</span>
                                     </div>
                                     <div className={`text-right font-semibold ${corTexto}`}>
                                         {cat.tipo === 'despesa' && <span className="text-xs text-slate-800 dark:text-white mr-2">({percAtual.toFixed(1)}%)</span>}
@@ -130,45 +134,48 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                                     </div>
                                 </div>
                                 {isExpanded && (
-                                    <div className="pl-10 pr-4 pb-2 space-y-2 text-xs">
-                                        {cat.subItens.map(item => (
-                                            <div key={item.id} className="grid grid-cols-3 items-center gap-4">
-                                                <span className="text-slate-800 dark:text-white col-span-1">{item.nome}</span>
-                                                <div className="flex justify-end items-center gap-2">
-                                                    <span className="text-slate-800 dark:text-white text-right">{formatCurrency(item.atual)}</span>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', cat, item); }} className="text-slate-800 dark:text-white hover:text-[#00d971]">
-                                                        <Edit size={12} />
-                                                    </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(cat.id, item.id); }} className="text-slate-800 dark:text-white hover:text-red-400">
-                                                        <Trash2 size={12} />
-                                                    </button>
+                                    <div className="pl-10 pr-4 pb-2 space-y-2 text-sm transition-all duration-300 animate-fadeIn">
+                                        {cat.subItens.map(item => {
+                                            const destaque = item.sugerido !== item.atual ? 'bg-yellow-50 dark:bg-yellow-900' : '';
+                                            return (
+                                                <div key={item.id} className={`grid grid-cols-3 items-center gap-4 ${destaque} rounded-md p-1`}>
+                                                    <span className="text-slate-800 dark:text-white col-span-1">{item.nome}</span>
+                                                    <div className="flex justify-end items-center gap-2">
+                                                        <span className="text-slate-800 dark:text-white text-right">{formatCurrency(item.atual)}</span>
+                                                        <button title="Editar item" onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', cat, item); }} className="text-slate-800 dark:text-white hover:text-[#00d971]">
+                                                            <Edit size={12} />
+                                                        </button>
+                                                        <button title="Excluir item" onClick={(e) => { e.stopPropagation(); handleDeleteItem(cat.id, item.id); }} className="text-slate-800 dark:text-white hover:text-red-400">
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="text-right flex justify-end items-center gap-2">
+                                                        {editingSugeridoId === item.id ? (
+                                                            <input
+                                                                type="number"
+                                                                value={sugeridoInputValue}
+                                                                onChange={(e) => setSugeridoInputValue(e.target.value)}
+                                                                onBlur={() => handleSugeridoSave(cat.id, item.id)}
+                                                                onKeyDown={(e) => handleSugeridoInputKeyDown(e, cat.id, item.id)}
+                                                                className="w-24 bg-white dark:bg-[#201b5d] text-right rounded-md px-2 py-1 border border-[#00d971] shadow-md focus:outline-none focus:ring-2 focus:ring-[#00d971] transition-all"
+                                                                autoFocus
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                        ) : (
+                                                            <>
+                                                                <span className="text-[#a39ee8]">{formatCurrency(item.sugerido)}</span>
+                                                                <button title="Editar valor sugerido" onClick={(e) => { e.stopPropagation(); handleEditSugeridoClick(item); }} className="text-slate-800 dark:text-white hover:text-[#00d971]">
+                                                                    <Edit size={12} />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="text-right flex justify-end items-center gap-2">
-                                                    {editingSugeridoId === item.id ? (
-                                                        <input
-                                                            type="number"
-                                                            value={sugeridoInputValue}
-                                                            onChange={(e) => setSugeridoInputValue(e.target.value)}
-                                                            onBlur={() => handleSugeridoSave(cat.id, item.id)}
-                                                            onKeyDown={(e) => handleSugeridoInputKeyDown(e, cat.id, item.id)}
-                                                            className="w-20 bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white text-right rounded-md px-1 py-0.5 border border-[#00d971] focus:outline-none focus:ring-1 focus:ring-[#00d971]"
-                                                            autoFocus
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        />
-                                                    ) : (
-                                                        <>
-                                                            <span className="text-[#a39ee8]">{formatCurrency(item.sugerido)}</span>
-                                                            <button onClick={(e) => { e.stopPropagation(); handleEditSugeridoClick(item); }} className="text-slate-800 dark:text-white hover:text-[#00d971]">
-                                                                <Edit size={12} />
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                         <div className="pt-2">
                                             <button onClick={(e) => { e.stopPropagation(); handleOpenModal('add', cat); }} className="flex items-center gap-2 text-xs text-[#00d971] hover:brightness-90 font-semibold">
-                                                <PlusCircle size={14} /> Adicionar
+                                                <PlusCircle size={14} /> Adicionar item
                                             </button>
                                         </div>
                                     </div>
@@ -193,30 +200,38 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
             <div className="lg:col-span-2">
                 <Card>
                     <h2 className="text-lg font-bold text-white mb-4 text-center">Divisão de Gastos</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <h3 className="text-center font-semibold text-slate-800 dark:text-white mb-2 text-sm">Atual</h3>
-                            <ResponsiveContainer width="100%" height={150}>
-                                <PieChart>
-                                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                                    <Pie data={pieChartData} dataKey="valueAtual" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                                        {pieChartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
-                                    </Pie>
-                                </PieChart>
-                            </ResponsiveContainer>
+                    {pieChartData.length === 0 ? (
+                        <p className="text-center text-sm text-slate-400">Nenhum dado disponível.</p>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <h3 className="text-center font-semibold text-slate-800 dark:text-white mb-2 text-sm">Atual</h3>
+                                <ResponsiveContainer width="100%" height={150}>
+                                    <PieChart>
+                                        <Tooltip formatter={(value) => formatCurrency(value)} />
+                                        <Pie data={pieChartData} dataKey="valueAtual" nameKey="name" cx="50%" cy="50%" outerRadius={60}>
+                                            {pieChartData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div>
+                                <h3 className="text-center font-semibold text-[#a39ee8] mb-2 text-sm">Sugerido</h3>
+                                <ResponsiveContainer width="100%" height={150}>
+                                    <PieChart>
+                                        <Tooltip formatter={(value) => formatCurrency(value)} />
+                                        <Pie data={pieChartData} dataKey="valueSugerido" nameKey="name" cx="50%" cy="50%" outerRadius={60}>
+                                            {pieChartData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-center font-semibold text-[#a39ee8] mb-2 text-sm">Sugerido</h3>
-                            <ResponsiveContainer width="100%" height={150}>
-                                <PieChart>
-                                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                                    <Pie data={pieChartData} dataKey="valueSugerido" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                                        {pieChartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
-                                    </Pie>
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
+                    )}
                     <CustomPieLegend payload={pieChartData.map((d, i) => ({ value: d.name, color: PIE_COLORS[i % PIE_COLORS.length] }))} chartData={pieChartData} />
                 </Card>
             </div>

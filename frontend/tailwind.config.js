@@ -10,6 +10,11 @@ module.exports = {
         montserrat: ['Montserrat', 'sans-serif'],
       }
     },
+    animation: {
+      'spin-medium': 'spin 12s linear infinite',
+    },
   },
   plugins: [],
+
 }
+

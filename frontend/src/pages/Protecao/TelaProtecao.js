@@ -7,7 +7,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
-    const [rentabilidadeAnual, setRentabilidadeAnual] = useState(10);
+    const [rentabilidadeAnual] = useState(10);
     const [protecoesTemporarias, setProtecoesTemporarias] = useState([]);
     const [editingItemId, setEditingItemId] = useState(null);
     const [editingItemData, setEditingItemData] = useState({ cobertura: '', observacoes: '' });

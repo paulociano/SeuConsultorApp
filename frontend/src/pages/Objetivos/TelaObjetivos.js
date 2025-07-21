@@ -16,7 +16,6 @@ const TelaObjetivos = () => {
   const [modoGamificado, setModoGamificado] = useState(false);
   const [objetivoSelecionadoId, setObjetivoSelecionadoId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [girarObjetivos, setGirarObjetivos] = useState(false);
   const [hoveredObjectiveId, setHoveredObjectiveId] = useState(null);
 
   const mockObjetivosInicial = [

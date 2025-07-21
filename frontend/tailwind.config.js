@@ -14,7 +14,7 @@ module.exports = {
       'spin-medium': 'spin 12s linear infinite',
     },
   },
-  plugins: [],
+   plugins: [],
 
 }
 

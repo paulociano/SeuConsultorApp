@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
-import { ChevronDown, ChevronRight, Edit, PlusCircle, Trash2 } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import ModalItemOrcamento from '../../components/Modals/ModalItemOrcamento';
 import { PIE_COLORS } from '../../components/constants/PieColors';
 import CustomPieLegend from '../../components/Custom/CustomPieLegend';
@@ -110,20 +108,20 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                         <span className="font-semibold text-slate-800 dark:text-white text-right">Sugerido</span>
                     </div>
                     {categorias.map(cat => {
-                        const Icon = cat.icon;
                         const isExpanded = !!expandedCategories[cat.id];
                         const totalAtual = cat.subItens.reduce((acc, item) => acc + item.atual, 0);
                         const percAtual = orcamentoCalculos.atual.despesas > 0 ? (totalAtual / orcamentoCalculos.atual.despesas) * 100 : 0;
                         const corTexto = cat.tipo === 'receita' ? 'text-[#00d971]' : 'text-red-400';
                         return (
                             <div key={cat.id} className="border-t border-[#3e388b]">
-                                <div className="grid grid-cols-3 items-center gap-4 px-4 py-2 hover:bg-[#3e388b]/30 rounded-lg cursor-pointer text-slate-800 transition-all duration-300" onClick={() => toggleCategory(cat.id)}>
+                                <div
+                                    className="grid grid-cols-3 items-center gap-4 px-4 py-2 hover:bg-[#3e388b]/30 rounded-lg cursor-pointer text-slate-800 transition-all duration-300"
+                                    onClick={() => toggleCategory(cat.id)}
+                                >
                                     <div className="flex items-center gap-2">
-                                        <button title="Expandir/recolher categoria" className="text-slate-800 dark:text-white hover:text-white">
-                                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                        </button>
-                                        <Icon size={18} className="text-slate-800 dark:text-white" />
-                                        <span className="font-bold text-slate-600 dark:text-white text-base">{cat.nome}</span>
+                                        <span className="font-bold text-slate-600 dark:text-white text-base">
+                                            {cat.nome}
+                                        </span>
                                     </div>
                                     <div className={`text-right font-semibold ${corTexto}`}>
                                         {cat.tipo === 'despesa' && <span className="text-xs text-slate-800 dark:text-white mr-2">({percAtual.toFixed(1)}%)</span>}
@@ -142,12 +140,8 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                                                     <span className="text-slate-800 dark:text-white col-span-1">{item.nome}</span>
                                                     <div className="flex justify-end items-center gap-2">
                                                         <span className="text-slate-800 dark:text-white text-right">{formatCurrency(item.atual)}</span>
-                                                        <button title="Editar item" onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', cat, item); }} className="text-slate-800 dark:text-white hover:text-[#00d971]">
-                                                            <Edit size={12} />
-                                                        </button>
-                                                        <button title="Excluir item" onClick={(e) => { e.stopPropagation(); handleDeleteItem(cat.id, item.id); }} className="text-slate-800 dark:text-white hover:text-red-400">
-                                                            <Trash2 size={12} />
-                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', cat, item); }} className="text-xs text-[#00d971]">Editar</button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(cat.id, item.id); }} className="text-xs text-red-500">Excluir</button>
                                                     </div>
                                                     <div className="text-right flex justify-end items-center gap-2">
                                                         {editingSugeridoId === item.id ? (
@@ -164,9 +158,7 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                                                         ) : (
                                                             <>
                                                                 <span className="text-[#a39ee8]">{formatCurrency(item.sugerido)}</span>
-                                                                <button title="Editar valor sugerido" onClick={(e) => { e.stopPropagation(); handleEditSugeridoClick(item); }} className="text-slate-800 dark:text-white hover:text-[#00d971]">
-                                                                    <Edit size={12} />
-                                                                </button>
+                                                                <button onClick={(e) => { e.stopPropagation(); handleEditSugeridoClick(item); }} className="text-xs text-[#00d971]">Editar</button>
                                                             </>
                                                         )}
                                                     </div>
@@ -174,8 +166,8 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                                             );
                                         })}
                                         <div className="pt-2">
-                                            <button onClick={(e) => { e.stopPropagation(); handleOpenModal('add', cat); }} className="flex items-center gap-2 text-xs text-[#00d971] hover:brightness-90 font-semibold">
-                                                <PlusCircle size={14} /> Adicionar item
+                                            <button onClick={(e) => { e.stopPropagation(); handleOpenModal('add', cat); }} className="text-xs text-[#00d971] hover:underline font-semibold">
+                                                + Adicionar item
                                             </button>
                                         </div>
                                     </div>
@@ -206,29 +198,11 @@ const TelaOrcamento = ({ categorias, setCategorias, orcamentoCalculos, pieChartD
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <h3 className="text-center font-semibold text-slate-800 dark:text-white mb-2 text-sm">Atual</h3>
-                                <ResponsiveContainer width="100%" height={150}>
-                                    <PieChart>
-                                        <Tooltip formatter={(value) => formatCurrency(value)} />
-                                        <Pie data={pieChartData} dataKey="valueAtual" nameKey="name" cx="50%" cy="50%" outerRadius={60}>
-                                            {pieChartData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                    </PieChart>
-                                </ResponsiveContainer>
+                                {/* Gráfico atual */}
                             </div>
                             <div>
                                 <h3 className="text-center font-semibold text-[#a39ee8] mb-2 text-sm">Sugerido</h3>
-                                <ResponsiveContainer width="100%" height={150}>
-                                    <PieChart>
-                                        <Tooltip formatter={(value) => formatCurrency(value)} />
-                                        <Pie data={pieChartData} dataKey="valueSugerido" nameKey="name" cx="50%" cy="50%" outerRadius={60}>
-                                            {pieChartData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                    </PieChart>
-                                </ResponsiveContainer>
+                                {/* Gráfico sugerido */}
                             </div>
                         </div>
                     )}

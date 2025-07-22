@@ -1,8 +1,8 @@
 import { useState, useMemo, useContext, useEffect } from 'react';
 import logo from './assets/logo.svg';
 import { ThemeContext } from './ThemeContext';
-import { 
-    PiggyBank, BarChart2, Shield, ShoppingCart, ChevronDown, Car, Target, Landmark, Coins, Building2, 
+import {
+    PiggyBank, BarChart2, Shield, ShoppingCart, ChevronDown, Car, Target, Landmark, Coins, Building2,
     CheckSquare, ArrowRightLeft, TreePalm, CreditCard, Award, PlaneTakeoff, BookOpen, HandCoins,
     ChartLine,
     Plane,
@@ -13,7 +13,7 @@ import TelaObjetivos from './pages/Objetivos/TelaObjetivos';
 import TelaAutenticacao from './pages/auth/TelaAutenticacao';
 import TelaReservaEmergencia from './pages/Reserva/TelaReservaEmergencia';
 import TelaAposentadoria from './pages/Aposentadoria/TelaAposentadoria';
-import TelaOrcamento from './pages/Orçamento/TelaOrcamento';
+import TelaOrcamento from './pages/Orcamento/TelaOrcamento';
 import TelaProtecao from './pages/Protecao/TelaProtecao';
 import TelaPatrimonio from './pages/Patrimonio/TelaPatrimonio';
 import TelaAquisicaoImoveis from './pages/Aquisicao/TelaAquisicaoImoveis';
@@ -28,39 +28,56 @@ import TelaConfiguracoesPerfil from './pages/Configuracoes/TelaConfiguracoesPerf
 import TelaReunioesAgenda from './pages/Agenda/TelaReunioesAgenda';
 import ModalNovaTransacao from './components/Modals/ModalNovaTransacao';
 import { categorizeByAI } from './components/constants/categorizeByAI';
-import { initialPatrimonioData } from './components/constants/initialPatrimonioData';
-import { initialOrcamentoData } from './components/constants/initialOrcamentoData';
 import PageTransition from './utils/PageTransition';
-import { Scrollbar } from 'react-scrollbars-custom';
-
 
 export default function App() {
 const { theme, toggleTheme } = useContext(ThemeContext);
-  const [currentPage, setCurrentPage] = useState('login');
+  const [currentPage, setCurrentPage] = useState('objetivos'); // Já corrigido antes
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [categorias, setCategorias] = useState(initialOrcamentoData);
-  const [patrimonioData, setPatrimonioData] = useState(initialPatrimonioData);
+  const [patrimonioData, setPatrimonioData] = useState({ ativos: [], dividas: [] }); // CORREÇÃO 3: Inicializa com estrutura padrão
   const [openMenu, setOpenMenu] = useState(null);
-  
-  // Estado para controlar o menu móvel
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [transacoes, setTransacoes] = useState([]);
   const [perfilAberto, setPerfilAberto] = useState(false);
   const [transacaoSelecionada, setTransacaoSelecionada] = useState(null);
 
-  const [usuario, setUsuario] = useState({
-    nome: 'Paulo Henrique',
-    email: 'paulo@email.com',
-    imagem: null
-  });
+  const [usuario, setUsuario] = useState({});
 
-  const [protecao, setProtecao] = useState([
-  { id: '1', tipo: 'renda', nome: 'Seguro de Renda', valor: 80000 },
-  { id: '2', tipo: 'morte', nome: 'Seguro de Vida', valor: 150000 },
-  { id: '3', tipo: 'invalidez', nome: 'Seguro de Invalidez', valor: 60000 },
-  { id: '4', tipo: 'doenca', nome: 'Cobertura Doença Grave', valor: 30000 },
-  { id: '5', tipo: 'auto', nome: 'Seguro Auto', valor: 45000, vencimento: '2025-08-10' },
-  ]);
+  const setUsuarioCategorias = (newCategorias) => {
+    setUsuario(prevUsuario => ({
+      ...prevUsuario,
+      categorias: newCategorias
+    }));
+  };
+
+  const [protecao, setProtecao] = useState([]);
+
+   useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchInitialData = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/dados-usuario');
+        const data = await response.json();
+
+        if (response.ok) {
+          // Apenas defina os dados como eles vêm da API
+          setUsuario(data);
+          setTransacoes(data.transacoes);
+          setPatrimonioData(data.patrimonioData);
+          setProtecao(data.protecao);
+        } else {
+           console.error("Erro ao buscar dados do usuário");
+        }
+      } catch (error) {
+        console.error('Erro de conexão ao buscar dados:', error);
+      }
+    };
+
+    fetchInitialData();
+
+  }, [isAuthenticated]);
 
 
   useEffect(() => {
@@ -91,7 +108,6 @@ const { theme, toggleTheme } = useContext(ThemeContext);
   );
 };
 
-  // para editar:
   const handleEditClick = (transacao) => {
   setTransacaoSelecionada(transacao);
   setIsTransacaoModalOpen(true);
@@ -103,44 +119,52 @@ const { theme, toggleTheme } = useContext(ThemeContext);
   );
   };
 
-  // Hooks useMemo (lógica interna completa restaurada)
   const { orcamentoCalculos, pieChartData } = useMemo(() => {
         const totais = { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 } };
         const totaisCategorias = { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 };
         let pieData = [];
-        categorias.forEach(cat => {
-            const totalCatAtual = cat.subItens.reduce((acc, item) => acc + item.atual, 0);
-            const totalCatSugerido = cat.subItens.reduce((acc, item) => acc + item.sugerido, 0);
-            if (cat.tipo === 'receita') {
-                totais.atual.receitas += totalCatAtual;
-                totais.sugerido.receitas += totalCatSugerido;
-                totaisCategorias.renda += totalCatAtual;
-            } else {
-                totais.atual.despesas += totalCatAtual;
-                totais.sugerido.despesas += totalCatSugerido;
-                pieData.push({ name: cat.nome, valueAtual: totalCatAtual, valueSugerido: totalCatSugerido });
-                if(cat.id === 'essencial') totaisCategorias.fixos += totalCatAtual;
-                if(cat.id === 'variavel') totaisCategorias.variaveis += totalCatAtual;
-                if(cat.id === 'investimento') totaisCategorias.investimentos += totalCatAtual;
-            }
-        });
+        // Adiciona verificação para `categorias` antes de usar `forEach`
+        if (usuario.categorias && usuario.categorias.length > 0) {
+            usuario.categorias.forEach(cat => {
+                const totalCatAtual = cat.subItens.reduce((acc, item) => acc + item.atual, 0);
+                const totalCatSugerido = cat.subItens.reduce((acc, item) => acc + item.sugerido, 0);
+                if (cat.tipo === 'receita') {
+                    totais.atual.receitas += totalCatAtual;
+                    totais.sugerido.receitas += totalCatSugerido;
+                    totaisCategorias.renda += totalCatAtual;
+                } else {
+                    totais.atual.despesas += totalCatAtual;
+                    totais.sugerido.despesas += totalCatSugerido;
+                    pieData.push({ name: cat.nome, valueAtual: totalCatAtual, valueSugerido: totalCatSugerido });
+                    if(cat.id === 'fixo') totaisCategorias.fixos += totalCatAtual; // CORREÇÃO 2: Alterado de 'essencial' para 'fixo'
+                    if(cat.id === 'variavel') totaisCategorias.variaveis += totalCatAtual;
+                    if(cat.id === 'investimento') totaisCategorias.investimentos += totalCatAtual;
+                }
+            });
+        }
         const finalPieData = pieData.map(d => ({
             ...d,
             percAtual: totais.atual.despesas > 0 ? ((d.valueAtual / totais.atual.despesas) * 100).toFixed(1) : "0.0",
             percSugerido: totais.sugerido.despesas > 0 ? ((d.valueSugerido / totais.sugerido.despesas) * 100).toFixed(1) : "0.0",
         }));
         return { orcamentoCalculos: { ...totais, categorias: totaisCategorias }, pieChartData: finalPieData };
-    }, [categorias]);
+    }, [usuario.categorias]);
 
     const custoDeVidaMensal = useMemo(() => {
-        return categorias
-            .filter(c => c.id === 'essencial' || c.id === 'variavel')
+        // Adiciona verificação para `categorias` antes de usar
+        if (!usuario.categorias || usuario.categorias.length === 0) return 0; // Proteção contra undefined/vazio
+        return usuario.categorias
+            // CORREÇÃO: Alterado de 'essencial' para 'fixo'
+            .filter(c => c.id === 'fixo' || c.id === 'variavel')
             .reduce((acc, cat) => acc + cat.subItens.reduce((subAcc, item) => subAcc + item.atual, 0), 0);
-    }, [categorias]);
+    }, [usuario.categorias]);
 
     const patrimonioTotal = useMemo(() => {
+        // Adiciona verificação para `patrimonioData` antes de usar
+        if (!patrimonioData || !patrimonioData.dividas) return 0;
+
         const totalAtivos = Object.keys(patrimonioData)
-            .filter(key => key !== 'dividas')
+            .filter(key => key !== 'dividas' && Array.isArray(patrimonioData[key])) // Adiciona verificação de array
             .reduce((acc, key) => acc + patrimonioData[key].reduce((sum, item) => sum + item.valor, 0), 0);
         const totalDividas = patrimonioData.dividas.reduce((sum, item) => sum + item.valor, 0);
         return totalAtivos - totalDividas;
@@ -181,14 +205,14 @@ const { theme, toggleTheme } = useContext(ThemeContext);
         };
 
         const handleEditarMeta = (categoriaId, novaMeta) => {
-            setCategorias(prev => 
+            setUsuarioCategorias(prev =>
                 prev.map(cat => {
                     if (cat.tipo !== 'despesa') return cat;
 
                     return {
                         ...cat,
-                        subItens: cat.subItens.map(sub => 
-                            sub.categoriaId === categoriaId 
+                        subItens: cat.subItens.map(sub =>
+                            sub.categoriaId === categoriaId
                                 ? { ...sub, sugerido: novaMeta }
                                 : sub
                         )
@@ -211,7 +235,7 @@ const { theme, toggleTheme } = useContext(ThemeContext);
         { id: 'patrimonio', label: 'Patrimônio', icon: Landmark },
         { id: 'protecao', label: 'Proteção', icon: Shield },
         { id: 'reserva', label: 'Reserva', icon: PiggyBank },
-        { 
+        {
             id: 'aposentadoria',
             label: 'Aposentadoria',
             icon: TreePalm,
@@ -220,14 +244,14 @@ const { theme, toggleTheme } = useContext(ThemeContext);
                 { id:'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins},
             ]
         },
-        { 
-        id: 'aquisicao', 
-        label: 'Aquisição', 
+        {
+        id: 'aquisicao',
+        label: 'Aquisição',
         icon: ShoppingCart,
         subItems: [
             { id: 'aquisicaoImoveis', label: 'Imóveis', icon: Building2 },
             { id: 'aquisicaoAutomoveis', label: 'Automóveis', icon: Car },
-        ] 
+        ]
         },
         {
         id: 'viagens',
@@ -238,7 +262,7 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             { id: 'viagensCartoes', label: 'Cartões de Crédito', icon: CreditCard },
         ]
         },
-        { 
+        {
         id: 'EducacaoFinanceira',
         label: 'Educação Financeira',
         icon: BookOpen,
@@ -254,16 +278,33 @@ const { theme, toggleTheme } = useContext(ThemeContext);
         let content;
 
         if (!isAuthenticated) {
-            return <TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setCurrentPage={setCurrentPage} />;
+            return <TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setCurrentPage={setCurrentPage} setUsuario={setUsuario} />; // Passa setUsuario
         } else {
             switch (currentPage) {
-                case 'orcamento': content = <TelaOrcamento categorias={categorias} setCategorias={setCategorias} orcamentoCalculos={orcamentoCalculos} pieChartData={pieChartData} />; break;
+                case 'orcamento': if (!usuario || !usuario.categorias) {
+                // Enquanto os dados de usuario.categorias não estiverem disponíveis,
+                // você pode renderizar um "Carregando..." ou um spinner.
+                return (
+                    <div className="flex justify-center items-center h-full text-lg text-gray-600 dark:text-gray-300">
+                        Carregando dados do orçamento...
+                    </div>
+                );
+            }
+            // Se usuario e usuario.categorias existirem, renderize TelaOrcamento
+            return (
+                <TelaOrcamento
+                    categorias={usuario.categorias}
+                    setCategorias={setUsuarioCategorias}
+                    orcamentoCalculos={orcamentoCalculos}
+                    pieChartData={pieChartData}
+                />
+            ); break;
                 case 'protecao': content = <TelaProtecao rendaMensal={orcamentoCalculos.atual.receitas} custoDeVidaMensal={custoDeVidaMensal} patrimonioTotal={patrimonioTotal} protecao={protecao} onUpdateCobertura={handleUpdateCobertura}/>; break;
                 case 'reserva': content = <TelaReservaEmergencia orcamentoCalculos={orcamentoCalculos} />; break;
                 case 'aposentadoriaAportes': content = <TelaAposentadoria />; break;
                 case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} setPatrimonioData={setPatrimonioData} patrimonioTotal={patrimonioTotal} />; break;
                 case 'fluxoTransacoes':  return <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={handleCategoryChange} handleIgnoreToggle={handleIgnoreToggle} handleEditTransacao={handleEditTransacao} onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} onEditClick={(transacao) => {setTransacaoSelecionada(transacao); setIsTransacaoModalOpen(true);}}/>;
-                case 'fluxoPlanejamento': return <TelaPlanejamento orcamento={categorias} gastosReais={transacoes} onEditarMeta={handleEditarMeta} />;
+                case 'fluxoPlanejamento': return <TelaPlanejamento orcamento={usuario.categorias} gastosReais={transacoes} onEditarMeta={handleEditarMeta} />;
                 case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis />; break;
                 case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis />; break;
                 case 'objetivos': return <TelaObjetivos />;
@@ -287,14 +328,12 @@ const { theme, toggleTheme } = useContext(ThemeContext);
     if (!isAuthenticated) { return renderPage(); }
     const ThemeToggleButton = () => (
         <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-[#3e388b]/50">
-        {/* Se o tema for 'dark', mostra a LUA. Se for 'light', mostra o SOL. */}
         {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
         </button>
     );
     return (
     <div className="bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-white min-h-screen font-sans">
       <aside className="fixed top-0 left-0 h-full w-64 bg-white dark:bg-[#201b5d] shadow-md z-20 flex flex-col">
-        {/* TOPO - logo + tema */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-[#3e388b]">
             <div className="flex items-center gap-2">
             <img src={logo} alt="Logo SeuConsultor" className="h-6 w-auto" style={{ filter: 'invert(42%) sepia(93%) saturate(2000%) hue-rotate(133deg) brightness(100%) contrast(107%)' }} />
@@ -303,18 +342,6 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             <ThemeToggleButton />
         </div>
 
-        {/* MENU DE NAVEGAÇÃO */}
-        <Scrollbar
-            style={{ flex: 1 }}
-            noScrollX
-            trackYProps={{ style: { backgroundColor: 'transparent' } }}
-            thumbYProps={{
-                style: {
-                width: '2px',
-                backgroundColor: theme === 'dark' ? '#00d971/' : '#888',
-                }
-            }}
-        >
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
             {menuItems.map(item => (
             <div key={item.id}>
@@ -360,8 +387,6 @@ const { theme, toggleTheme } = useContext(ThemeContext);
             </div>
             ))}
         </nav>
-        </Scrollbar>
-        {/* RODAPÉ FIXO - Perfil / Config / Logout */}
         <div className="border-t border-slate-200 dark:border-[#3e388b] p-3">
             <button
                 onClick={() => setPerfilAberto(prev => !prev)}
@@ -389,7 +414,6 @@ const { theme, toggleTheme } = useContext(ThemeContext);
                 />
             </button>
 
-            {/* Conteúdo colapsável com animação de altura e opacidade */}
             <div
                 className={`grid transition-all duration-300 ease-in-out ${perfilAberto ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0 mt-0'} overflow-hidden`}
             >
@@ -425,7 +449,7 @@ const { theme, toggleTheme } = useContext(ThemeContext);
         )}
         <main className="ml-64 p-4 md:p-6 transition-all duration-300">{renderPage()}</main>
     {isTransacaoModalOpen && (
-    <ModalNovaTransacao 
+    <ModalNovaTransacao
         transacao={transacaoSelecionada}
         onSave={handleSaveTransacao}
         onClose={() => {

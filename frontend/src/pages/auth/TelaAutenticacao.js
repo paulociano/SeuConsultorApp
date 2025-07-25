@@ -1,9 +1,11 @@
+// src/pages/auth/TelaAutenticacao.js
+
 import React, { useState } from 'react';
 import TelaLogin from './TelaLogin';
 import TelaCadastro from './TelaCadastro';
 import FlippableCard from '../../components/Card/FlippableCard';
 
-// Receber setUsuario aqui
+// Recebe as funções do App.js para controlar o estado global
 const TelaAutenticacao = ({ setIsAuthenticated, setCurrentPage, setUsuario }) => {
     const [isFlipped, setIsFlipped] = useState(false);
 
@@ -13,16 +15,16 @@ const TelaAutenticacao = ({ setIsAuthenticated, setCurrentPage, setUsuario }) =>
                 <FlippableCard
                     isFlipped={isFlipped}
                     front={
-                        <TelaLogin 
-                            onNavigateToRegister={() => setIsFlipped(true)} 
-                            setIsAuthenticated={setIsAuthenticated} 
-                            setUsuario={setUsuario} // E passar para TelaLogin
+                        <TelaLogin
+                            onNavigateToRegister={() => setIsFlipped(true)}
+                            setIsAuthenticated={setIsAuthenticated}
+                            setUsuario={setUsuario} // Passa a função para TelaLogin
                         />
                     }
                     back={
-                        <TelaCadastro 
-                            onNavigateToLogin={() => setIsFlipped(false)} 
-                            setCurrentPage={setCurrentPage} 
+                        <TelaCadastro
+                            onNavigateToLogin={() => setIsFlipped(false)}
+                            // Não precisa passar setCurrentPage aqui, a menos que haja uma navegação direta após o cadastro
                         />
                     }
                 />

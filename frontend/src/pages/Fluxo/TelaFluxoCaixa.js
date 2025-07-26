@@ -10,9 +10,9 @@ const TelaFluxoDeCaixa = ({
     transacoes,
     handleCategoryChange,
     handleIgnoreToggle,
-    handleEditTransacao,
     onAdicionarClick,
-    onEditClick
+    onEditClick,
+    onDeleteClick // Recebe a nova prop
 }) => {
     const [filtros, setFiltros] = useState(() => {
         const saved = localStorage.getItem('filtros_fluxo');
@@ -25,7 +25,6 @@ const TelaFluxoDeCaixa = ({
     }, [filtros]);
 
     const opcoesFiltro = useMemo(() => {
-        // CORREÇÃO: Usa t.data
         const datas = transacoes.map(t => new Date(t.data));
         const anos = [...new Set(datas.map(d => d.getFullYear()))].filter(ano => !isNaN(ano)).sort((a, b) => b - a);
         const meses = [
@@ -39,9 +38,8 @@ const TelaFluxoDeCaixa = ({
 
     const transacoesFiltradas = useMemo(() => {
         return transacoes.filter(t => {
-            // CORREÇÃO: Usa t.data, t.categoria, t.descricao
             const dataTransacao = new Date(t.data);
-            if (isNaN(dataTransacao.getTime())) return false; // Ignora transações com data inválida
+            if (isNaN(dataTransacao.getTime())) return false;
 
             const anoTransacao = dataTransacao.getFullYear();
             const mesTransacao = dataTransacao.getMonth() + 1;
@@ -54,7 +52,6 @@ const TelaFluxoDeCaixa = ({
     }, [transacoes, filtros]);
 
     const sumarioPorCategoria = useMemo(() => {
-        // CORREÇÃO: Usa t.tipo, t.ignorada, t.categoria, t.valor
         const gastos = transacoesFiltradas.filter(t => t.tipo === 'debit' && !t.ignorada && t.categoria !== 'receita');
         const totais = gastos.reduce((acc, t) => {
             if (t.categoria) {
@@ -75,14 +72,6 @@ const TelaFluxoDeCaixa = ({
         setFiltros(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleDeleteTransacao = (id) => {
-        if (window.confirm("Tem certeza que deseja excluir esta transação?")) {
-            const novas = transacoes.filter(t => t.id !== id);
-            handleEditTransacao(null, novas); // Esta função precisará ser atualizada para chamar a API de exclusão
-            toast.success('Transação excluída');
-        }
-    };
-
     const toggleSelecionada = (id) => {
         setSelecionadas(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
     };
@@ -94,11 +83,10 @@ const TelaFluxoDeCaixa = ({
 
     const deletarSelecionadas = () => {
         if (selecionadas.length === 0) return;
-        if (window.confirm(`Deseja excluir ${selecionadas.length} transações selecionadas?`)) {
-            const novas = transacoes.filter(t => !selecionadas.includes(t.id));
-            handleEditTransacao(null, novas); // Esta função precisará ser atualizada para chamar a API de exclusão em lote
+        if (window.confirm(`Deseja apagar ${selecionadas.length} transações selecionadas?`)) {
+            // No futuro, esta função pode chamar a API para apagar em lote
+            selecionadas.forEach(id => onDeleteClick(id));
             setSelecionadas([]);
-            toast.success('Transações excluídas');
         }
     };
 
@@ -133,7 +121,7 @@ const TelaFluxoDeCaixa = ({
                     </div>
                     <div className="flex gap-2">
                         <button onClick={limparFiltros} className="text-xs text-yellow-400 hover:underline">Limpar Filtros</button>
-                        <button onClick={deletarSelecionadas} className="text-xs text-red-400 hover:underline">Excluir Selecionadas</button>
+                        <button onClick={deletarSelecionadas} className="text-xs text-red-400 hover:underline">Apagar Selecionadas</button>
                     </div>
                 </div>
             </Card>
@@ -150,7 +138,6 @@ const TelaFluxoDeCaixa = ({
                         <div className="col-span-1">#</div><div className="col-span-1">Data</div><div className="col-span-4">Descrição</div><div className="col-span-2">Categoria</div><div className="col-span-2 text-right">Valor</div><div className="col-span-2 text-center">Ações</div>
                     </div>
                     {transacoesFiltradas.map((t) => {
-                        // CORREÇÃO: Usa t.tipo, t.id, t.data, t.descricao, t.categoria, t.valor, t.ignorada
                         const isCredit = t.tipo === 'credit';
                         const selecionada = selecionadas.includes(t.id);
                         return (
@@ -172,7 +159,8 @@ const TelaFluxoDeCaixa = ({
                                 </div>
                                 <div className="col-span-2 flex justify-center gap-2">
                                     <button onClick={() => onEditClick(t)} title="Editar" className="text-blue-500 hover:text-white">✏️</button>
-                                    <button onClick={() => handleDeleteTransacao(t.id)} title="Excluir" className="text-red-500 hover:text-white">🗑️</button>
+                                    {/* O botão agora chama a prop onDeleteClick diretamente */}
+                                    <button onClick={() => onDeleteClick(t.id)} title="Apagar" className="text-red-500 hover:text-white">🗑️</button>
                                     <button onClick={() => handleIgnoreToggle(t.id)} title={t.ignorada ? 'Restaurar' : 'Ignorar'} className="text-slate-800 dark:text-white hover:text-white">
                                         {t.ignorada ? <Eye size={18} /> : <EyeOff size={18} />}
                                     </button>
@@ -187,4 +175,3 @@ const TelaFluxoDeCaixa = ({
 };
 
 export default TelaFluxoDeCaixa;
-

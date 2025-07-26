@@ -29,6 +29,8 @@ import TelaReunioesAgenda from './pages/Agenda/TelaReunioesAgenda';
 import ModalNovaTransacao from './components/Modals/ModalNovaTransacao';
 import { categorizeByAI } from './components/constants/categorizeByAI';
 import PageTransition from './utils/PageTransition';
+import { toast } from 'sonner';
+
 
 export default function App() {
     const { theme, toggleTheme } = useContext(ThemeContext);
@@ -43,102 +45,285 @@ export default function App() {
     const [usuario, setUsuario] = useState({});
     const [protecao, setProtecao] = useState([]);
     const [isTransacaoModalOpen, setIsTransacaoModalOpen] = useState(false);
-    
+
+    // CORREÇÃO: Efeito para verificar token na montagem inicial
+    useEffect(() => {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            setIsAuthenticated(true);
+        }
+        if (theme !== 'dark') {
+            toggleTheme();
+        }
+    }, []); // Executa apenas uma vez
+
+    // CORREÇÃO: Efeito para buscar dados quando autenticado e se os dados não foram carregados
     useEffect(() => {
         const fetchInitialData = async () => {
-            const token = localStorage.getItem('authToken');
-            if (!token) {
-                setIsAuthenticated(false);
-                return;
-            }
+            // Condição para evitar re-fetching desnecessário
+            if (isAuthenticated && !usuario.categorias) {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    setIsAuthenticated(false);
+                    return;
+                }
 
-            try {
-                const perfilResponse = await fetch('http://localhost:3001/api/perfil', {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                try {
+                    const headers = { 'Authorization': `Bearer ${token}` };
+                    const [perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes] = await Promise.all([
+                        fetch('http://localhost:3001/api/perfil', { headers }),
+                        fetch('http://localhost:3001/api/transacoes', { headers }),
+                        fetch('http://localhost:3001/api/ativos', { headers }),
+                        fetch('http://localhost:3001/api/dividas', { headers }),
+                        fetch('http://localhost:3001/api/orcamento', { headers })
+                    ]);
 
-                if (!perfilResponse.ok) throw new Error('Sessão inválida no perfil');
-                const perfilData = await perfilResponse.json();
+                    if (!perfilRes.ok || !transacoesRes.ok || !ativosRes.ok || !dividasRes.ok || !orcamentoRes.ok) {
+                        throw new Error('Sessão inválida ou falha ao buscar dados');
+                    }
 
-                const transacoesResponse = await fetch('http://localhost:3001/api/transacoes', {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                    const perfilData = await perfilRes.json();
+                    const transacoesData = await transacoesRes.json();
+                    const ativosData = await ativosRes.json();
+                    const dividasData = await dividasRes.json();
+                    const orcamentoData = await orcamentoRes.json();
+                    
+                    setProtecao(perfilData.protecao || []);
+                    setTransacoes(transacoesData || []);
+                    setPatrimonioData({ ativos: ativosData || [], dividas: dividasData || [] });
+                    // Unifica a atualização do estado do usuário
+                    setUsuario({ ...perfilData.usuario, categorias: orcamentoData || [] });
 
-                if (!transacoesResponse.ok) throw new Error('Falha ao buscar transações');
-                const transacoesData = await transacoesResponse.json();
-
-                setUsuario(perfilData.usuario);
-                setPatrimonioData(perfilData.patrimonioData || { ativos: [], dividas: [] });
-                setProtecao(perfilData.protecao || []);
-                setUsuario(prevUsuario => ({ ...prevUsuario, ...perfilData.usuario, categorias: perfilData.categorias }));
-                setTransacoes(transacoesData || []);
-                setIsAuthenticated(true);
-                
-            } catch (error) {
-                console.error('Erro ao buscar dados iniciais:', error);
-                localStorage.removeItem('authToken');
-                setIsAuthenticated(false);
+                } catch (error) {
+                    console.error('Erro ao buscar dados iniciais:', error);
+                    localStorage.removeItem('authToken');
+                    setIsAuthenticated(false);
+                }
             }
         };
         
         fetchInitialData();
+    }, [isAuthenticated, usuario]); // Depende do estado de autenticação e do usuário
 
-        if (theme !== 'dark') {
-            toggleTheme();
-        }
-    }, []);
 
-    // --- FUNÇÃO CORRIGIDA E ROBUSTA PARA SALVAR TRANSAÇÃO ---
-    const handleSaveTransacao = async (novaTransacao) => {
+    const handleSaveTransacao = async (transacao) => {
         const token = localStorage.getItem('authToken');
-        if (!token) {
-            console.error("Utilizador não autenticado. Impossível guardar a transação.");
-            return;
-        }
+        if (!token) return;
 
-        // CORREÇÃO: Garante que os campos obrigatórios tenham valores padrão para evitar erros no backend.
-        const descricaoFinal = novaTransacao.descricao || 'Transação sem descrição';
-        const valorFinal = novaTransacao.valor || 0;
-        const dataFinal = novaTransacao.data || new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
-        const tipoFinal = novaTransacao.tipo || 'debit'; // Padrão para débito (gasto)
-
-        const transacaoParaEnviar = {
-            ...novaTransacao,
-            descricao: descricaoFinal,
-            valor: valorFinal,
-            data: dataFinal,
-            tipo: tipoFinal,
-            categoria: tipoFinal === 'credit'
-                ? 'receita'
-                : novaTransacao.categoria || categorizeByAI(descricaoFinal),
-        };
+        const isEdicao = !!transacao.id;
+        const method = isEdicao ? 'PUT' : 'POST';
+        const endpoint = isEdicao ? `http://localhost:3001/api/transacoes/${transacao.id}` : 'http://localhost:3001/api/transacoes';
 
         try {
-            const response = await fetch('http://localhost:3001/api/transacoes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(transacaoParaEnviar)
+            const response = await fetch(endpoint, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(transacao)
             });
 
-            if (!response.ok) {
-                // Para depuração, vamos ver o que o servidor respondeu
-                const errorData = await response.json();
-                console.error("Erro do servidor:", errorData);
-                throw new Error("Falha ao guardar a transação no servidor.");
+            if (!response.ok) throw new Error("Falha ao salvar a transação.");
+            
+            const transacaoSalva = await response.json();
+
+            if (isEdicao) {
+                setTransacoes(prev => prev.map(t => t.id === transacaoSalva.id ? transacaoSalva : t));
+                toast.success("Transação atualizada!");
+            } else {
+                setTransacoes(prev => [transacaoSalva, ...prev]);
+                toast.success("Transação adicionada!");
             }
 
-            const transacaoSalva = await response.json();
-            setTransacoes(prev => [transacaoSalva, ...prev]);
             setIsTransacaoModalOpen(false);
             setTransacaoSelecionada(null);
 
         } catch (error) {
-            console.error("Erro ao guardar transação:", error);
+            toast.error("Erro ao salvar transação.");
+        }
+    };
+    
+    const handleDeleteTransacao = async (transactionId) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        if (!window.confirm("Tem certeza que deseja apagar esta transação?")) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/transacoes/${transactionId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error("Falha ao apagar a transação.");
+
+            setTransacoes(prev => prev.filter(t => t.id !== transactionId));
+            toast.success("Transação apagada!");
+
+        } catch (error) {
+            toast.error("Erro ao apagar transação.");
+        }
+    };
+
+    const handleSavePatrimonioItem = async (item, tipoItem) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const isEdicao = !!item.id;
+        const method = isEdicao ? 'PUT' : 'POST';
+        const endpoint = isEdicao ? `http://localhost:3001/api/${tipoItem}/${item.id}` : `http://localhost:3001/api/${tipoItem}`;
+
+        try {
+            const response = await fetch(endpoint, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(item)
+            });
+
+            if (!response.ok) throw new Error(`Falha ao salvar ${tipoItem}.`);
+
+            const itemSalvo = await response.json();
+
+            setPatrimonioData(prev => {
+                const listaAtualizada = isEdicao
+                    ? prev[tipoItem].map(i => i.id === itemSalvo.id ? itemSalvo : i)
+                    : [itemSalvo, ...prev[tipoItem]];
+                return { ...prev, [tipoItem]: listaAtualizada };
+            });
+            
+            toast.success(`${tipoItem.slice(0, -1)} salvo com sucesso!`);
+
+        } catch (error) {
+            toast.error(`Erro ao salvar ${tipoItem.slice(0, -1)}.`);
+        }
+    };
+
+    const handleDeletePatrimonioItem = async (itemId, tipoItem) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        if (!window.confirm(`Tem certeza que deseja apagar este item?`)) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/${tipoItem}/${itemId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error(`Falha ao apagar ${tipoItem}.`);
+
+            setPatrimonioData(prev => ({
+                ...prev,
+                [tipoItem]: prev[tipoItem].filter(i => i.id !== itemId)
+            }));
+
+            toast.success(`${tipoItem.slice(0, -1)} apagado com sucesso!`);
+
+        } catch (error) {
+            toast.error(`Erro ao apagar ${tipoItem.slice(0, -1)}.`);
+        }
+    };
+
+    const handleUpdateOrcamentoMeta = async (itemId, novoValorPlanejado) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/orcamento/itens/${itemId}/meta`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ valor_planejado: novoValorPlanejado })
+            });
+
+            if (!response.ok) throw new Error('Falha ao atualizar a meta.');
+            const itemAtualizado = await response.json();
+
+            setUsuario(prevUsuario => {
+                const novasCategorias = prevUsuario.categorias.map(cat => ({
+                    ...cat,
+                    subItens: cat.subItens.map(item => 
+                        item.id === itemAtualizado.id 
+                        ? { ...item, sugerido: parseFloat(itemAtualizado.valor_planejado) } 
+                        : item
+                    )
+                }));
+                return { ...prevUsuario, categorias: novasCategorias };
+            });
+            toast.success("Meta do orçamento atualizada!");
+        } catch (error) {
+            toast.error("Erro ao atualizar a meta.");
+        }
+    };
+
+    const handleSaveOrcamentoItem = async (itemData, categoriaId) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const isEdicao = !!itemData.id;
+        const method = isEdicao ? 'PUT' : 'POST';
+        const endpoint = isEdicao ? `http://localhost:3001/api/orcamento/itens/${itemData.id}` : 'http://localhost:3001/api/orcamento/itens';
+        
+        const body = isEdicao 
+            ? { nome: itemData.nome, valor_atual: itemData.valor }
+            : { nome: itemData.nome, categoria_id: categoriaId, valor_atual: itemData.valor };
+
+        try {
+            const response = await fetch(endpoint, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) throw new Error('Falha ao salvar o item do orçamento.');
+            
+            const itemSalvo = await response.json();
+            const itemFormatado = {
+                id: itemSalvo.id,
+                nome: itemSalvo.nome,
+                sugerido: parseFloat(itemSalvo.valor_planejado),
+                atual: parseFloat(itemSalvo.valor_atual)
+            };
+
+            setUsuario(prev => {
+                const novasCategorias = prev.categorias.map(cat => {
+                    if (cat.id === (isEdicao ? categoriaId : itemSalvo.categoria_id)) {
+                        const subItensAtualizados = isEdicao
+                            ? cat.subItens.map(sub => sub.id === itemFormatado.id ? itemFormatado : sub)
+                            : [...cat.subItens, itemFormatado];
+                        return { ...cat, subItens: subItensAtualizados };
+                    }
+                    return cat;
+                });
+                return { ...prev, categorias: novasCategorias };
+            });
+            toast.success(`Item ${isEdicao ? 'atualizado' : 'adicionado'} com sucesso!`);
+        } catch (error) {
+            toast.error("Erro ao salvar o item.");
+        }
+    };
+
+    const handleDeleteOrcamentoItem = async (itemId) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        if (!window.confirm("Tem certeza que deseja apagar este item do orçamento?")) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/orcamento/itens/${itemId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error('Falha ao apagar o item.');
+
+            setUsuario(prev => {
+                const novasCategorias = prev.categorias.map(cat => ({
+                    ...cat,
+                    subItens: cat.subItens.filter(item => item.id !== itemId)
+                }));
+                return { ...prev, categorias: novasCategorias };
+            });
+            toast.success("Item apagado com sucesso!");
+        } catch (error) {
+            toast.error("Erro ao apagar o item.");
         }
     };
 
@@ -146,7 +331,9 @@ export default function App() {
         localStorage.removeItem('authToken');
         setIsAuthenticated(false);
         setUsuario({});
-        setCurrentPage('login');
+        setTransacoes([]);
+        setPatrimonioData({ ativos: [], dividas: [] });
+        setCurrentPage('objetivos'); // Reset page
         if (theme !== 'dark') {
             toggleTheme();
         }
@@ -157,18 +344,6 @@ export default function App() {
             ...prevUsuario,
             categorias: newCategorias
         }));
-    };
-    
-    const handleEditTransacao = (id, novosDadosOuLista) => {
-        if (Array.isArray(novosDadosOuLista)) {
-            setTransacoes(novosDadosOuLista);
-            return;
-        }
-        setTransacoes(prev =>
-            prev.map(t =>
-                t.id === id ? { ...t, ...novosDadosOuLista, category: novosDadosOuLista.type === 'credit' ? 'receita' : categorizeByAI(novosDadosOuLista.description) || novosDadosOuLista.category || t.category } : t
-            )
-        );
     };
 
     const handleEditClick = (transacao) => {
@@ -183,6 +358,7 @@ export default function App() {
     };
 
     const { orcamentoCalculos, pieChartData } = useMemo(() => {
+        if (!usuario.categorias) return { orcamentoCalculos: {}, pieChartData: [] };
         const totais = { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 } };
         const totaisCategorias = { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 };
         let pieData = [];
@@ -221,10 +397,8 @@ export default function App() {
 
     const patrimonioTotal = useMemo(() => {
         if (!patrimonioData || !patrimonioData.dividas) return 0;
-        const totalAtivos = Object.keys(patrimonioData)
-            .filter(key => key !== 'dividas' && Array.isArray(patrimonioData[key]))
-            .reduce((acc, key) => acc + patrimonioData[key].reduce((sum, item) => sum + item.valor, 0), 0);
-        const totalDividas = patrimonioData.dividas.reduce((sum, item) => sum + item.valor, 0);
+        const totalAtivos = patrimonioData.ativos.reduce((sum, item) => sum + parseFloat(item.valor), 0);
+        const totalDividas = patrimonioData.dividas.reduce((sum, item) => sum + parseFloat(item.valor), 0);
         return totalAtivos - totalDividas;
     }, [patrimonioData]);
 
@@ -251,10 +425,10 @@ export default function App() {
         { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft,
             subItems: [
                 { id: 'fluxoTransacoes', label: 'Transações', icon: Coins },
-                { id: 'fluxoPlanejamento', label: 'Planeamento', icon: CheckSquare },
+                { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare },
             ]
         },
-        { id: 'patrimonio', label: 'Património', icon: Landmark },
+        { id: 'patrimonio', label: 'Patrimônio', icon: Landmark },
         { id: 'protecao', label: 'Proteção', icon: Shield },
         { id: 'reserva', label: 'Reserva', icon: PiggyBank },
         {
@@ -280,7 +454,7 @@ export default function App() {
         label: 'Viagens',
         icon: Plane,
         subItems: [
-            { id: 'viagensMilhas', label: 'Planeamento de Milhas', icon: PlaneTakeoff },
+            { id: 'viagensMilhas', label: 'Planejamento de Milhas', icon: PlaneTakeoff },
             { id: 'viagensCartoes', label: 'Cartões de Crédito', icon: CreditCard },
         ]
         },
@@ -297,15 +471,38 @@ export default function App() {
         switch (currentPage) {
             case 'orcamento':
                 if (!usuario || !usuario.categorias) {
-                    return <div className="flex justify-center items-center h-full text-lg">A carregar...</div>;
+                    return <div className="flex justify-center items-center h-full text-lg">Carregando...</div>;
                 }
-                content = <TelaOrcamento categorias={usuario.categorias} setCategorias={setUsuarioCategorias} orcamentoCalculos={orcamentoCalculos} pieChartData={pieChartData} />;
+                content = <TelaOrcamento 
+                    categorias={usuario.categorias} 
+                    onUpdateMeta={handleUpdateOrcamentoMeta}
+                    onSaveItem={handleSaveOrcamentoItem}
+                    onDeleteItem={handleDeleteOrcamentoItem}
+                    orcamentoCalculos={orcamentoCalculos} 
+                    pieChartData={pieChartData} 
+                />;
                 break;
             case 'protecao': content = <TelaProtecao rendaMensal={orcamentoCalculos.atual.receitas} custoDeVidaMensal={custoDeVidaMensal} patrimonioTotal={patrimonioTotal} protecao={protecao} onUpdateCobertura={handleUpdateCobertura}/>; break;
             case 'reserva': content = <TelaReservaEmergencia orcamentoCalculos={orcamentoCalculos} />; break;
             case 'aposentadoriaAportes': content = <TelaAposentadoria />; break;
-            case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} setPatrimonioData={setPatrimonioData} patrimonioTotal={patrimonioTotal} />; break;
-            case 'fluxoTransacoes':  content = <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={handleCategoryChange} handleIgnoreToggle={handleIgnoreToggle} handleEditTransacao={handleEditTransacao} onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} onEditClick={(transacao) => {setTransacaoSelecionada(transacao); setIsTransacaoModalOpen(true);}}/>; break;
+            case 'patrimonio': 
+                content = <TelaPatrimonio 
+                    patrimonioData={patrimonioData} 
+                    patrimonioTotal={patrimonioTotal}
+                    onSaveItem={handleSavePatrimonioItem}
+                    onDeleteItem={handleDeletePatrimonioItem}
+                />; 
+                break;
+            case 'fluxoTransacoes':
+                content = <TelaFluxoDeCaixa 
+                    transacoes={transacoes} 
+                    handleCategoryChange={handleCategoryChange} 
+                    handleIgnoreToggle={handleIgnoreToggle} 
+                    onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} 
+                    onEditClick={handleEditClick}
+                    onDeleteClick={handleDeleteTransacao}
+                />; 
+                break;
             case 'fluxoPlanejamento': content = <TelaPlanejamento orcamento={usuario.categorias} gastosReais={transacoes} onEditarMeta={handleEditarMeta} />; break;
             case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis />; break;
             case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis />; break;

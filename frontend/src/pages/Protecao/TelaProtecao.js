@@ -1,42 +1,46 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { PlusCircle, Edit, Trash2, Users, Stethoscope, HeartHandshake, Car } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
+const TelaProtecao = ({ 
+    rendaMensal, 
+    custoDeVidaMensal, 
+    patrimonioTotal, 
+    protecaoData,
+    onSaveItem,
+    onDeleteItem,
+    usuario
+}) => {
+    const protecoesTemporarias = protecaoData?.invalidez || [];
+    const despesasFuturas = protecaoData?.despesasFuturas || [];
+    const protecaoPatrimonial = protecaoData?.patrimonial || [];
+
     const [rentabilidadeAnual] = useState(10);
-    const [protecoesTemporarias, setProtecoesTemporarias] = useState([]);
     const [editingItemId, setEditingItemId] = useState(null);
-    const [editingItemData, setEditingItemData] = useState({ cobertura: '', observacoes: '' });
+    const [editingItemData, setEditingItemData] = useState({ nome: '', cobertura: '', observacoes: '' });
     const [tipoProtecaoPermanente, setTipoProtecaoPermanente] = useState('renda');
     const [percentualInventario, setPercentualInventario] = useState(15);
     const [possuiHolding, setPossuiHolding] = useState(false);
-    const [despesasFuturas, setDespesasFuturas] = useState([]);
     const [editingFuturaId, setEditingFuturaId] = useState(null);
-    const [editingFuturaData, setEditingFuturaData] = useState({ nome: '', anoInicio: '', valorMensal: '', prazoMeses: '' });
+    const [editingFuturaData, setEditingFuturaData] = useState({ nome: '', ano_inicio: '', valor_mensal: '', prazo_meses: '' });
     const [doencasGravesTempo, setDoencasGravesTempo] = useState(12);
     const [doencasGravesBase, setDoencasGravesBase] = useState('renda');
-    const [protecaoPatrimonial, setProtecaoPatrimonial] = useState([]);
     const [editingPatrimonialId, setEditingPatrimonialId] = useState(null);
-    const [editingPatrimonialData, setEditingPatrimonialData] = useState({ nome: '', dataVencimento: '', empresa: '', valor: '' });
+    const [editingPatrimonialData, setEditingPatrimonialData] = useState({ nome: '', data_vencimento: '', empresa: '', valor: '' });
 
     const { capitalRenda, capitalCustoVida } = useMemo(() => {
-        const taxaIR = 15; // Alíquota de IR fixa em 15%
+        const taxaIR = 15;
         if (rentabilidadeAnual <= 0) return { capitalRenda: 0, capitalCustoVida: 0 };
-
         const rendimentoBrutoDecimal = rentabilidadeAnual / 100;
         const taxaIrDecimal = taxaIR / 100;
         const rendimentoLiquidoDecimal = rendimentoBrutoDecimal * (1 - taxaIrDecimal);
-
         if (rendimentoLiquidoDecimal <= 0) return { capitalRenda: 0, capitalCustoVida: 0 };
-
-        const capitalRenda = (rendaMensal * 12) / rendimentoLiquidoDecimal;
-        const capitalCustoVida = (custoDeVidaMensal * 12) / rendimentoLiquidoDecimal;
-
-        return { capitalRenda, capitalCustoVida };
+        const capitalRendaCalc = (rendaMensal * 12) / rendimentoLiquidoDecimal;
+        const capitalCustoVidaCalc = (custoDeVidaMensal * 12) / rendimentoLiquidoDecimal;
+        return { capitalRenda: capitalRendaCalc, capitalCustoVida: capitalCustoVidaCalc };
     }, [rendaMensal, custoDeVidaMensal, rentabilidadeAnual]);
 
     const protecaoPermanenteSelecionada = useMemo(() => {
@@ -46,7 +50,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
     }, [tipoProtecaoPermanente, capitalRenda, capitalCustoVida]);
 
     const totalCoberturaInvalidez = useMemo(() => {
-        const totalTemporaria = protecoesTemporarias.reduce((acc, item) => acc + item.cobertura, 0);
+        const totalTemporaria = protecoesTemporarias.reduce((acc, item) => acc + Number(item.cobertura), 0);
         return protecaoPermanenteSelecionada.cobertura + totalTemporaria;
     }, [protecaoPermanenteSelecionada, protecoesTemporarias]);
 
@@ -55,7 +59,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
     }, [patrimonioTotal, percentualInventario]);
 
     const totalCoberturaMorte = useMemo(() => {
-        const totalDespesasFuturas = despesasFuturas.reduce((acc, item) => acc + (item.valorMensal * item.prazoMeses), 0);
+        const totalDespesasFuturas = despesasFuturas.reduce((acc, item) => acc + (Number(item.valor_mensal) * Number(item.prazo_meses)), 0);
         return custoInventario + totalDespesasFuturas;
     }, [custoInventario, despesasFuturas]);
 
@@ -64,12 +68,73 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
         return base * doencasGravesTempo;
     }, [doencasGravesBase, doencasGravesTempo, rendaMensal, custoDeVidaMensal]);
 
-    useEffect(() => {
-        if (possuiHolding) {
-            setPercentualInventario(4);
-        }
-    }, [possuiHolding]);
+    const handleAddProtecaoTemporaria = (tipo) => {
+        onSaveItem({
+            nome: `Proteção Temporária (${tipo === 'renda' ? 'Renda' : 'Custo de Vida'})`,
+            cobertura: tipo === 'renda' ? rendaMensal : custoDeVidaMensal,
+            observacoes: 'Contratado'
+        }, 'invalidez');
+    };
+    const handleDeleteProtecao = (id) => onDeleteItem(id, 'invalidez');
+    const handleStartEdit = (item) => {
+        setEditingItemId(item.id);
+        setEditingItemData({ nome: item.nome, cobertura: item.cobertura, observacoes: item.observacoes });
+    };
+    const handleSaveEdit = (id) => {
+        onSaveItem({ id, ...editingItemData, cobertura: parseFloat(editingItemData.cobertura) || 0 }, 'invalidez');
+        setEditingItemId(null);
+    };
 
+    const handleAddDespesaFutura = () => {
+        onSaveItem({
+            nome: 'Nova Despesa',
+            ano_inicio: new Date().getFullYear(),
+            valor_mensal: 1000,
+            prazo_meses: 12
+        }, 'despesas');
+    };
+    const handleDeleteDespesaFutura = (id) => onDeleteItem(id, 'despesas');
+    const handleStartEditFutura = (item) => {
+        setEditingFuturaId(item.id);
+        setEditingFuturaData({ 
+            nome: item.nome, 
+            ano_inicio: item.ano_inicio, 
+            valor_mensal: item.valor_mensal, 
+            prazo_meses: item.prazo_meses 
+        });
+    };
+    const handleSaveEditFutura = (id) => {
+        onSaveItem({ 
+            id, 
+            ...editingFuturaData,
+            ano_inicio: parseInt(editingFuturaData.ano_inicio) || 0,
+            valor_mensal: parseFloat(editingFuturaData.valor_mensal) || 0,
+            prazo_meses: parseInt(editingFuturaData.prazo_meses) || 0,
+        }, 'despesas');
+        setEditingFuturaId(null);
+    };
+
+    const handleAddPatrimonial = () => {
+        onSaveItem({
+            nome: 'Seguro Auto',
+            data_vencimento: new Date().toISOString().split('T')[0],
+            empresa: 'Empresa Exemplo',
+            valor: 50000
+        }, 'patrimonial');
+    };
+    const handleDeletePatrimonial = (id) => onDeleteItem(id, 'patrimonial');
+    const handleStartEditPatrimonial = (item) => {
+        setEditingPatrimonialId(item.id);
+        setEditingPatrimonialData({ ...item, data_vencimento: item.data_vencimento ? item.data_vencimento.split('T')[0] : '' });
+    };
+    const handleSaveEditPatrimonial = (id) => {
+        onSaveItem({ ...editingPatrimonialData, id, valor: parseFloat(editingPatrimonialData.valor) || 0 }, 'patrimonial');
+        setEditingPatrimonialId(null);
+    };
+    
+    const handleCancelEdit = () => setEditingItemId(null);
+    const handleCancelEditFutura = () => setEditingFuturaId(null);
+    const handleCancelEditPatrimonial = () => setEditingPatrimonialId(null);
     const handlePercentualInventarioChange = (e) => {
         let value = parseFloat(e.target.value);
         if (isNaN(value)) value = 0;
@@ -78,145 +143,73 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
         setPercentualInventario(value);
     };
 
-    const handleAddProtecaoTemporaria = (tipo) => {
-        const newProtecao = {
-            id: uuidv4(),
-            nome: `Proteção Temporária (${tipo === 'renda' ? 'Renda' : 'Custo de Vida'})`,
-            cobertura: tipo === 'renda' ? rendaMensal : custoDeVidaMensal,
-            observacoes: 'Contratado'
-        };
-        setProtecoesTemporarias(prev => [...prev, newProtecao]);
-    };
-
-    const handleDeleteProtecao = (id) => {
-        setProtecoesTemporarias(prev => prev.filter(p => p.id !== id));
-    };
-
-    const handleStartEdit = (item) => {
-        setEditingItemId(item.id);
-        setEditingItemData({ cobertura: item.cobertura, observacoes: item.observacoes });
-    };
-
-    const handleCancelEdit = () => {
-        setEditingItemId(null);
-    };
-
-    const handleSaveEdit = (id) => {
-        setProtecoesTemporarias(prev => prev.map(p =>
-            p.id === id ? { ...p, cobertura: parseFloat(editingItemData.cobertura) || 0, observacoes: editingItemData.observacoes } : p
-        ));
-        setEditingItemId(null);
-    };
-
-    const handleAddDespesaFutura = () => {
-        const newDespesa = {
-            id: uuidv4(),
-            nome: 'Nova Despesa',
-            anoInicio: new Date().getFullYear(),
-            valorMensal: 1000,
-            prazoMeses: 12
-        };
-        setDespesasFuturas(prev => [...prev, newDespesa]);
-    };
-
-    const handleDeleteDespesaFutura = (id) => {
-        setDespesasFuturas(prev => prev.filter(d => d.id !== id));
-    };
-
-    const handleStartEditFutura = (item) => {
-        setEditingFuturaId(item.id);
-        setEditingFuturaData({ ...item });
-    };
-
-    const handleCancelEditFutura = () => {
-        setEditingFuturaId(null);
-    };
-
-    const handleSaveEditFutura = (id) => {
-        setDespesasFuturas(prev => prev.map(d =>
-            d.id === id ? { ...d, ...editingFuturaData, valorMensal: parseFloat(editingFuturaData.valorMensal) || 0, prazoMeses: parseInt(editingFuturaData.prazoMeses) || 0, anoInicio: parseInt(editingFuturaData.anoInicio) || 0 } : d
-        ));
-        setEditingFuturaId(null);
-    };
-
-    const handleAddPatrimonial = () => {
-        const newItem = {
-            id: uuidv4(),
-            nome: 'Seguro Auto',
-            dataVencimento: new Date().toISOString().split('T')[0],
-            empresa: 'Empresa Exemplo',
-            valor: 50000
-        };
-        setProtecaoPatrimonial(prev => [...prev, newItem]);
-    };
-
-    const handleDeletePatrimonial = (id) => {
-        setProtecaoPatrimonial(prev => prev.filter(p => p.id !== id));
-    };
-
-    const handleStartEditPatrimonial = (item) => {
-        setEditingPatrimonialId(item.id);
-        setEditingPatrimonialData({ ...item });
-    };
-
-    const handleCancelEditPatrimonial = () => {
-        setEditingPatrimonialId(null);
-    };
-
-    const handleSaveEditPatrimonial = (id) => {
-        setProtecaoPatrimonial(prev => prev.map(p =>
-            p.id === id ? { ...p, ...editingPatrimonialData, valor: parseFloat(editingPatrimonialData.valor) || 0 } : p
-        ));
-        setEditingPatrimonialId(null);
-    };
     const exportarPropostaPDF = () => {
-    const doc = new jsPDF();
+        try {
+            const doc = new jsPDF();
+            doc.setFontSize(18);
+            doc.text('Proposta de Proteção Financeira', 14, 22);
+            doc.setFontSize(11);
+            doc.text(`Cliente: ${usuario?.nome || 'Não informado'}`, 14, 30);
+            doc.text(`Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}`, 14, 36);
 
-        doc.setFontSize(16);
-        doc.text('Proposta de Seguro de Vida Personalizada', 14, 20);
+            autoTable(doc, {
+                startY: 45,
+                head: [['Resumo das Coberturas Recomendadas', 'Valor Sugerido']],
+                body: [
+                    ['Cobertura por Invalidez', formatCurrency(totalCoberturaInvalidez)],
+                    ['Cobertura por Morte', formatCurrency(totalCoberturaMorte)],
+                    ['Cobertura para Doenças Graves', formatCurrency(coberturaDoencasGraves)],
+                ],
+                theme: 'grid',
+                headStyles: { fillColor: [32, 27, 93] },
+            });
 
-        doc.setFontSize(12);
-        doc.text(`Data: ${new Date().toLocaleDateString()}`, 14, 30);
-        doc.text('Resumo das Coberturas Recomendadas:', 14, 40);
+            if (despesasFuturas.length > 0) {
+                const despesasBody = despesasFuturas.map(item => [
+                    item.nome || '-',
+                    item.ano_inicio || '-',
+                    formatCurrency(item.valor_mensal),
+                    `${item.prazo_meses || 0} meses`,
+                    formatCurrency((item.valor_mensal || 0) * (item.prazo_meses || 0)),
+                ]);
+                autoTable(doc, {
+                    startY: doc.lastAutoTable.finalY + 10,
+                    head: [['Despesas Futuras (Sucessão)', 'Ano de Início', 'Valor Mensal', 'Prazo', 'Valor Total']],
+                    body: despesasBody,
+                    theme: 'grid',
+                    headStyles: { fillColor: [32, 27, 93] },
+                });
+            }
 
-        autoTable(doc, {
-            startY: 45,
-            head: [['Cobertura', 'Valor']],
-            body: [
-                ['Invalidez Total', formatCurrency(totalCoberturaInvalidez)],
-                ['Morte (Inventário + Despesas)', formatCurrency(totalCoberturaMorte)],
-                ['Doenças Graves', formatCurrency(coberturaDoencasGraves)],
-            ],
-        });
+            if (protecaoPatrimonial.length > 0) {
+                const patrimonialBody = protecaoPatrimonial.map(item => [
+                    item.nome || '-',
+                    item.empresa || '-',
+                    item.data_vencimento ? new Date(item.data_vencimento).toLocaleDateString('pt-BR') : '-',
+                    formatCurrency(item.valor),
+                ]);
+                autoTable(doc, {
+                    startY: doc.lastAutoTable.finalY + 10,
+                    head: [['Seguros Patrimoniais Ativos', 'Empresa', 'Vencimento', 'Valor da Cobertura']],
+                    body: patrimonialBody,
+                    theme: 'grid',
+                    headStyles: { fillColor: [32, 27, 93] },
+                });
+            }
+            
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.text('Este é um documento gerado pelo sistema SeuConsultor.', 14, doc.internal.pageSize.height - 10);
+                doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width - 35, doc.internal.pageSize.height - 10);
+            }
 
-        doc.text('Detalhamento das Despesas Futuras:', 14, doc.lastAutoTable.finalY + 10);
-
-        autoTable(doc, {
-            startY: doc.lastAutoTable.finalY + 15,
-            head: [['Nome', 'Ano Início', 'Valor Mensal', 'Prazo (meses)', 'Total']],
-            body: despesasFuturas.map(item => [
-                item.nome,
-                item.anoInicio,
-                formatCurrency(item.valorMensal),
-                item.prazoMeses,
-                formatCurrency(item.valorMensal * item.prazoMeses),
-            ]),
-        });
-
-        doc.text('Seguros Patrimoniais Ativos:', 14, doc.lastAutoTable.finalY + 10);
-
-        autoTable(doc, {
-            startY: doc.lastAutoTable.finalY + 15,
-            head: [['Nome', 'Empresa', 'Vencimento', 'Valor']],
-            body: protecaoPatrimonial.map(item => [
-                item.nome,
-                item.empresa,
-                item.dataVencimento,
-                formatCurrency(item.valor),
-            ]),
-        });
-
-        doc.save('proposta_seguro_vida.pdf');
+            doc.save(`proposta_protecao_${usuario?.nome?.replace(/\s/g, '_') || 'cliente'}.pdf`);
+        } catch (error) {
+            console.error("❌ Erro ao gerar o PDF:", error);
+            alert("Ocorreu um erro ao gerar o PDF. Verifique a consola para mais detalhes.");
+        }
     };
 
     return (
@@ -236,7 +229,8 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Coluna Esquerda */}
                 <div className="space-y-6">
                     <Card>
                         <div className="flex items-center gap-3 mb-4">
@@ -246,28 +240,28 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm items-end">
                              <div className="md:col-span-1">
                                 <label className="font-medium text-slate-800 dark:text-white">Patrimônio Total:</label>
-                                <input type="number" value={patrimonioTotal} readOnly className="mt-1 w-full bg-[white] dark:bg-[white] text-slate-800 dark:text-slate-800 rounded-md px-2 py-1 border border-[#3e388b] focus:outline-none focus:ring-1 focus:ring-[#00d971] opacity-70" />
+                                <input type="number" value={patrimonioTotal} readOnly className="mt-1 w-full bg-slate-200 dark:bg-gray-700 text-slate-800 dark:text-white rounded-md px-2 py-1 border border-slate-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-[#00d971] opacity-70" />
                             </div>
                             <div className="flex items-end gap-4 md:col-span-2">
                                 <div>
                                     <label className="block font-medium text-slate-800 dark:text-white">Inventário (%):</label>
-                                    <input type="number" value={percentualInventario} onChange={handlePercentualInventarioChange} disabled={possuiHolding} min="4" max="20" className="mt-1 w-full bg-[white] dark:bg-[white] text-slate-800 dark:text-slate-800 rounded-md px-2 py-1 border border-[#3e388b] focus:outline-none focus:ring-1 focus:ring-[#00d971] disabled:opacity-50" />
+                                    <input type="number" value={percentualInventario} onChange={handlePercentualInventarioChange} disabled={possuiHolding} min="4" max="20" className="mt-1 w-full bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-2 py-1 border border-slate-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-[#00d971] disabled:opacity-50" />
                                 </div>
                                 <label className="flex items-center gap-2 cursor-pointer pb-1">
-                                    <input type="checkbox" checked={possuiHolding} onChange={e => setPossuiHolding(e.target.checked)} className="form-checkbox h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 rounded focus:ring-[#00d971]" />
+                                    <input type="checkbox" checked={possuiHolding} onChange={e => setPossuiHolding(e.target.checked)} className="form-checkbox h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 rounded focus:ring-offset-0 focus:ring-2 focus:ring-[#00d971]" />
                                     <span className="text-slate-800 dark:text-white">Holding</span>
                                 </label>
                             </div>
                         </div>
                         <div className="space-y-4 text-sm mt-6">
                              <div>
-                                <div className="flex justify-between items-center bg-[#201b5d]/50 dark:bg-[#00d971] p-2 rounded-t-lg">
+                                <div className="flex justify-between items-center bg-[#201b5d]/80 dark:bg-[#00d971]/80 p-2 rounded-t-lg">
                                     <h3 className="font-bold text-white">Despesas Futuras</h3>
-                                    <button onClick={handleAddDespesaFutura} className="text-xs flex items-center gap-1 text-[#00d971] dark:text-[white] hover:brightness-90"><PlusCircle size={14} /> Adicionar</button>
+                                    <button onClick={handleAddDespesaFutura} className="text-xs flex items-center gap-1 font-semibold text-white hover:text-gray-200"><PlusCircle size={14} /> Adicionar</button>
                                 </div>
-                                <div className="space-y-1 bg-[#201b5d]/20 dark:bg-[#00d971]/20 p-2 rounded-b-lg">
+                                <div className="space-y-1 bg-slate-100 dark:bg-gray-800/50 p-2 rounded-b-lg">
                                     {despesasFuturas.length > 0 && (
-                                        <div className="grid grid-cols-12 gap-2 items-center px-2 pb-2 border-b border-[#3e388b] font-bold text-slate-800 dark:text-white">
+                                        <div className="grid grid-cols-12 gap-2 items-center px-2 pb-2 border-b border-slate-300 dark:border-gray-600 font-bold text-slate-600 dark:text-slate-300">
                                             <p className="col-span-3">Descrição</p>
                                             <p className="col-span-2">Início</p>
                                             <p className="col-span-2">Valor/Mês</p>
@@ -277,36 +271,36 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                                         </div>
                                     )}
                                     {despesasFuturas.length > 0 ? despesasFuturas.map(item => (
-                                        <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 hover:bg-[#3e388b]/30 rounded">
+                                        <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 hover:bg-slate-200 dark:hover:bg-gray-700/50 rounded">
                                             {editingFuturaId === item.id ? (
                                                 <>
-                                                    <input type="text" value={editingFuturaData.nome} onChange={e => setEditingFuturaData({...editingFuturaData, nome: e.target.value})} className="col-span-3 bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                                    <input type="number" value={editingFuturaData.anoInicio} onChange={e => setEditingFuturaData({...editingFuturaData, anoInicio: e.target.value})} className="col-span-2 bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                                    <input type="number" value={editingFuturaData.valorMensal} onChange={e => setEditingFuturaData({...editingFuturaData, valorMensal: e.target.value})} className="col-span-2 bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                                    <input type="number" value={editingFuturaData.prazoMeses} onChange={e => setEditingFuturaData({...editingFuturaData, prazoMeses: e.target.value})} className="col-span-2 bg-white dark:bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                                    <div className="col-span-3 flex justify-end items-center gap-3">
-                                                        <button onClick={() => handleSaveEditFutura(item.id)} className="text-slate-800 dark:text-white hover:text-[#00d971]">Salvar</button>
-                                                        <button onClick={handleCancelEditFutura} className="text-slate-800 dark:text-white hover:text-red-400">X</button>
+                                                    <input type="text" value={editingFuturaData.nome} onChange={e => setEditingFuturaData({...editingFuturaData, nome: e.target.value})} className="col-span-3 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
+                                                    <input type="number" value={editingFuturaData.ano_inicio} onChange={e => setEditingFuturaData({...editingFuturaData, ano_inicio: e.target.value})} className="col-span-2 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
+                                                    <input type="number" value={editingFuturaData.valor_mensal} onChange={e => setEditingFuturaData({...editingFuturaData, valor_mensal: e.target.value})} className="col-span-2 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
+                                                    <input type="number" value={editingFuturaData.prazo_meses} onChange={e => setEditingFuturaData({...editingFuturaData, prazo_meses: e.target.value})} className="col-span-2 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
+                                                    <div className="col-span-2 flex justify-end items-center gap-3">
+                                                        <button onClick={() => handleSaveEditFutura(item.id)} className="text-slate-600 dark:text-slate-300 hover:text-[#00d971]">Salvar</button>
+                                                        <button onClick={handleCancelEditFutura} className="text-slate-600 dark:text-slate-300 hover:text-red-400">X</button>
                                                     </div>
                                                 </>
                                             ) : (
                                                 <>
                                                     <p className="col-span-3 text-slate-800 dark:text-white">{item.nome}</p>
-                                                    <p className="col-span-2 text-slate-800 dark:text-white">{item.anoInicio}</p>
-                                                    <p className="col-span-2 text-slate-800 dark:text-white">{formatCurrency(item.valorMensal)}</p>
-                                                    <p className="col-span-2 text-slate-800 dark:text-white">{item.prazoMeses} meses</p>
-                                                    <p className="col-span-1 font-semibold text-slate-800 dark:text-white">{formatCurrency(item.valorMensal * item.prazoMeses)}</p>
+                                                    <p className="col-span-2 text-slate-800 dark:text-white">{item.ano_inicio}</p>
+                                                    <p className="col-span-2 text-slate-800 dark:text-white">{formatCurrency(item.valor_mensal)}</p>
+                                                    <p className="col-span-2 text-slate-800 dark:text-white">{item.prazo_meses} meses</p>
+                                                    <p className="col-span-1 font-semibold text-slate-800 dark:text-white">{formatCurrency(item.valor_mensal * item.prazo_meses)}</p>
                                                     <div className="col-span-2 flex justify-end items-center gap-3">
-                                                        <button onClick={() => handleStartEditFutura(item)} className="text-slate-800 dark:text-white hover:text-[#00d971]"><Edit size={16} /></button>
-                                                        <button onClick={() => handleDeleteDespesaFutura(item.id)} className="text-slate-800 dark:text-white hover:text-red-400"><Trash2 size={16} /></button>
+                                                        <button onClick={() => handleStartEditFutura(item)} className="text-slate-600 dark:text-slate-300 hover:text-[#00d971]"><Edit size={16} /></button>
+                                                        <button onClick={() => handleDeleteDespesaFutura(item.id)} className="text-slate-600 dark:text-slate-300 hover:text-red-400"><Trash2 size={16} /></button>
                                                     </div>
                                                 </>
                                             )}
                                         </div>
-                                    )) : <p className="text-center text-slate-800 dark:text-white p-2 text-xs">Nenhuma despesa futura adicionada.</p>}
+                                    )) : <p className="text-center text-slate-500 dark:text-gray-400 p-2 text-xs">Nenhuma despesa futura adicionada.</p>}
                                 </div>
                             </div>
-                             <div className="flex justify-between items-center p-3 border-t border-[#3e388b] mt-4">
+                             <div className="flex justify-between items-center p-3 border-t border-slate-300 dark:border-gray-600 mt-4">
                                 <h3 className="text-base font-bold text-slate-800 dark:text-white">Total Cobertura de Morte:</h3>
                                 <p className="text-base font-bold text-[#00d971]">{formatCurrency(totalCoberturaMorte)}</p>
                             </div>
@@ -322,7 +316,7 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                                 <p className="font-medium text-slate-800 dark:text-white">Tempo de cobertura:</p>
                                 {[12, 18, 24].map(tempo => (
                                     <label key={tempo} className="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="doencas-tempo" value={tempo} checked={doencasGravesTempo === tempo} onChange={() => setDoencasGravesTempo(tempo)} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-[#00d971]" />
+                                        <input type="radio" name="doencas-tempo" value={tempo} checked={doencasGravesTempo === tempo} onChange={() => setDoencasGravesTempo(tempo)} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-offset-0 focus:ring-2 focus:ring-[#00d971]" />
                                         <span className="text-slate-800 dark:text-white">{tempo} meses</span>
                                     </label>
                                 ))}
@@ -330,17 +324,17 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                              <div className="flex items-center gap-6 mb-4">
                                 <p className="font-medium text-slate-800 dark:text-white">Base de cálculo:</p>
                                 <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="doencas-base" value="renda" checked={doencasGravesBase === 'renda'} onChange={() => setDoencasGravesBase('renda')} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-[#00d971]" />
+                                    <input type="radio" name="doencas-base" value="renda" checked={doencasGravesBase === 'renda'} onChange={() => setDoencasGravesBase('renda')} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-offset-0 focus:ring-2 focus:ring-[#00d971]" />
                                     <span className="text-slate-800 dark:text-white">Renda</span>
                                 </label>
                                  <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="doencas-base" value="custo" checked={doencasGravesBase === 'custo'} onChange={() => setDoencasGravesBase('custo')} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-[#00d971]" />
+                                    <input type="radio" name="doencas-base" value="custo" checked={doencasGravesBase === 'custo'} onChange={() => setDoencasGravesBase('custo')} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-offset-0 focus:ring-2 focus:ring-[#00d971]" />
                                     <span className="text-slate-800 dark:text-white">Custo de Vida</span>
                                 </label>
                             </div>
-                             <div className="bg-[#201b5d]/50 dark:bg-[#00d971] p-3 rounded-lg flex justify-between items-center">
-                                <p className="text-base font-semibold text-white dark:text-white">Cobertura Necessária:</p>
-                                <p className="text-lg font-bold text-[#00d971] dark:text-white">{formatCurrency(coberturaDoencasGraves)}</p>
+                             <div className="bg-[#201b5d]/80 dark:bg-[#00d971]/80 p-3 rounded-lg flex justify-between items-center">
+                                <p className="text-base font-semibold text-white">Cobertura Necessária:</p>
+                                <p className="text-lg font-bold text-white">{formatCurrency(coberturaDoencasGraves)}</p>
                             </div>
                         </div>
                     </Card>
@@ -355,73 +349,73 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                         </div>
                         <div className="space-y-4 text-sm">
                             <div>
-                                <div className="flex justify-between items-center bg-[#201b5d]/50 dark:bg-[#00d971] p-2 rounded-t-lg">
+                                <div className="flex justify-between items-center bg-[#201b5d]/80 dark:bg-[#00d971]/80 p-2 rounded-t-lg">
                                     <h3 className="font-bold text-white">Invalidez Permanente</h3>
                                 </div>
-                                <div className="space-y-1 bg-[#201b5d]/20 dark:bg-[#00d971]/20 p-3 rounded-b-lg">
+                                <div className="space-y-1 bg-slate-100 dark:bg-gray-800/50 p-3 rounded-b-lg">
                                     <div className="flex items-center gap-6 mb-2">
                                         <label className="flex items-center gap-2 cursor-pointer">
-                                            <input type="radio" name="protecao-permanente" value="renda" checked={tipoProtecaoPermanente === 'renda'} onChange={() => setTipoProtecaoPermanente('renda')} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-[#00d971]" />
+                                            <input type="radio" name="protecao-permanente" value="renda" checked={tipoProtecaoPermanente === 'renda'} onChange={() => setTipoProtecaoPermanente('renda')} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-offset-0 focus:ring-2 focus:ring-[#00d971]" />
                                             <span className="text-slate-800 dark:text-white">Proteção da Renda</span>
                                         </label>
                                         <label className="flex items-center gap-2 cursor-pointer">
-                                            <input type="radio" name="protecao-permanente" value="custo" checked={tipoProtecaoPermanente === 'custo'} onChange={() => setTipoProtecaoPermanente('custo')} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-[#00d971]" />
+                                            <input type="radio" name="protecao-permanente" value="custo" checked={tipoProtecaoPermanente === 'custo'} onChange={() => setTipoProtecaoPermanente('custo')} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-offset-0 focus:ring-2 focus:ring-[#00d971]" />
                                             <span className="text-slate-800 dark:text-white">Custo de Vida</span>
                                         </label>
                                     </div>
                                     <div className="grid grid-cols-12 gap-2 items-center p-2 rounded">
                                         <p className="col-span-4 text-slate-800 dark:text-white">{protecaoPermanenteSelecionada.nome}</p>
                                         <p className="col-span-4 font-semibold text-slate-800 dark:text-white">{formatCurrency(protecaoPermanenteSelecionada.cobertura)}</p>
-                                        <p className="col-span-4 text-slate-800 dark:text-white italic">{protecaoPermanenteSelecionada.observacoes}</p>
+                                        <p className="col-span-4 text-slate-500 dark:text-gray-400 italic">{protecaoPermanenteSelecionada.observacoes}</p>
                                     </div>
                                 </div>
                             </div>
                             <div>
-                                <div className="flex justify-between items-center bg-[#201b5d]/50 dark:bg-[#00d971] p-2 rounded-t-lg">
+                                <div className="flex justify-between items-center bg-[#201b5d]/80 dark:bg-[#00d971]/80 p-2 rounded-t-lg">
                                     <h3 className="font-bold text-white">Invalidez Temporária</h3>
                                     <div className="flex gap-4">
-                                        <button onClick={() => handleAddProtecaoTemporaria('renda')} className="text-xs flex items-center gap-1  text-[#00d971] text-bold dark:text-white hover:brightness-90"><PlusCircle size={14} /> Renda</button>
-                                        <button onClick={() => handleAddProtecaoTemporaria('custo')} className="text-xs flex items-center gap-1 text-[#00d971] text-bold dark:text-white hover:brightness-90"><PlusCircle size={14} /> Custo de Vida</button>
+                                        <button onClick={() => handleAddProtecaoTemporaria('renda')} className="text-xs flex items-center gap-1 font-semibold text-white hover:text-gray-200"><PlusCircle size={14} /> Renda</button>
+                                        <button onClick={() => handleAddProtecaoTemporaria('custo')} className="text-xs flex items-center gap-1 font-semibold text-white hover:text-gray-200"><PlusCircle size={14} /> Custo de Vida</button>
                                     </div>
                                 </div>
-                                <div className="space-y-1 bg-[#201b5d]/20 dark:bg-[#00d971]/20 p-2 rounded-b-lg">
+                                <div className="space-y-1 bg-slate-100 dark:bg-gray-800/50 p-2 rounded-b-lg">
                                     {protecoesTemporarias.length > 0 ? protecoesTemporarias.map(item => (
-                                        <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 hover:bg-[#3e388b]/30 rounded">
+                                        <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 hover:bg-slate-200 dark:hover:bg-gray-700/50 rounded">
                                             {editingItemId === item.id ? (
                                                 <>
-                                                    <p className="col-span-4 text-slate-800 dark:text-white text-xs">{item.nome}</p>
-                                                    <input type="number" value={editingItemData.cobertura} onChange={e => setEditingItemData({...editingItemData, cobertura: e.target.value})} className="col-span-3 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                                    <input type="text" value={editingItemData.observacoes} onChange={e => setEditingItemData({...editingItemData, observacoes: e.target.value})} className="col-span-3 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
+                                                    <input type="text" value={editingItemData.nome} onChange={e => setEditingItemData({...editingItemData, nome: e.target.value})} className="col-span-4 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
+                                                    <input type="number" value={editingItemData.cobertura} onChange={e => setEditingItemData({...editingItemData, cobertura: e.target.value})} className="col-span-3 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
+                                                    <input type="text" value={editingItemData.observacoes} onChange={e => setEditingItemData({...editingItemData, observacoes: e.target.value})} className="col-span-3 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
                                                     <div className="col-span-2 flex justify-end items-center gap-3">
-                                                        <button onClick={() => handleSaveEdit(item.id)} className="text-slate-800 dark:text-white hover:text-[#00d971]">Salvar</button>
-                                                        <button onClick={handleCancelEdit} className="text-slate-800 dark:text-white hover:text-red-400">X</button>
+                                                        <button onClick={() => handleSaveEdit(item.id)} className="text-slate-600 dark:text-slate-300 hover:text-[#00d971]">Salvar</button>
+                                                        <button onClick={handleCancelEdit} className="text-slate-600 dark:text-slate-300 hover:text-red-400">X</button>
                                                     </div>
                                                 </>
                                             ) : (
                                                 <>
                                                     <p className="col-span-4 text-slate-800 dark:text-white">{item.nome}</p>
-                                                    <p className="col-span-3 font-semibold text-white">{formatCurrency(item.cobertura)}</p>
-                                                    <p className="col-span-3 text-slate-800 dark:text-white italic">{item.observacoes}</p>
+                                                    <p className="col-span-3 font-semibold text-slate-800 dark:text-white">{formatCurrency(item.cobertura)}</p>
+                                                    <p className="col-span-3 text-slate-500 dark:text-gray-400 italic">{item.observacoes}</p>
                                                     <div className="col-span-2 flex justify-end items-center gap-3">
-                                                        <button onClick={() => handleStartEdit(item)} className="text-slate-800 dark:text-white hover:text-[#00d971]"><Edit size={16} /></button>
-                                                        <button onClick={() => handleDeleteProtecao(item.id)} className="text-slate-800 dark:text-white hover:text-red-400"><Trash2 size={16} /></button>
+                                                        <button onClick={() => handleStartEdit(item)} className="text-slate-600 dark:text-slate-300 hover:text-[#00d971]"><Edit size={16} /></button>
+                                                        <button onClick={() => handleDeleteProtecao(item.id)} className="text-slate-600 dark:text-slate-300 hover:text-red-400"><Trash2 size={16} /></button>
                                                     </div>
                                                 </>
                                             )}
                                         </div>
-                                    )) : <p className="text-center text-slate-800 dark:text-white p-2 text-xs">Nenhuma proteção adicionada.</p>}
+                                    )) : <p className="text-center text-slate-500 dark:text-gray-400 p-2 text-xs">Nenhuma proteção temporária adicionada.</p>}
                                 </div>
                             </div>
                         </div>
                     </Card>
                     <Card>
-                         <div className="flex justify-between items-center bg-[#201b5d]/50 p-2 rounded-t-lg mb-2">
+                         <div className="flex justify-between items-center bg-[#201b5d]/80 dark:bg-[#00d971]/80 p-2 rounded-t-lg mb-2">
                             <h3 className="font-bold text-white flex items-center gap-2"><Car size={18}/> Proteção Patrimonial</h3>
-                            <button onClick={handleAddPatrimonial} className="text-xs flex items-center gap-1 text-[#00d971] hover:brightness-90"><PlusCircle size={14} /> Adicionar Seguro</button>
+                            <button onClick={handleAddPatrimonial} className="text-xs flex items-center gap-1 font-semibold text-white hover:text-gray-200"><PlusCircle size={14} /> Adicionar Seguro</button>
                         </div>
-                         <div className="space-y-1 bg-[#201b5d]/20 p-2 rounded-b-lg text-sm">
+                         <div className="space-y-1 bg-slate-100 dark:bg-gray-800/50 p-2 rounded-b-lg text-sm">
                             {protecaoPatrimonial.length > 0 && (
-                                <div className="grid grid-cols-12 gap-2 items-center px-2 pb-2 border-b border-[#3e388b] font-bold text-slate-800 dark:text-white">
+                                <div className="grid grid-cols-12 gap-2 items-center px-2 pb-2 border-b border-slate-300 dark:border-gray-600 font-bold text-slate-600 dark:text-slate-300">
                                     <p className="col-span-3">Nome</p>
                                     <p className="col-span-3">Empresa</p>
                                     <p className="col-span-2">Vencimento</p>
@@ -430,44 +424,44 @@ const TelaProtecao = ({ rendaMensal, custoDeVidaMensal, patrimonioTotal }) => {
                                 </div>
                             )}
                             {protecaoPatrimonial.length > 0 ? protecaoPatrimonial.map(item => (
-                                <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 hover:bg-[#3e388b]/30 rounded">
+                                <div key={item.id} className="grid grid-cols-12 gap-2 items-center p-2 hover:bg-slate-200 dark:hover:bg-gray-700/50 rounded">
                                     {editingPatrimonialId === item.id ? (
                                         <>
-                                            <input type="text" value={editingPatrimonialData.nome} onChange={e => setEditingPatrimonialData({...editingPatrimonialData, nome: e.target.value})} className="col-span-3 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                            <input type="text" value={editingPatrimonialData.empresa} onChange={e => setEditingPatrimonialData({...editingPatrimonialData, empresa: e.target.value})} className="col-span-3 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                            <input type="date" value={editingPatrimonialData.dataVencimento} onChange={e => setEditingPatrimonialData({...editingPatrimonialData, dataVencimento: e.target.value})} className="col-span-2 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
-                                            <input type="number" value={editingPatrimonialData.valor} onChange={e => setEditingPatrimonialData({...editingPatrimonialData, valor: e.target.value})} className="col-span-2 bg-[#201b5d] text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-[#00d971]"/>
+                                            <input type="text" value={editingPatrimonialData.nome} onChange={e => setEditingPatrimonialData({...editingPatrimonialData, nome: e.target.value})} className="col-span-3 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
+                                            <input type="text" value={editingPatrimonialData.empresa} onChange={e => setEditingPatrimonialData({...editingPatrimonialData, empresa: e.target.value})} className="col-span-3 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
+                                            <input type="date" value={editingPatrimonialData.data_vencimento} onChange={e => setEditingPatrimonialData({...editingPatrimonialData, data_vencimento: e.target.value})} className="col-span-2 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
+                                            <input type="number" value={editingPatrimonialData.valor} onChange={e => setEditingPatrimonialData({...editingPatrimonialData, valor: e.target.value})} className="col-span-2 bg-white dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-1 py-0.5 border border-slate-400 dark:border-gray-600"/>
                                             <div className="col-span-2 flex justify-end items-center gap-3">
-                                                <button onClick={() => handleSaveEditPatrimonial(item.id)} className="text-slate-800 dark:text-white hover:text-[#00d971]">Salvar</button>
-                                                <button onClick={handleCancelEditPatrimonial} className="text-slate-800 dark:text-white hover:text-red-400">X</button>
+                                                <button onClick={() => handleSaveEditPatrimonial(item.id)} className="text-slate-600 dark:text-slate-300 hover:text-[#00d971]">Salvar</button>
+                                                <button onClick={handleCancelEditPatrimonial} className="text-slate-600 dark:text-slate-300 hover:text-red-400">X</button>
                                             </div>
                                         </>
                                     ) : (
                                         <>
                                             <p className="col-span-3 text-slate-800 dark:text-white">{item.nome}</p>
                                             <p className="col-span-3 text-slate-800 dark:text-white">{item.empresa}</p>
-                                            <p className="col-span-2 text-slate-800 dark:text-white">{item.dataVencimento}</p>
-                                            <p className="col-span-2 font-semibold text-white">{formatCurrency(item.valor)}</p>
+                                            <p className="col-span-2 text-slate-800 dark:text-white">{item.data_vencimento ? new Date(item.data_vencimento).toLocaleDateString() : '-'}</p>
+                                            <p className="col-span-2 font-semibold text-slate-800 dark:text-white">{formatCurrency(item.valor)}</p>
                                             <div className="col-span-2 flex justify-end items-center gap-3">
-                                                <button onClick={() => handleStartEditPatrimonial(item)} className="text-slate-800 dark:text-white hover:text-[#00d971]"><Edit size={16} /></button>
-                                                <button onClick={() => handleDeletePatrimonial(item.id)} className="text-slate-800 dark:text-white hover:text-red-400"><Trash2 size={16} /></button>
+                                                <button onClick={() => handleStartEditPatrimonial(item)} className="text-slate-600 dark:text-slate-300 hover:text-[#00d971]"><Edit size={16} /></button>
+                                                <button onClick={() => handleDeletePatrimonial(item.id)} className="text-slate-600 dark:text-slate-300 hover:text-red-400"><Trash2 size={16} /></button>
                                             </div>
                                         </>
                                     )}
                                 </div>
-                            )) : <p className="text-center text-slate-800 dark:text-white p-2 text-xs">Nenhum seguro patrimonial adicionado.</p>}
+                            )) : <p className="text-center text-slate-500 dark:text-gray-400 p-2 text-xs">Nenhum seguro patrimonial adicionado.</p>}
                         </div>
                     </Card>
                      <Card>
-                            <div className="flex justify-between items-center p-3">
-                                <h2 className="text-lg font-bold text-slate-800 dark:text-white">Exportar Proposta</h2>
-                                <button
+                        <div className="flex justify-between items-center p-3">
+                            <h2 className="text-lg font-bold text-slate-800 dark:text-white">Exportar Proposta</h2>
+                            <button
                                 onClick={exportarPropostaPDF}
-                                className="bg-[#00d971] hover:brightness-90 text-white px-4 py-2 rounded-md text-sm"
-                                >
+                                className="bg-[#00d971] hover:bg-[#00b860] text-black font-bold px-4 py-2 rounded-md text-sm transition-colors"
+                            >
                                 Exportar PDF
-                                </button>
-                            </div>
+                            </button>
+                        </div>
                     </Card>
                 </div>
             </div>

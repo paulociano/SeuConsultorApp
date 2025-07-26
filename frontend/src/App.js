@@ -253,52 +253,84 @@ export default function App() {
         }
     };
 
-    const handleSaveOrcamentoItem = async (itemData, categoriaId) => {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+    const handleSaveOrcamentoItem = async (itemData, categoriaPaiId) => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
 
-        const isEdicao = !!itemData.id;
-        const method = isEdicao ? 'PUT' : 'POST';
-        const endpoint = isEdicao ? `http://localhost:3001/api/orcamento/itens/${itemData.id}` : 'http://localhost:3001/api/orcamento/itens';
-        
-        const body = isEdicao 
-            ? { nome: itemData.nome, valor_atual: itemData.valor }
-            : { nome: itemData.nome, categoria_id: categoriaId, valor_atual: itemData.valor };
+    const isEdicao = !!itemData.id;
+    const method = isEdicao ? 'PUT' : 'POST';
+    const endpoint = isEdicao 
+        ? `http://localhost:3001/api/orcamento/itens/${itemData.id}` 
+        : 'http://localhost:3001/api/orcamento/itens';
 
-        try {
-            const response = await fetch(endpoint, {
-                method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) throw new Error('Falha ao salvar o item do orçamento.');
-            
-            const itemSalvo = await response.json();
-            const itemFormatado = {
-                id: itemSalvo.id,
-                nome: itemSalvo.nome,
-                sugerido: parseFloat(itemSalvo.valor_planejado),
-                atual: parseFloat(itemSalvo.valor_atual)
-            };
-
-            setUsuario(prev => {
-                const novasCategorias = prev.categorias.map(cat => {
-                    if (cat.id === (isEdicao ? categoriaId : itemSalvo.categoria_id)) {
-                        const subItensAtualizados = isEdicao
-                            ? cat.subItens.map(sub => sub.id === itemFormatado.id ? itemFormatado : sub)
-                            : [...cat.subItens, itemFormatado];
-                        return { ...cat, subItens: subItensAtualizados };
-                    }
-                    return cat;
-                });
-                return { ...prev, categorias: novasCategorias };
-            });
-            toast.success(`Item ${isEdicao ? 'atualizado' : 'adicionado'} com sucesso!`);
-        } catch (error) {
-            toast.error("Erro ao salvar o item.");
-        }
+    // O corpo da requisição está correto e envia todos os dados necessários
+    const body = {
+        nome: itemData.nome,
+        valor_planejado: itemData.valor_planejado,
+        categoria_planejamento: itemData.categoria_planejamento,
     };
+
+    if (isEdicao) {
+        const itemOriginal = usuario.categorias
+            .flatMap(c => c.subItens)
+            .find(i => i.id === itemData.id);
+        body.valor_atual = itemOriginal?.atual || 0; // Mantém o valor_atual existente
+    } else {
+        body.categoria_id = categoriaPaiId; // ID da categoria-pai (ex: Despesas Fixas)
+    }
+
+    try {
+        const response = await fetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Falha ao salvar o item do orçamento.');
+        }
+        
+        const itemSalvo = await response.json();
+        const itemFormatado = {
+            id: itemSalvo.id,
+            nome: itemSalvo.nome,
+            sugerido: parseFloat(itemSalvo.valor_planejado),
+            atual: parseFloat(itemSalvo.valor_atual),
+            categoria_planejamento: itemSalvo.categoria_planejamento
+        };
+
+        // CORREÇÃO: Lógica de atualização de estado foi simplificada e robustecida.
+        setUsuario(prev => {
+            const novasCategorias = prev.categorias.map(cat => {
+                // Para cada categoria-pai, mapeamos seus sub-itens
+                const novosSubItens = cat.subItens.map(subItem => {
+                    // Se o sub-item atual for o que acabamos de editar, retornamos a versão nova e formatada.
+                    if (subItem.id === itemFormatado.id) {
+                        return itemFormatado;
+                    }
+                    // Caso contrário, retornamos o sub-item sem alterações.
+                    return subItem;
+                });
+
+                // Se for um item novo, adicionamos ele à categoria-pai correta
+                if (!isEdicao && cat.id === itemSalvo.categoria_id) {
+                    novosSubItens.push(itemFormatado);
+                }
+
+                // Retornamos a categoria-pai com a lista de sub-itens potencialmente atualizada
+                return { ...cat, subItens: novosSubItens };
+            });
+
+            // Retornamos o novo estado do usuário
+            return { ...prev, categorias: novasCategorias };
+        });
+
+        toast.success(`Item ${isEdicao ? 'atualizado' : 'adicionado'} com sucesso!`);
+    } catch (error) {
+        toast.error(`Erro ao salvar: ${error.message}`);
+    }
+};
 
     const handleDeleteOrcamentoItem = async (itemId) => {
         const token = localStorage.getItem('authToken');

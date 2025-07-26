@@ -225,12 +225,23 @@ app.get('/api/orcamento', verificarToken, async (req, res) => {
     try {
         const userId = req.usuario.id;
         const categoriasResult = await pool.query('SELECT * FROM orcamento_categorias WHERE user_id = $1 ORDER BY id', [userId]);
+        // CORREÇÃO: A query agora busca todos os campos, incluindo o novo `categoria_planejamento`
         const itensResult = await pool.query('SELECT * FROM orcamento_itens WHERE user_id = $1 ORDER BY id', [userId]);
+        
         const orcamentoFormatado = categoriasResult.rows.map(cat => ({
-            id: cat.id, nome: cat.nome, tipo: cat.tipo,
-            subItens: itensResult.rows.filter(item => item.categoria_id === cat.id).map(item => ({
-                id: item.id, nome: item.nome, sugerido: parseFloat(item.valor_planejado), atual: parseFloat(item.valor_atual)
-            }))
+            id: cat.id,
+            nome: cat.nome,
+            tipo: cat.tipo,
+            subItens: itensResult.rows
+                .filter(item => item.categoria_id === cat.id)
+                .map(item => ({
+                    id: item.id,
+                    nome: item.nome,
+                    sugerido: parseFloat(item.valor_planejado),
+                    atual: parseFloat(item.valor_atual),
+                    // CORREÇÃO: Incluindo o novo campo na resposta
+                    categoria_planejamento: item.categoria_planejamento 
+                }))
         }));
         res.json(orcamentoFormatado);
     } catch (error) {
@@ -239,25 +250,14 @@ app.get('/api/orcamento', verificarToken, async (req, res) => {
     }
 });
 
-app.put('/api/orcamento/itens/:id/meta', verificarToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { valor_planejado } = req.body;
-        const sql = 'UPDATE orcamento_itens SET valor_planejado = $1 WHERE id = $2 AND user_id = $3 RETURNING *';
-        const result = await pool.query(sql, [valor_planejado, id, req.usuario.id]);
-        if (result.rows.length === 0) return res.status(404).json({ message: 'Item do orçamento não encontrado.' });
-        res.json(result.rows[0]);
-    } catch (error) { res.status(500).json({ message: 'Erro ao atualizar item do orçamento.' }); }
-});
-
+// Rota para criar novo item (agora com categoria)
 app.post('/api/orcamento/itens', verificarToken, async (req, res) => {
     try {
-        // CORREÇÃO: Receber 'valor_atual' do corpo da requisição.
-        const { nome, categoria_id, valor_atual } = req.body;
+        // CORREÇÃO: Recebe também `categoria_planejamento`
+        const { nome, valor_planejado, categoria_id, categoria_planejamento } = req.body;
         const userId = req.usuario.id;
-        // CORREÇÃO: Usar 'valor_atual' na query, com 0 como padrão.
-        const sql = `INSERT INTO orcamento_itens (nome, valor_planejado, valor_atual, categoria_id, user_id) VALUES ($1, 0, $2, $3, $4) RETURNING *`;
-        const result = await pool.query(sql, [nome, valor_atual || 0, categoria_id, userId]);
+        const sql = `INSERT INTO orcamento_itens (nome, valor_planejado, valor_atual, categoria_id, user_id, categoria_planejamento) VALUES ($1, $2, 0, $3, $4, $5) RETURNING *`;
+        const result = await pool.query(sql, [nome, valor_planejado || 0, categoria_id, userId, categoria_planejamento]);
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error("Erro ao adicionar item de orçamento:", error);
@@ -265,6 +265,32 @@ app.post('/api/orcamento/itens', verificarToken, async (req, res) => {
     }
 });
 
+// Rota para ATUALIZAR um item existente (nome, valores e categoria)
+app.put('/api/orcamento/itens/:id', verificarToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        // CORREÇÃO: Recebe todos os campos que podem ser atualizados
+        const { nome, valor_planejado, valor_atual, categoria_planejamento } = req.body;
+        const userId = req.usuario.id;
+        
+        // CORREÇÃO: Query atualiza todos os campos necessários
+        const sql = `
+            UPDATE orcamento_itens 
+            SET nome = $1, valor_planejado = $2, valor_atual = $3, categoria_planejamento = $4 
+            WHERE id = $5 AND user_id = $6 
+            RETURNING *
+        `;
+        const result = await pool.query(sql, [nome, valor_planejado, valor_atual, categoria_planejamento, id, userId]);
+        
+        if (result.rows.length === 0) return res.status(404).json({ message: 'Item do orçamento não encontrado.' });
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error("Erro ao atualizar item de orçamento:", error);
+        res.status(500).json({ message: 'Erro ao atualizar item do orçamento.' });
+    }
+});
+
+// Rota para apagar um item (não precisa de alteração)
 app.delete('/api/orcamento/itens/:id', verificarToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -279,19 +305,6 @@ app.delete('/api/orcamento/itens/:id', verificarToken, async (req, res) => {
     }
 });
 
-app.put('/api/orcamento/itens/:id', verificarToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { nome, valor_atual } = req.body;
-        const userId = req.usuario.id;
-        const sql = 'UPDATE orcamento_itens SET nome = $1, valor_atual = $2 WHERE id = $3 AND user_id = $4 RETURNING *';
-        const result = await pool.query(sql, [nome, valor_atual, id, userId]);
-        if (result.rows.length === 0) return res.status(404).json({ message: 'Item do orçamento não encontrado.' });
-        res.json(result.rows[0]);
-    } catch (error) {
-        res.status(500).json({ message: 'Erro ao atualizar item do orçamento.' });
-    }
-});
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

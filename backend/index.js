@@ -1,5 +1,3 @@
-// index.js
-
 const { initialOrcamentoData } = require('../frontend/src/components/constants/initialOrcamentoData');
 const { initialPatrimonioData } = require('../frontend/src/components/constants/initialPatrimonioData');
 const jwt = require('jsonwebtoken');
@@ -24,43 +22,34 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-// --- NOVO: VERIFICADOR DE TOKEN (MIDDLEWARE) ---
-// Esta função vai proteger nossas rotas futuras.
+// --- MIDDLEWARE DE VERIFICAÇÃO DE TOKEN ---
 const verificarToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Formato "Bearer <token>"
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (token == null) {
-    return res.status(401).json({ message: 'Token não fornecido.' }); // 401 Unauthorized
+    return res.status(401).json({ message: 'Token não fornecido.' });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, usuario) => {
     if (err) {
-      return res.status(403).json({ message: 'Token inválido ou expirado.' }); // 403 Forbidden
+      return res.status(403).json({ message: 'Token inválido ou expirado.' });
     }
-    // Adiciona os dados do usuário (que estavam no payload do token) ao objeto da requisição
     req.usuario = usuario;
-    next(); // Passa para a execução da rota
+    next();
   });
 };
 
-
-// --- ROTAS PÚBLICAS (NÃO PRECISAM DE TOKEN) ---
+// --- ROTAS PÚBLICAS (AUTENTICAÇÃO) ---
 
 app.post('/login', async (req, res) => {
-    // ... seu código de login que já funciona ...
     const { email, senha } = req.body;
     try {
         const userQuery = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (userQuery.rows.length === 0) {
-            return res.status(401).json({ success: false, message: 'Email ou senha inválidos' });
-        }
+        if (userQuery.rows.length === 0) return res.status(401).json({ success: false, message: 'Email ou senha inválidos' });
         const usuario = userQuery.rows[0];
         const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
-        if (!senhaValida) {
-            return res.status(401).json({ success: false, message: 'Email ou senha inválidos' });
-        }
+        if (!senhaValida) return res.status(401).json({ success: false, message: 'Email ou senha inválidos' });
         const payload = { id: usuario.id, nome: usuario.nome, email: usuario.email };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
         res.json({
@@ -75,7 +64,6 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/cadastro', async (req, res) => {
-    // ... seu código de cadastro que já funciona ...
     const { nome, email, senha } = req.body;
     try {
         const salt = await bcrypt.genSalt(10);
@@ -83,39 +71,62 @@ app.post('/cadastro', async (req, res) => {
         const sql = 'INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id, nome, email, imagem_url';
         const values = [nome, email, senhaHash];
         const result = await pool.query(sql, values);
-        const novoUsuario = result.rows[0];
-        res.status(201).json({ success: true, usuario: novoUsuario });
+        res.status(201).json({ success: true, usuario: result.rows[0] });
     } catch (error) {
         console.error('Erro ao cadastrar usuário:', error);
         res.status(500).json({ success: false, message: 'Erro interno do servidor. O email já pode estar em uso.' });
     }
 });
 
+// --- ROTAS PROTEGIDAS (DADOS DO USUÁRIO) ---
 
-// --- ROTAS PROTEGIDAS (PRECISAM DE TOKEN) ---
-
-// NOVO: Esta rota substitui a antiga /dados-usuario
 app.get('/api/perfil', verificarToken, (req, res) => {
-  // Graças ao middleware `verificarToken`, `req.usuario` contém os dados do usuário do token.
-  // No futuro, você usaria o `req.usuario.id` para buscar dados REAIS do banco.
-  // Por agora, vamos retornar os dados do usuário do token e alguns dados mockados para o resto do app funcionar.
-  console.log('Acessando perfil para o usuário:', req.usuario);
-
+  // Esta rota agora só retorna os dados mockados, as transações virão da rota específica.
   res.json({
-    // Dados reais vindos do token
     usuario: req.usuario,
-    
-    // Dados mockados para o resto do app (substituir no futuro por queries ao banco)
-    transacoes: [], // Começa com transações vazias
     patrimonioData: initialPatrimonioData,
     protecao: [
         { id: '1', tipo: 'renda', nome: 'Seguro de Renda', valor: 80000 },
         { id: '2', tipo: 'morte', nome: 'Seguro de Vida', valor: 150000 },
         { id: '3', tipo: 'invalidez', nome: 'Seguro de Invalidez', valor: 60000 },
     ],
-    // As categorias virão dos dados iniciais, mas poderiam ser específicas do usuário
     categorias: initialOrcamentoData 
   });
+});
+
+// --- NOVO: ROTAS PARA TRANSAÇÕES (CRUD) ---
+
+// ROTA PARA BUSCAR TODAS AS TRANSAÇÕES DO USUÁRIO LOGADO
+app.get('/api/transacoes', verificarToken, async (req, res) => {
+  try {
+    const userId = req.usuario.id; // ID do usuário vem do token verificado
+    const result = await pool.query('SELECT * FROM transacoes WHERE user_id = $1 ORDER BY data DESC', [userId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Erro ao buscar transações:', error);
+    res.status(500).json({ message: 'Erro interno do servidor.' });
+  }
+});
+
+// ROTA PARA ADICIONAR UMA NOVA TRANSAÇÃO
+app.post('/api/transacoes', verificarToken, async (req, res) => {
+  try {
+    const userId = req.usuario.id;
+    const { descricao, valor, data, tipo, categoria, ignorada } = req.body;
+
+    const sql = `
+      INSERT INTO transacoes (descricao, valor, data, tipo, categoria, ignorada, user_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *;
+    `;
+    const values = [descricao, valor, data, tipo, categoria, ignorada || false, userId];
+    
+    const result = await pool.query(sql, values);
+    res.status(201).json(result.rows[0]); // Retorna a transação criada
+  } catch (error) {
+    console.error('Erro ao adicionar transação:', error);
+    res.status(500).json({ message: 'Erro interno do servidor.' });
+  }
 });
 
 

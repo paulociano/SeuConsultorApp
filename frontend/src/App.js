@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useContext, useEffect } from 'react';
 import logo from './assets/logo.svg';
 import { ThemeContext } from './ThemeContext';
@@ -45,10 +44,6 @@ export default function App() {
     const [protecao, setProtecao] = useState([]);
     const [isTransacaoModalOpen, setIsTransacaoModalOpen] = useState(false);
     
-    // --- LÓGICA DE AUTENTICAÇÃO E BUSCA DE DADOS ---
-    
-    // Este useEffect roda apenas uma vez quando o componente é montado.
-    // Ele verifica se há um token salvo para manter o usuário logado.
     useEffect(() => {
         const fetchInitialData = async () => {
             const token = localStorage.getItem('authToken');
@@ -58,53 +53,104 @@ export default function App() {
             }
 
             try {
-                const response = await fetch('http://localhost:3001/api/perfil', {
+                const perfilResponse = await fetch('http://localhost:3001/api/perfil', {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (!response.ok) {
-                    throw new Error('Sessão inválida ou expirada');
-                }
+                if (!perfilResponse.ok) throw new Error('Sessão inválida no perfil');
+                const perfilData = await perfilResponse.json();
 
-                const data = await response.json();
+                const transacoesResponse = await fetch('http://localhost:3001/api/transacoes', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-                // Atualiza todos os estados com os dados recebidos
-                setUsuario(data.usuario);
-                setTransacoes(data.transacoes || []);
-                setPatrimonioData(data.patrimonioData || { ativos: [], dividas: [] });
-                setProtecao(data.protecao || []);
-                // Garante que as categorias também sejam carregadas no estado do usuário
-                setUsuario(prevUsuario => ({ ...prevUsuario, ...data.usuario, categorias: data.categorias }));
+                if (!transacoesResponse.ok) throw new Error('Falha ao buscar transações');
+                const transacoesData = await transacoesResponse.json();
+
+                setUsuario(perfilData.usuario);
+                setPatrimonioData(perfilData.patrimonioData || { ativos: [], dividas: [] });
+                setProtecao(perfilData.protecao || []);
+                setUsuario(prevUsuario => ({ ...prevUsuario, ...perfilData.usuario, categorias: perfilData.categorias }));
+                setTransacoes(transacoesData || []);
                 setIsAuthenticated(true);
                 
             } catch (error) {
                 console.error('Erro ao buscar dados iniciais:', error);
-                localStorage.removeItem('authToken'); // Limpa token inválido
+                localStorage.removeItem('authToken');
                 setIsAuthenticated(false);
             }
         };
         
         fetchInitialData();
 
-        // Lógica para definir o tema inicial
         if (theme !== 'dark') {
             toggleTheme();
         }
-    }, []); // O array vazio [] garante que este efeito rode apenas uma vez.
+    }, []);
 
-    // Função para logout
+    // --- FUNÇÃO CORRIGIDA E ROBUSTA PARA SALVAR TRANSAÇÃO ---
+    const handleSaveTransacao = async (novaTransacao) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            console.error("Utilizador não autenticado. Impossível guardar a transação.");
+            return;
+        }
+
+        // CORREÇÃO: Garante que os campos obrigatórios tenham valores padrão para evitar erros no backend.
+        const descricaoFinal = novaTransacao.descricao || 'Transação sem descrição';
+        const valorFinal = novaTransacao.valor || 0;
+        const dataFinal = novaTransacao.data || new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        const tipoFinal = novaTransacao.tipo || 'debit'; // Padrão para débito (gasto)
+
+        const transacaoParaEnviar = {
+            ...novaTransacao,
+            descricao: descricaoFinal,
+            valor: valorFinal,
+            data: dataFinal,
+            tipo: tipoFinal,
+            categoria: tipoFinal === 'credit'
+                ? 'receita'
+                : novaTransacao.categoria || categorizeByAI(descricaoFinal),
+        };
+
+        try {
+            const response = await fetch('http://localhost:3001/api/transacoes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(transacaoParaEnviar)
+            });
+
+            if (!response.ok) {
+                // Para depuração, vamos ver o que o servidor respondeu
+                const errorData = await response.json();
+                console.error("Erro do servidor:", errorData);
+                throw new Error("Falha ao guardar a transação no servidor.");
+            }
+
+            const transacaoSalva = await response.json();
+            setTransacoes(prev => [transacaoSalva, ...prev]);
+            setIsTransacaoModalOpen(false);
+            setTransacaoSelecionada(null);
+
+        } catch (error) {
+            console.error("Erro ao guardar transação:", error);
+        }
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('authToken');
         setIsAuthenticated(false);
         setUsuario({});
-        setCurrentPage('login'); // Redireciona para a tela de login
+        setCurrentPage('login');
         if (theme !== 'dark') {
             toggleTheme();
         }
     };
-
-    // --- MANIPULADORES DE ESTADO E CÁLCULOS ---
 
     const setUsuarioCategorias = (newCategorias) => {
         setUsuario(prevUsuario => ({
@@ -112,7 +158,7 @@ export default function App() {
             categorias: newCategorias
         }));
     };
-
+    
     const handleEditTransacao = (id, novosDadosOuLista) => {
         if (Array.isArray(novosDadosOuLista)) {
             setTransacoes(novosDadosOuLista);
@@ -190,17 +236,6 @@ export default function App() {
         setTransacoes(prev => prev.map(t => t.id === transactionId ? { ...t, isIgnored: !t.isIgnored } : t));
     };
 
-    const handleSaveTransacao = (novaTransacao) => {
-        const transacaoFinal = { ...novaTransacao, category: novaTransacao.type === 'credit' ? 'receita' : novaTransacao.category || categorizeByAI(novaTransacao.description) };
-        if (transacaoSelecionada) {
-            setTransacoes(prev => prev.map(t => t.id === transacaoSelecionada.id ? { ...t, ...transacaoFinal } : t));
-        } else {
-            setTransacoes(prev => [{ ...transacaoFinal, id: Date.now().toString() }, ...prev]);
-        }
-        setIsTransacaoModalOpen(false);
-        setTransacaoSelecionada(null);
-    };
-
     const handleEditarMeta = (categoriaId, novaMeta) => {
         setUsuarioCategorias(prev =>
             prev.map(cat => {
@@ -211,16 +246,15 @@ export default function App() {
     };
 
     const menuItems = [
-        // ... seu array de menuItems completo ...
         { id: 'objetivos', label: 'Objetivos', icon: Target },
         { id: 'orcamento', label: 'Orçamento', icon: BarChart2 },
         { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft,
             subItems: [
                 { id: 'fluxoTransacoes', label: 'Transações', icon: Coins },
-                { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare },
+                { id: 'fluxoPlanejamento', label: 'Planeamento', icon: CheckSquare },
             ]
         },
-        { id: 'patrimonio', label: 'Patrimônio', icon: Landmark },
+        { id: 'patrimonio', label: 'Património', icon: Landmark },
         { id: 'protecao', label: 'Proteção', icon: Shield },
         { id: 'reserva', label: 'Reserva', icon: PiggyBank },
         {
@@ -246,7 +280,7 @@ export default function App() {
         label: 'Viagens',
         icon: Plane,
         subItems: [
-            { id: 'viagensMilhas', label: 'Planejamento de Milhas', icon: PlaneTakeoff },
+            { id: 'viagensMilhas', label: 'Planeamento de Milhas', icon: PlaneTakeoff },
             { id: 'viagensCartoes', label: 'Cartões de Crédito', icon: CreditCard },
         ]
         },
@@ -257,14 +291,13 @@ export default function App() {
     const renderPage = () => {
         let content;
         if (!isAuthenticated) {
-            // Passa as funções para que a tela de autenticação possa atualizar o estado do App
             return <TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setUsuario={setUsuario} />;
         }
         
         switch (currentPage) {
             case 'orcamento':
                 if (!usuario || !usuario.categorias) {
-                    return <div className="flex justify-center items-center h-full text-lg">Carregando...</div>;
+                    return <div className="flex justify-center items-center h-full text-lg">A carregar...</div>;
                 }
                 content = <TelaOrcamento categorias={usuario.categorias} setCategorias={setUsuarioCategorias} orcamentoCalculos={orcamentoCalculos} pieChartData={pieChartData} />;
                 break;

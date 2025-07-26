@@ -1,40 +1,50 @@
 import { useState, useEffect } from "react";
-import { v4 as uuidv4 } from 'uuid';
 import { CATEGORIAS_FLUXO } from '../constants/Categorias';
 
 const ModalNovaTransacao = ({ transacao, onClose, onSave }) => {
     const isEdicao = !!transacao;
 
+    // Garante que os estados iniciais não sejam nulos ou indefinidos
     const [descricao, setDescricao] = useState('');
     const [valor, setValor] = useState('');
     const [data, setData] = useState(new Date().toISOString().slice(0, 10));
     const [tipo, setTipo] = useState('debit');
     const [categoriaId, setCategoriaId] = useState('outros');
 
-    // Preencher campos se for edição
+    // Preenche os campos se for uma edição
     useEffect(() => {
-        if (transacao) {
-            setDescricao(transacao.description || '');
-            setValor(transacao.amount?.toString() || '');
-            setData(transacao.date?.substring(0, 10) || new Date().toISOString().slice(0, 10));
-            setTipo(transacao.type || 'debit');
-            setCategoriaId(transacao.category || 'outros');
+        if (isEdicao) {
+            setDescricao(transacao.descricao || '');
+            setValor(transacao.valor?.toString() || '0');
+            setData(transacao.data ? new Date(transacao.data).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+            setTipo(transacao.tipo || 'debit');
+            setCategoriaId(transacao.categoria || 'outros');
+        } else {
+            // Reseta para o estado inicial se for uma nova transação
+            setDescricao('');
+            setValor('');
+            setData(new Date().toISOString().slice(0, 10));
+            setTipo('debit');
+            setCategoriaId('outros');
         }
-    }, [transacao]);
+    }, [transacao, isEdicao]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!descricao || !valor || !data) return;
+        // Validação para garantir que o valor não seja zero ou vazio
+        if (!descricao || !valor || parseFloat(valor) === 0 || !data) {
+            alert("Por favor, preencha todos os campos e certifique-se de que o valor não é zero.");
+            return;
+        }
 
         const novaTransacao = {
-            id: transacao?.id || uuidv4(),
-            date: data,
-            description: descricao,
-            amount: parseFloat(valor),
-            type: tipo,
-            sourceAccount: 'Conta Manual',
-            category: tipo === 'debit' ? categoriaId : 'receita',
-            isIgnored: transacao?.isIgnored || false,
+            id: transacao?.id, // Envia o ID apenas se for uma edição
+            data: data,
+            descricao: descricao,
+            valor: parseFloat(valor),
+            tipo: tipo,
+            categoria: tipo === 'debit' ? categoriaId : 'receita',
+            ignorada: transacao?.ignorada || false,
         };
 
         onSave(novaTransacao);
@@ -43,11 +53,6 @@ const ModalNovaTransacao = ({ transacao, onClose, onSave }) => {
 
     const handleClose = () => {
         onClose();
-        setDescricao('');
-        setValor('');
-        setData(new Date().toISOString().slice(0, 10));
-        setTipo('debit');
-        setCategoriaId('outros');
     };
 
     return (
@@ -106,3 +111,4 @@ const ModalNovaTransacao = ({ transacao, onClose, onSave }) => {
 };
 
 export default ModalNovaTransacao;
+

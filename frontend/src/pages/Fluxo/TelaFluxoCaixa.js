@@ -1,5 +1,3 @@
-// TelaFluxoCaixa.js - Versão Melhorada com UX/UI, filtros avançados, toasts, ações em lote e insights
-
 import { useState, useMemo, useEffect } from 'react';
 import Card from '../../components/Card/Card';
 import { CATEGORIAS_FLUXO } from '../../components/constants/Categorias';
@@ -27,8 +25,9 @@ const TelaFluxoDeCaixa = ({
     }, [filtros]);
 
     const opcoesFiltro = useMemo(() => {
-        const datas = transacoes.map(t => new Date(t.date));
-        const anos = [...new Set(datas.map(d => d.getFullYear()))].sort((a, b) => b - a);
+        // CORREÇÃO: Usa t.data
+        const datas = transacoes.map(t => new Date(t.data));
+        const anos = [...new Set(datas.map(d => d.getFullYear()))].filter(ano => !isNaN(ano)).sort((a, b) => b - a);
         const meses = [
             { v: 1, n: 'Janeiro' }, { v: 2, n: 'Fevereiro' }, { v: 3, n: 'Março' },
             { v: 4, n: 'Abril' }, { v: 5, n: 'Maio' }, { v: 6, n: 'Junho' },
@@ -40,23 +39,27 @@ const TelaFluxoDeCaixa = ({
 
     const transacoesFiltradas = useMemo(() => {
         return transacoes.filter(t => {
-            const dataTransacao = new Date(t.date);
+            // CORREÇÃO: Usa t.data, t.categoria, t.descricao
+            const dataTransacao = new Date(t.data);
+            if (isNaN(dataTransacao.getTime())) return false; // Ignora transações com data inválida
+
             const anoTransacao = dataTransacao.getFullYear();
             const mesTransacao = dataTransacao.getMonth() + 1;
             const filtroAnoOk = filtros.ano === 'todos' || anoTransacao === parseInt(filtros.ano);
             const filtroMesOk = filtros.mes === 'todos' || mesTransacao === parseInt(filtros.mes);
-            const filtroCategoriaOk = filtros.categoria === 'todas' || (filtros.categoria === 'nao-categorizadas' ? t.category === null : t.category === filtros.categoria);
-            const filtroBuscaOk = filtros.busca === '' || t.description.toLowerCase().includes(filtros.busca.toLowerCase());
+            const filtroCategoriaOk = filtros.categoria === 'todas' || (filtros.categoria === 'nao-categorizadas' ? t.categoria === null : t.categoria === filtros.categoria);
+            const filtroBuscaOk = filtros.busca === '' || t.descricao.toLowerCase().includes(filtros.busca.toLowerCase());
             return filtroAnoOk && filtroMesOk && filtroCategoriaOk && filtroBuscaOk;
         });
     }, [transacoes, filtros]);
 
     const sumarioPorCategoria = useMemo(() => {
-        const gastos = transacoesFiltradas.filter(t => t.type === 'debit' && !t.isIgnored && t.category !== 'receita');
+        // CORREÇÃO: Usa t.tipo, t.ignorada, t.categoria, t.valor
+        const gastos = transacoesFiltradas.filter(t => t.tipo === 'debit' && !t.ignorada && t.categoria !== 'receita');
         const totais = gastos.reduce((acc, t) => {
-            if (t.category) {
-                if (!acc[t.category]) acc[t.category] = 0;
-                acc[t.category] += t.amount;
+            if (t.categoria) {
+                if (!acc[t.categoria]) acc[t.categoria] = 0;
+                acc[t.categoria] += parseFloat(t.valor);
             }
             return acc;
         }, {});
@@ -75,7 +78,7 @@ const TelaFluxoDeCaixa = ({
     const handleDeleteTransacao = (id) => {
         if (window.confirm("Tem certeza que deseja excluir esta transação?")) {
             const novas = transacoes.filter(t => t.id !== id);
-            handleEditTransacao(null, novas);
+            handleEditTransacao(null, novas); // Esta função precisará ser atualizada para chamar a API de exclusão
             toast.success('Transação excluída');
         }
     };
@@ -93,7 +96,7 @@ const TelaFluxoDeCaixa = ({
         if (selecionadas.length === 0) return;
         if (window.confirm(`Deseja excluir ${selecionadas.length} transações selecionadas?`)) {
             const novas = transacoes.filter(t => !selecionadas.includes(t.id));
-            handleEditTransacao(null, novas);
+            handleEditTransacao(null, novas); // Esta função precisará ser atualizada para chamar a API de exclusão em lote
             setSelecionadas([]);
             toast.success('Transações excluídas');
         }
@@ -101,7 +104,6 @@ const TelaFluxoDeCaixa = ({
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
-            {/* Resumo por Categoria */}
             <Card>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Resumo por Categoria (Gastos)</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -111,7 +113,6 @@ const TelaFluxoDeCaixa = ({
                 </div>
             </Card>
 
-            {/* Filtros */}
             <Card>
                 <div className="flex flex-wrap gap-4 items-center justify-between">
                     <div className="flex flex-wrap gap-2">
@@ -137,7 +138,6 @@ const TelaFluxoDeCaixa = ({
                 </div>
             </Card>
 
-            {/* Lista de Transações */}
             <Card>
                 <div className="flex justify-between items-center border-b pb-4 mb-4">
                     <h2 className="text-lg font-bold text-slate-800 dark:text-white">Transações ({transacoesFiltradas.length})</h2>
@@ -149,31 +149,32 @@ const TelaFluxoDeCaixa = ({
                     <div className="hidden md:grid grid-cols-12 gap-4 text-xs font-bold text-slate-800 dark:text-white px-4 py-2">
                         <div className="col-span-1">#</div><div className="col-span-1">Data</div><div className="col-span-4">Descrição</div><div className="col-span-2">Categoria</div><div className="col-span-2 text-right">Valor</div><div className="col-span-2 text-center">Ações</div>
                     </div>
-                    {transacoesFiltradas.map((t, idx) => {
-                        const isCredit = t.type === 'credit';
+                    {transacoesFiltradas.map((t) => {
+                        // CORREÇÃO: Usa t.tipo, t.id, t.data, t.descricao, t.categoria, t.valor, t.ignorada
+                        const isCredit = t.tipo === 'credit';
                         const selecionada = selecionadas.includes(t.id);
                         return (
-                            <div key={t.id} className={`grid grid-cols-12 gap-4 items-center p-3 rounded-lg transition-colors ${selecionada ? 'bg-yellow-100 dark:bg-yellow-900' : t.isIgnored ? 'bg-gray-800/50 opacity-60' : 'bg-white dark:bg-[#201b5d]'}`}>
+                            <div key={t.id} className={`grid grid-cols-12 gap-4 items-center p-3 rounded-lg transition-colors ${selecionada ? 'bg-yellow-100 dark:bg-yellow-900' : t.ignorada ? 'bg-gray-800/50 opacity-60' : 'bg-white dark:bg-[#201b5d]'}`}>
                                 <div className="col-span-1 text-center">
                                     <input type="checkbox" checked={selecionada} onChange={() => toggleSelecionada(t.id)} />
                                 </div>
-                                <div className="col-span-1 text-sm">{new Date(t.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
-                                <div className="col-span-4 font-medium">{t.description}</div>
+                                <div className="col-span-1 text-sm">{new Date(t.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
+                                <div className="col-span-4 font-medium">{t.descricao}</div>
                                 <div className="col-span-2">
                                     {isCredit ? (
                                         <span className="text-xs font-bold bg-green-500/20 text-green-400 px-2 py-1 rounded-full">Receita</span>
                                     ) : (
-                                        <span>{t.category ? CATEGORIAS_FLUXO[t.category]?.label || '—' : 'Não categorizada'}</span>
+                                        <span>{t.categoria ? CATEGORIAS_FLUXO[t.categoria]?.label || '—' : 'Não categorizada'}</span>
                                     )}
                                 </div>
                                 <div className={`col-span-2 text-right font-semibold ${isCredit ? 'text-green-400' : 'text-red-400'}`}>
-                                    {isCredit ? '+' : '-'} {formatCurrency(t.amount)}
+                                    {isCredit ? '+' : '-'} {formatCurrency(t.valor)}
                                 </div>
                                 <div className="col-span-2 flex justify-center gap-2">
                                     <button onClick={() => onEditClick(t)} title="Editar" className="text-blue-500 hover:text-white">✏️</button>
                                     <button onClick={() => handleDeleteTransacao(t.id)} title="Excluir" className="text-red-500 hover:text-white">🗑️</button>
-                                    <button onClick={() => handleIgnoreToggle(t.id)} title={t.isIgnored ? 'Restaurar' : 'Ignorar'} className="text-slate-800 dark:text-white hover:text-white">
-                                        {t.isIgnored ? <Eye size={18} /> : <EyeOff size={18} />}
+                                    <button onClick={() => handleIgnoreToggle(t.id)} title={t.ignorada ? 'Restaurar' : 'Ignorar'} className="text-slate-800 dark:text-white hover:text-white">
+                                        {t.ignorada ? <Eye size={18} /> : <EyeOff size={18} />}
                                     </button>
                                 </div>
                             </div>
@@ -186,3 +187,4 @@ const TelaFluxoDeCaixa = ({
 };
 
 export default TelaFluxoDeCaixa;
+

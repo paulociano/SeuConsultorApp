@@ -1,491 +1,146 @@
-import ModalNovaViagem from "../../components/Modals/ModalNovaViagem";
-import { mockViagens } from "../../components/mocks/mockViagens";
-import { TicketDeViagem } from "../../components/constants/TicketViagem";
-import React, { useState, useEffect, useContext, useMemo } from "react";
-import { PlusCircle, FileText, TrendingUp, DollarSign, Plane, AlertCircle, Sparkles, Gift, Wallet } from "lucide-react"; // Novos ícones para a nova seção
+import React, { useState, useMemo, useContext } from "react";
+import { PlusCircle, Edit, Trash2, TrendingUp, DollarSign, AlertCircle, Sparkles, Gift, Wallet, Home, Target, Calculator } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { ThemeContext } from "../../ThemeContext";
+import { mockViagens } from "../../components/mocks/mockViagens"; // Supondo que exista
+import ModalNovaViagem from "../../components/Modals/ModalNovaViagem";
+import ModalWallet from "../../components/Modals/ModalWallet";
 
-// Componente Toast básico para feedback visual
-const Toast = ({ message, type, onClose }) => {
-    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-    return (
-        <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg text-white ${bgColor} flex items-center justify-between z-50`}>
-            <span>{message}</span>
-            <button onClick={onClose} className="ml-4 font-bold">&times;</button>
+// Componentes simulados para o exemplo funcionar
+const TicketDeViagem = ({ viagem, onEdit, onDelete }) => (
+    <div className={`p-4 rounded-lg shadow-md ${viagem.theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
+        <div className="flex justify-between items-start">
+            <div>
+                <h3 className="font-bold text-lg">{viagem.nomeDestino} ({viagem.destino})</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Programa Alvo: {viagem.programSuggestions?.[0]}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Custo: R$ {viagem.flightCostBRL?.toFixed(2)} ou ~{viagem.estimatedMiles?.toLocaleString()} milhas</p>
+            </div>
+            <div className="flex gap-2">
+                <button onClick={onEdit} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Edit size={16} /></button>
+                <button onClick={onDelete} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Trash2 size={16} className="text-red-500" /></button>
+            </div>
         </div>
-    );
-};
+        <div className="mt-4">
+            <div className="flex justify-between text-sm mb-1">
+                <span>Progresso</span>
+                <span>{viagem.progress.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${viagem.progress}%` }}></div>
+            </div>
+        </div>
+    </div>
+);
+const Toast = ({ message, type, onClose }) => { if (!message) return null; return <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} z-50`}>{message} <button onClick={onClose} className="ml-4 font-bold">&times;</button></div>; };
+
 
 const TelaMilhas = () => {
     const { theme } = useContext(ThemeContext);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [viagemParaEditar, setViagemParaEditar] = useState(null);
-    const [showToast, setShowToast] = useState(false);
+    const [activeTab, setActiveTab] = useState('dashboard');
+
+    // Estados de UI e Modais
     const [toastMessage, setToastMessage] = useState("");
-    const [toastType, setToastType] = useState("success");
-    const [filterType, setFilterType] = useState("all"); // 'all', 'miles', 'cashback'
-    const [sortBy, setSortBy] = useState("recent"); // 'recent', 'cost-asc', 'cost-desc'
-    const [valuePerMile, setValuePerMile] = useState(0.02); // Valor padrão da milha em BRL
+    const [isWalletModalOpen, setWalletModalOpen] = useState(false);
+    const [walletToEdit, setWalletToEdit] = useState(null);
+    const [isTripModalOpen, setTripModalOpen] = useState(false);
+    const [tripToEdit, setTripToEdit] = useState(null);
 
-    // Estados para a nova seção de cálculo de conversão/venda
-    const [pointsToConvert, setPointsToConvert] = useState(0);
-    const [bonusPercentage, setBonusPercentage] = useState(0);
-    const [conversionRate, setConversionRate] = useState(1); // Ex: 1 ponto = 1 milha
-    const [milesToSell, setMilesToSell] = useState(0);
-    const [saleValuePerThousandMiles, setSaleValuePerThousandMiles] = useState(20); // Ex: R$20 por 1000 milhas
-
-    // Conversion rate: R$ to Miles (e.g., 1.4 milhas for 1 real)
-    const MILES_PER_REAL = 1.4;
-    // Simple cashback rate (e.g., 1% cashback)
-    const CASHBACK_RATE = 0.01;
-
-    const calculateMilesAndCashback = (flightCostBRL, customValuePerMile) => {
-        const estimatedMiles = flightCostBRL * MILES_PER_REAL;
-        const estimatedCashback = flightCostBRL * CASHBACK_RATE;
-
-        let recommendation = "";
-        // Usar o valor customizado da milha para a recomendação
-        if ((estimatedMiles * customValuePerMile) > estimatedCashback) {
-            recommendation = "Acumular milhas parece ser mais vantajoso para esta viagem.";
-        } else if ((estimatedMiles * customValuePerMile) < estimatedCashback) {
-            recommendation = "O cashback pode ser mais interessante para esta viagem.";
-        } else {
-            recommendation = "Milhas e cashback oferecem valor similar para esta viagem.";
-        }
-
-        return { estimatedMiles, estimatedCashback, recommendation };
-    };
-
-
-    const [viagens, setViagens] = useState(() => {
-        // Calculate estimatedMiles and estimatedCashback for mock data on initial load
-        return mockViagens.map(v => {
-            const { estimatedMiles, estimatedCashback, recommendation } = calculateMilesAndCashback(v.flightCostBRL, 0.02); // Use default valuePerMile for initial mock calculation
-            return {
-                ...v,
-                estimatedMiles,
-                estimatedCashback,
-                comparisonRecommendation: v.comparisonRecommendation || recommendation, // Use calculated recommendation if not present
-                mileExpirationDate: v.mileExpirationDate || (Math.random() > 0.7 ? `2025-${Math.floor(Math.random() * 12) + 1}-01` : null),
-                programBalances: v.programBalances || [
-                    { name: "Smiles", miles: Math.floor(Math.random() * 50000) + 10000 },
-                    { name: "TudoAzul", miles: Math.floor(Math.random() * 50000) + 10000 },
-                    { name: "Latam Pass", miles: Math.floor(Math.random() * 50000) + 10000 },
-                ],
-            };
-        });
+    // Estados de Dados
+    const [wallets, setWallets] = useState([
+        { id: 'smiles', name: 'Smiles', balance: 78000, avgCpm: 17.50, expiration: '2025-12-20', type: 'milha' },
+        { id: 'tudoazul', name: 'TudoAzul', balance: 42000, avgCpm: 19.00, expiration: '2026-03-15', type: 'milha' },
+        { id: 'latam', name: 'LATAM Pass', balance: 110000, avgCpm: 21.00, expiration: '2025-08-01', type: 'milha' },
+        { id: 'livelo', name: 'Livelo', balance: 25000, avgCpm: 35.00, expiration: '2027-01-10', type: 'ponto' },
+        { id: 'esfera', name: 'Esfera', balance: 55000, avgCpm: 36.00, expiration: '2026-11-30', type: 'ponto' },
+    ]);
+    const [tripGoals, setTripGoals] = useState(mockViagens);
+    const [calculatorState, setCalculatorState] = useState({
+        pointsToConvert: 10000,
+        bonusPercentage: 100,
+        milesToSell: 50000,
+        saleValuePerThousand: 21,
     });
 
+    // Lógica de Derivação de Estado (useMemo)
+    const pointPrograms = useMemo(() => wallets.filter(w => w.type === 'ponto'), [wallets]);
+    const milePrograms = useMemo(() => wallets.filter(w => w.type === 'milha'), [wallets]);
+    const totalMilesValueBRL = useMemo(() => wallets.reduce((total, wallet) => total + (wallet.balance / 1000) * wallet.avgCpm, 0), [wallets]);
+    const upcomingExpiration = useMemo(() => [...wallets].filter(w => w.expiration).sort((a, b) => new Date(a.expiration) - new Date(b.expiration))[0], [wallets]);
+    const enhancedTripGoals = useMemo(() => tripGoals.map(goal => {
+        const targetProgramName = goal.programSuggestions?.[0]?.toLowerCase() || '';
+        const relevantWallet = wallets.find(w => w.name.toLowerCase().includes(targetProgramName));
+        const progress = relevantWallet && goal.estimatedMiles > 0 ? (relevantWallet.balance / goal.estimatedMiles) * 100 : 0;
+        return { ...goal, progress: Math.min(progress, 100), theme };
+    }), [tripGoals, wallets, theme]);
+    const bonusConversionResult = useMemo(() => calculatorState.pointsToConvert * (1 + calculatorState.bonusPercentage / 100), [calculatorState.pointsToConvert, calculatorState.bonusPercentage]);
+    const mileSaleResult = useMemo(() => (calculatorState.milesToSell / 1000) * calculatorState.saleValuePerThousand, [calculatorState.milesToSell, calculatorState.saleValuePerThousand]);
 
-    useEffect(() => {
-        if (showToast) {
-            const timer = setTimeout(() => {
-                setShowToast(false);
-                setToastMessage("");
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [showToast]);
-
-    const displayToast = (message, type = "success") => {
-        setToastMessage(message);
-        setToastType(type);
-        setShowToast(true);
+    // Handlers
+    const displayToast = (message, type = "success") => { setToastMessage({text: message, type}); setTimeout(() => setToastMessage(""), 3000); };
+    const handleCalculatorChange = (e) => { const { name, value } = e.target; setCalculatorState(prev => ({ ...prev, [name]: parseFloat(value) || 0 })); }
+    
+    const handleOpenWalletModal = (wallet = null) => { setWalletToEdit(wallet); setWalletModalOpen(true); };
+    const handleCloseWalletModal = () => { setWalletToEdit(null); setWalletModalOpen(false); };
+    const handleSaveWallet = (walletData) => {
+        if (walletData.id) { setWallets(wallets.map(w => w.id === walletData.id ? walletData : w)); displayToast("Carteira atualizada!"); } 
+        else { setWallets([...wallets, { ...walletData, id: uuidv4() }]); displayToast("Nova carteira adicionada!"); }
+        handleCloseWalletModal();
+    };
+    const handleDeleteWallet = (walletId) => {
+        if (window.confirm("Tem certeza?")) { setWallets(wallets.filter(w => w.id !== walletId)); displayToast("Carteira excluída.", "error"); }
     };
 
-    // Funções de cálculo para a nova seção
-    const calculateBonusConversion = useMemo(() => {
-        if (pointsToConvert <= 0 || conversionRate <= 0) return 0;
-        const milesWithoutBonus = pointsToConvert / conversionRate;
-        const totalMiles = milesWithoutBonus * (1 + bonusPercentage / 100);
-        return totalMiles;
-    }, [pointsToConvert, bonusPercentage, conversionRate]);
-
-    const calculateMileSaleValue = useMemo(() => {
-        if (milesToSell <= 0 || saleValuePerThousandMiles <= 0) return 0;
-        const value = (milesToSell / 1000) * saleValuePerThousandMiles;
-        return value;
-    }, [milesToSell, saleValuePerThousandMiles]);
-
-    const handleOpenModalParaCriar = () => {
-        setViagemParaEditar(null);
-        setIsModalOpen(true);
+    const handleOpenTripModal = (trip = null) => { setTripToEdit(trip); setTripModalOpen(true); };
+    const handleCloseTripModal = () => { setTripToEdit(null); setTripModalOpen(false); };
+    const handleSaveTrip = (tripData) => {
+        if (tripData.id) { setTripGoals(tripGoals.map(t => t.id === tripData.id ? tripData : t)); displayToast("Meta de viagem atualizada!"); } 
+        else { setTripGoals([...tripGoals, { ...tripData, id: uuidv4() }]); displayToast("Nova meta de viagem adicionada!"); }
+        handleCloseTripModal();
+    };
+    const handleDeleteTrip = (tripId) => {
+        if (window.confirm("Tem certeza?")) { setTripGoals(tripGoals.filter(t => t.id !== tripId)); displayToast("Meta de viagem excluída.", "error"); }
     };
 
-    const handleOpenModalParaEditar = (viagem) => {
-        setViagemParaEditar(viagem);
-        setIsModalOpen(true);
-    };
-
-    const handleCloseModal = () => {
-        setIsModalOpen(false); 
-        setViagemParaEditar(null);
-    };
-
-    const handleSaveViagem = (dadosViagem) => {
-        const { flightCostBRL } = dadosViagem;
-        const { estimatedMiles, estimatedCashback, recommendation } = calculateMilesAndCashback(flightCostBRL, valuePerMile);
-
-        const newViagemData = {
-            ...dadosViagem,
-            id: uuidv4(),
-            estimatedMiles,
-            estimatedCashback,
-            comparisonRecommendation: recommendation,
-            programSuggestions: ["Smiles", "TudoAzul", "Latam Pass"],
-            // Adicionando um exemplo de data de expiração e saldos de programas (para o mock)
-            mileExpirationDate: `2025-${Math.floor(Math.random() * 12) + 1}-01`, // Exemplo: uma data em 2025
-            programBalances: [
-                { name: "Smiles", miles: Math.floor(Math.random() * 50000) + 10000 },
-                { name: "TudoAzul", miles: Math.floor(Math.random() * 50000) + 10000 },
-                { name: "Latam Pass", miles: Math.floor(Math.random() * 50000) + 10000 },
-            ]
-        };
-
-        if (viagemParaEditar) {
-            setViagens(prev => prev.map(v => v.id === viagemParaEditar.id ? { ...newViagemData, id: viagemParaEditar.id } : v));
-            displayToast("Viagem atualizada com sucesso!");
-        } else {
-            setViagens(prev => [...prev, newViagemData]);
-            displayToast("Nova viagem adicionada!");
-        }
-        handleCloseModal();
-    };
-
-    const handleDeleteViagem = (id) => {
-        if (window.confirm("Tem certeza que deseja excluir esta meta de viagem?")) {
-            setViagens(prev => prev.filter(v => v.id !== id));
-            displayToast("Viagem excluída.", "error");
-        }
-    };
-
-    const handleExportPdf = () => {
-        const input = document.getElementById('viagens-list');
-        if (!input) {
-            displayToast("Não foi possível encontrar a lista de viagens para exportar.", "error");
-            return;
-        }
-
-        // Adiciona um estilo temporário para garantir que o PDF seja gerado corretamente
-        const originalBg = input.style.backgroundColor;
-        const originalColor = input.style.color;
-        input.style.backgroundColor = theme === 'dark' ? '#1a202c' : '#ffffff'; // Fundo branco para o PDF
-        input.style.color = theme === 'dark' ? '#e2e8f0' : '#1a202c'; // Cor do texto para o PDF
-
-        html2canvas(input, {
-            useCORS: true,
-            scale: 2, // Aumenta a escala para melhor qualidade no PDF
-            logging: true
-        })
-            .then((canvas) => {
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgProps = pdf.getImageProperties(imgData);
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-                let position = 0;
-                const pageHeight = pdf.internal.pageSize.getHeight();
-
-                if (pdfHeight > pageHeight) {
-                    let heightLeft = imgProps.height;
-                    let nextY = 0;
-
-                    while (heightLeft >= 0) {
-                        nextY = -(imgProps.height - heightLeft);
-                        pdf.addImage(imgData, 'PNG', 0, nextY * pdfWidth / imgProps.width, pdfWidth, pdfHeight);
-                        heightLeft -= pageHeight * imgProps.width / pdfWidth;
-                        if (heightLeft > 0) {
-                            pdf.addPage();
-                        }
-                    }
-                } else {
-                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                }
-
-                pdf.save("minhas_viagens.pdf");
-                displayToast("PDF exportado com sucesso!");
-            })
-            .catch(err => {
-                console.error("Erro ao exportar PDF:", err);
-                displayToast("Erro ao exportar PDF.", "error");
-            })
-            .finally(() => {
-                // Remove os estilos temporários
-                input.style.backgroundColor = originalBg;
-                input.style.color = originalColor;
-            });
-    };
-
-
-    const handleShare = (platform, viagem) => {
-        const shareText = `Confira minha meta de viagem para ${viagem.destino}! Preço estimado em R$${viagem.flightCostBRL?.toFixed(2)}, equivalendo a aproximadamente ${viagem.estimatedMiles?.toFixed(0)} milhas. ${viagem.comparisonRecommendation}. Planeje sua viagem com ${viagem.programSuggestions?.join(', ')}. #viagem #milhas #cashback`;
-
-        if (platform === 'facebook') {
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(shareText)}`, '_blank');
-        } else if (platform === 'twitter') {
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
-        } else if (platform === 'copy') {
-            navigator.clipboard.writeText(shareText)
-                .then(() => displayToast('Texto da meta copiado para a área de transferência!'))
-                .catch(err => {
-                    console.error('Erro ao copiar: ', err);
-                    displayToast('Falha ao copiar texto.', 'error');
-                });
-        }
-    };
-
-    const totalEstimatedMiles = useMemo(() =>
-        viagens.reduce((sum, v) => sum + (v.estimatedMiles || 0), 0), [viagens]
-    );
-
-    const totalEstimatedCashback = useMemo(() =>
-        viagens.reduce((sum, v) => sum + (v.estimatedCashback || 0), 0), [viagens]
-    );
-
-    const filteredAndSortedViagens = useMemo(() => {
-        let filtered = [...viagens];
-
-        // Filtering
-        if (filterType === 'miles') {
-            // FIX: Ensure comparisonRecommendation is a string before calling includes
-            filtered = filtered.filter(v => (v.comparisonRecommendation || "").includes("milhas"));
-        } else if (filterType === 'cashback') {
-            // FIX: Ensure comparisonRecommendation is a string before calling includes
-            filtered = filtered.filter(v => (v.comparisonRecommendation || "").includes("cashback"));
-        }
-
-        // Sorting
-        if (sortBy === 'cost-asc') {
-            filtered.sort((a, b) => (a.flightCostBRL || 0) - (b.flightCostBRL || 0));
-        } else if (sortBy === 'cost-desc') {
-            filtered.sort((a, b) => (b.flightCostBRL || 0) - (a.flightCostBRL || 0));
-        } else { // 'recent' by default or if not specified
-            filtered.sort((a, b) => new Date(b.dataIda) - new Date(a.dataIda));
-        }
-
-        return filtered;
-    }, [viagens, filterType, sortBy]);
-
+    // Componentes de UI internos
+    const TabButton = ({ tabId, label, icon: Icon }) => ( <button onClick={() => setActiveTab(tabId)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${activeTab === tabId ? 'bg-[#00d971] text-slate-800 font-semibold' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}> <Icon size={18} /> <span>{label}</span> </button> );
+    const WalletCard = ({ wallet, onEdit, onDelete }) => ( <div className={`p-4 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-[#2a246f]' : 'bg-white'} flex flex-col justify-between border border-gray-200 dark:border-gray-700`}> <div> <h4 className="text-xl font-bold">{wallet.name}</h4> <p className="text-2xl font-light my-2">{wallet.balance.toLocaleString()} <span className="text-sm">pontos</span></p> <p className="text-xs text-gray-500 dark:text-gray-400">Meu CPM: R$ {wallet.avgCpm.toFixed(2)}</p> <p className="text-xs text-gray-500 dark:text-gray-400">Expiração: {new Date(wallet.expiration).toLocaleDateString()}</p> </div> <div className="flex justify-end gap-2 mt-4"> <button onClick={() => onEdit(wallet)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Edit size={16} /></button> <button onClick={() => onDelete(wallet.id)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Trash2 size={16} className="text-red-500" /></button> </div> </div> );
 
     return (
-        <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} p-6 transition-colors duration-300`}>
-            <div className="max-w-6xl mx-auto space-y-8">
-                {/* Dashboard de Resumo */}
-                <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-[#2a246f]' : 'bg-white'}`}>
-                    <div className="flex flex-col items-center p-4 rounded-lg bg-slate-50 dark:bg-gray-800">
-                        <Plane size={28} className="text-[#00d971] mb-2" />
-                        <span className="text-xl font-semibold">{totalEstimatedMiles.toFixed(0)}</span>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Milhas Estimadas Totais</p>
-                    </div>
-                    <div className="flex flex-col items-center p-4 rounded-lg bg-slate-50 dark:bg-gray-800">
-                        <DollarSign size={28} className="text-blue-500 mb-2" />
-                        <span className="text-xl font-semibold">R${totalEstimatedCashback.toFixed(2)}</span>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Cashback Estimado Total</p>
-                    </div>
-                    <div className="flex flex-col items-center p-4 rounded-lg bg-slate-50 dark:bg-gray-800">
-                        <Sparkles size={28} className="text-yellow-500 mb-2" />
-                        <span className="text-xl font-semibold">R${valuePerMile.toFixed(2)}</span>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Valor p/ Milha (Seu Custo)</p>
-                        <input
-                            type="number"
-                            step="0.001"
-                            value={valuePerMile}
-                            onChange={(e) => setValuePerMile(parseFloat(e.target.value) || 0)}
-                            className={`w-24 mt-2 p-1 text-sm text-center rounded ${theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'} border border-gray-300 dark:border-gray-600`}
-                            aria-label="Definir valor por milha"
-                        />
-                    </div>
-                </div>
+        <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} p-4 sm:p-6 transition-colors duration-300`}>
+            <div className="max-w-7xl mx-auto">
+                <header className="mb-8 text-center">
+                    <h1 className="text-3xl font-bold">Centro de Comando de Milhas</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Sua plataforma para transformar pontos em experiências.</p>
+                </header>
 
-                {/* Controles de Ação e Filtro/Ordenação */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <button onClick={handleOpenModalParaCriar} className="flex items-center gap-2 px-6 py-3 text-base font-semibold bg-[#00d971] text-white rounded-lg hover:brightness-90 transition-transform hover:scale-105 shadow-md">
-                        <PlusCircle size={20} />
-                        Adicionar Nova Viagem
-                    </button>
+                <nav className={`flex flex-wrap justify-center gap-2 md:gap-4 p-2 rounded-xl mb-8 shadow-md ${theme === 'dark' ? 'bg-[#201b5d]' : 'bg-white'}`}>
+                    <TabButton tabId="dashboard" label="Dashboard" icon={Home} />
+                    <TabButton tabId="wallets" label="Carteiras" icon={Wallet} />
+                    <TabButton tabId="goals" label="Metas" icon={Target} />
+                    <TabButton tabId="simulators" label="Simuladores" icon={Calculator} />
+                </nav>
 
-                    <div className="flex gap-4 items-center">
-                        {/* Filtros */}
-                        <select
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className={`px-4 py-2 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`}
-                            aria-label="Filtrar viagens"
-                        >
-                            <option value="all">Todas as Recomendações</option>
-                            <option value="miles">Milhas Vantajosas</option>
-                            <option value="cashback">Cashback Vantajoso</option>
-                        </select>
-
-                        {/* Ordenação */}
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                            className={`px-4 py-2 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`}
-                            aria-label="Ordenar viagens"
-                        >
-                            <option value="recent">Mais Recentes</option>
-                            <option value="cost-asc">Custo (Menor p/ Maior)</option>
-                            <option value="cost-desc">Custo (Maior p/ Menor)</option>
-                        </select>
-
-                        <button onClick={handleExportPdf} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:brightness-90 transition-transform hover:scale-105 shadow-md">
-                            <FileText size={18} />
-                            Exportar PDF
-                        </button>
-                    </div>
-                </div>
-
-                {/* Nova Seção: Calculadora de Conversão e Venda de Milhas */}
-                <div className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-[#2a246f]' : 'bg-white'} space-y-6`}>
-                    <h2 className="text-2xl font-bold text-center mb-4">Calculadora de Pontos e Milhas</h2>
-
-                    {/* Conversão de Pontos para Milhas com Bonificação */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 md:gap-y-0 gap-x-8 items-center">
-                        <div className="flex items-center gap-3 md:col-span-2">
-                            <Gift size={24} className="text-purple-500" />
-                            <h3 className="text-xl font-semibold">Conversão de Pontos com Bônus</h3>
-                        </div>
-                        
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="pointsToConvert" className="text-sm font-medium text-gray-700 dark:text-gray-300">Pontos a Converter:</label>
-                            <input
-                                id="pointsToConvert"
-                                type="number"
-                                placeholder="0"
-                                value={pointsToConvert}
-                                onChange={(e) => setPointsToConvert(parseFloat(e.target.value) || 0)}
-                                className={`p-2 rounded-lg border w-full ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="bonusPercentage" className="text-sm font-medium text-gray-700 dark:text-gray-300">Bônus (%):</label>
-                            <input
-                                id="bonusPercentage"
-                                type="number"
-                                placeholder="0"
-                                value={bonusPercentage}
-                                onChange={(e) => setBonusPercentage(parseFloat(e.target.value) || 0)}
-                                className={`p-2 rounded-lg border w-full ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="conversionRate" className="text-sm font-medium text-gray-700 dark:text-gray-300">Taxa de Conversão (Ex: 1 para 1:1):</label>
-                            <input
-                                id="conversionRate"
-                                type="number"
-                                placeholder="1"
-                                value={conversionRate}
-                                onChange={(e) => setConversionRate(parseFloat(e.target.value) || 1)}
-                                className={`p-2 rounded-lg border w-full ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
-                            />
-                        </div>
-                        
-                        <div className="md:col-span-2 text-center text-lg font-medium pt-2">
-                            Total de Milhas: <span className="text-[#00d971]">{calculateBonusConversion.toFixed(0)} milhas</span>
-                            {calculateBonusConversion > 0 && (
-                                <p className="text-sm text-gray-500 dark:text-gray-300">
-                                    Considerando a bonificação, essa conversão pode ser muito vantajosa!
-                                </p>
-                            )}
-                        </div>
-                    </div>
-
-                    <hr className={`border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`} />
-
-                    {/* Venda de Milhas em Dinheiro */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 md:gap-y-0 gap-x-8 items-center">
-                        <div className="flex items-center gap-3 md:col-span-2">
-                            <Wallet size={24} className="text-green-500" />
-                            <h3 className="text-xl font-semibold">Venda de Milhas em Dinheiro</h3>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="milesToSell" className="text-sm font-medium text-gray-700 dark:text-gray-300">Milhas a Vender:</label>
-                            <input
-                                id="milesToSell"
-                                type="number"
-                                placeholder="0"
-                                value={milesToSell}
-                                onChange={(e) => setMilesToSell(parseFloat(e.target.value) || 0)}
-                                className={`p-2 rounded-lg border w-full ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
-                            />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="saleValuePerThousandMiles" className="text-sm font-medium text-gray-700 dark:text-gray-300">Valor por 1000 milhas (R$):</label>
-                            <input
-                                id="saleValuePerThousandMiles"
-                                type="number"
-                                step="0.01"
-                                placeholder="20"
-                                value={saleValuePerThousandMiles}
-                                onChange={(e) => setSaleValuePerThousandMiles(parseFloat(e.target.value) || 0)}
-                                className={`p-2 rounded-lg border w-full ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
-                            />
-                        </div>
-                        <div className="md:col-span-2 text-center text-lg font-medium pt-2">
-                            Valor Estimado de Venda: <span className="text-blue-500">R${calculateMileSaleValue.toFixed(2)}</span>
-                            {calculateMileSaleValue > 0 && (
-                                <p className="text-sm text-gray-500 dark:text-gray-300">
-                                    Compare este valor com outras formas de resgate para decidir o melhor uso.
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Lista de Viagens */}
-                {filteredAndSortedViagens.length === 0 ? (
-                    <div className={`p-10 rounded-xl text-center ${theme === 'dark' ? 'bg-[#2a246f]' : 'bg-white'} shadow-lg`}>
-                        <TrendingUp size={64} className="mx-auto mb-4 text-[#00d971]" />
-                        <h2 className="text-2xl font-semibold mb-2">Nenhuma viagem encontrada.</h2>
-                        <p className="text-gray-600 dark:text-gray-300 mb-4">
-                            Comece a planejar sua próxima aventura e veja como suas milhas e cashback podem te ajudar!
-                        </p>
-                        <button onClick={handleOpenModalParaCriar} className="flex items-center gap-2 mx-auto px-6 py-3 text-base font-semibold bg-[#00d971] text-white rounded-lg hover:brightness-90 transition-transform hover:scale-105 shadow-md">
-                            <PlusCircle size={20} />
-                            Adicionar Minha Primeira Viagem
-                        </button>
-                    </div>
-                ) : (
-                    <div id="viagens-list" className="space-y-6">
-                        {filteredAndSortedViagens.map(viagem => (
-                            <TicketDeViagem
-                                key={viagem.id}
-                                viagem={{
-                                    ...viagem,
-                                    // Passando o valor da milha para que o TicketDeViagem possa usá-lo se necessário
-                                    valuePerMile: valuePerMile,
-                                    // Adicionando o progresso para a viagem (exemplo, precisa de lógica real de milhas acumuladas)
-                                    progressMiles: (viagem.estimatedMiles / (Math.random() * 100000 + 50000)) * 100 // Exemplo de progresso
-                                }}
-                                onEdit={() => handleOpenModalParaEditar(viagem)}
-                                onDelete={() => handleDeleteViagem(viagem.id)}
-                                onShare={handleShare}
-                            >
-                                {/* Exibição de alerta de expiração de milhas dentro do TicketDeViagem */}
-                                {viagem.mileExpirationDate && new Date(viagem.mileExpirationDate) < new Date(new Date().setMonth(new Date().getMonth() + 3)) && (
-                                    <div className="flex items-center text-orange-500 text-sm mt-2">
-                                        <AlertCircle size={16} className="mr-1" />
-                                        Milhas expiram em breve ({new Date(viagem.mileExpirationDate).toLocaleDateString()})!
-                                    </div>
-                                )}
-                            </TicketDeViagem>
-                        ))}
-                    </div>
-                )}
-
-                <ModalNovaViagem
-                    isOpen={isModalOpen}
-                    onClose={handleCloseModal}
-                    onSave={handleSaveViagem}
-                    viagemExistente={viagemParaEditar}
-                />
+                <main>
+                    {/* Conteúdo das abas... (código completo para todas as abas) */}
+                    {activeTab === 'dashboard' && ( <section className="space-y-6 animate-fade-in"> <h2 className="text-2xl font-semibold">Dashboard Geral</h2> <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> <div className="p-6 rounded-xl shadow-lg flex flex-col items-center justify-center bg-white dark:bg-gray-800"> <DollarSign size={32} className="mb-2 text-green-400"/> <span className="text-2xl font-bold">R$ {totalMilesValueBRL.toFixed(2)}</span> <p className="text-sm text-gray-500 dark:text-gray-400">Valor Estimado do Portfólio</p> </div> <div className="p-6 rounded-xl shadow-lg flex flex-col items-center justify-center bg-white dark:bg-gray-800"> <Sparkles size={32} className="mb-2 text-yellow-500"/> <span className="text-xl font-bold">{wallets.reduce((sum, w) => sum + w.balance, 0).toLocaleString()}</span> <p className="text-sm text-gray-500 dark:text-gray-400">Total de Pontos & Milhas</p> </div> <div className="p-6 rounded-xl shadow-lg flex flex-col items-center justify-center bg-white dark:bg-gray-800"> <AlertCircle size={32} className="mb-2 text-red-500"/> {upcomingExpiration ? ( <> <span className="text-xl font-bold">{upcomingExpiration.name}</span> <p className="text-sm text-gray-500 dark:text-gray-400">Expira em: {new Date(upcomingExpiration.expiration).toLocaleDateString()}</p> </> ) : <p>Nenhuma expiração próxima.</p> } </div> </div> <div className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-[#2a246f]' : 'bg-white'}`}> <h3 className="text-xl font-semibold mb-4">Resumo das Carteiras</h3> <div className="space-y-3"> {wallets.map(w => ( <div key={w.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"> <span className="font-semibold">{w.name} ({w.type})</span> <span className="text-lg font-mono text-blue-600 dark:text-blue-400">{w.balance.toLocaleString()}</span> </div> ))} </div> </div> </section> )}
+                    {activeTab === 'wallets' && ( <section className="animate-fade-in"> <div className="flex justify-between items-center mb-6"> <h2 className="text-2xl font-semibold">Minhas Carteiras</h2> <button onClick={() => handleOpenWalletModal()} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-[#00d971] text-slate-800 rounded-lg hover:brightness-90 shadow-md"> <PlusCircle size={18} /> Adicionar </button> </div> <div className="mb-8"> <h3 className="text-xl font-semibold mb-4 border-b border-gray-300 dark:border-gray-600 pb-2">Programas de Pontos</h3> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> {pointPrograms.map(w => <WalletCard key={w.id} wallet={w} onEdit={handleOpenWalletModal} onDelete={handleDeleteWallet} />)} </div> {pointPrograms.length === 0 && <p className="text-gray-500 mt-2">Adicione seus programas de pontos de bancos e cartões aqui.</p>} </div> <div> <h3 className="text-xl font-semibold mb-4 border-b border-gray-300 dark:border-gray-600 pb-2">Programas de Milhas Aéreas</h3> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> {milePrograms.map(w => <WalletCard key={w.id} wallet={w} onEdit={handleOpenWalletModal} onDelete={handleDeleteWallet} />)} </div> {milePrograms.length === 0 && <p className="text-gray-500 mt-2">Adicione seus programas de fidelidade de companhias aéreas aqui.</p>} </div> </section> )}
+                    {activeTab === 'goals' && ( <section className="animate-fade-in"> <div className="flex justify-between items-center mb-4"> <h2 className="text-2xl font-semibold">Minhas Metas de Viagem</h2> <button onClick={() => handleOpenTripModal()} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-[#00d971] text-slate-800 rounded-lg hover:brightness-90 shadow-md"> <PlusCircle size={18} /> Nova Meta </button> </div> <div className="space-y-4"> {enhancedTripGoals.map(viagem => <TicketDeViagem key={viagem.id} viagem={viagem} onEdit={() => handleOpenTripModal(viagem)} onDelete={() => handleDeleteTrip(viagem.id)} /> )} </div> </section> )}
+                    {activeTab === 'simulators' && ( <section className={`p-6 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-[#2a246f]' : 'bg-white'} space-y-8 animate-fade-in`}> <h2 className="text-2xl font-semibold text-center">Calculadoras e Simuladores</h2> <div> <div className="flex items-center gap-3 mb-4"><Gift size={24} className="text-purple-500" /> <h3 className="text-xl font-semibold">Transferência Bonificada</h3></div> <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"> <div><label className="text-sm font-medium">Pontos a transferir</label><input name="pointsToConvert" type="number" value={calculatorState.pointsToConvert} onChange={handleCalculatorChange} className={`p-2 mt-1 rounded-lg border w-full ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} /></div> <div><label className="text-sm font-medium">Bônus (%)</label><input name="bonusPercentage" type="number" value={calculatorState.bonusPercentage} onChange={handleCalculatorChange} className={`p-2 mt-1 rounded-lg border w-full ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} /></div> </div> <div className="mt-4 text-center text-lg font-medium">Total de Milhas a Receber: <span className="text-[#00d971] font-bold">{bonusConversionResult.toLocaleString()}</span></div> </div> <hr className={`border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`} /> <div> <div className="flex items-center gap-3 mb-4"><TrendingUp size={24} className="text-green-500" /> <h3 className="text-xl font-semibold">Venda de Milhas</h3></div> <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"> <div><label className="text-sm font-medium">Milhas a vender</label><input name="milesToSell" type="number" value={calculatorState.milesToSell} onChange={handleCalculatorChange} className={`p-2 mt-1 rounded-lg border w-full ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} /></div> <div><label className="text-sm font-medium">Valor por 1.000 milhas (R$)</label><input name="saleValuePerThousand" type="number" step="0.01" value={calculatorState.saleValuePerThousand} onChange={handleCalculatorChange} className={`p-2 mt-1 rounded-lg border w-full ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`} /></div> </div> <div className="mt-4 text-center text-lg font-medium">Valor Estimado da Venda: <span className="text-blue-500 font-bold">R$ {mileSaleResult.toFixed(2)}</span></div> </div> </section> )}
+                </main>
             </div>
-            {showToast && <Toast message={toastMessage} type={toastType} onClose={() => setShowToast(false)} />}
+            
+            <ModalWallet isOpen={isWalletModalOpen} onClose={handleCloseWalletModal} onSave={handleSaveWallet} walletExistente={walletToEdit} />
+
+            {/* ALTERAÇÃO: Passando a lista de programas de milhas para o modal */}
+            <ModalNovaViagem
+                isOpen={isTripModalOpen}
+                onClose={handleCloseTripModal}
+                onSave={handleSaveTrip}
+                viagemExistente={tripToEdit}
+                programasDisponiveis={milePrograms}
+            />
+
+            <Toast message={toastMessage.text} type={toastMessage.type} onClose={() => setToastMessage("")} />
         </div>
     );
 };

@@ -33,20 +33,23 @@ import { toast } from 'sonner';
 
 export default function App() {
     const { theme, toggleTheme } = useContext(ThemeContext);
-    const [currentPage, setCurrentPage] = useState('aquisicaoImoveis');
+    const [currentPage, setCurrentPage] = useState('viagensMilhas'); // Página inicial para teste
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [patrimonioData, setPatrimonioData] = useState({ ativos: [], dividas: [] });
-    const [openMenu, setOpenMenu] = useState('aquisicao');
+    const [openMenu, setOpenMenu] = useState('viagens'); // Menu inicial para teste
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [transacoes, setTransacoes] = useState([]);
     const [perfilAberto, setPerfilAberto] = useState(false);
     const [transacaoSelecionada, setTransacaoSelecionada] = useState(null);
-    const [usuario, setUsuario] = useState({});
     const [isTransacaoModalOpen, setIsTransacaoModalOpen] = useState(false);
+    
+    // Estados de dados
+    const [usuario, setUsuario] = useState({});
+    const [transacoes, setTransacoes] = useState([]);
+    const [patrimonioData, setPatrimonioData] = useState({ ativos: [], dividas: [] });
     const [protecaoData, setProtecaoData] = useState({ invalidez: [], despesasFuturas: [], patrimonial: [] });
     const [aposentadoriaData, setAposentadoriaData] = useState(null);
     const [simuladorPgblData, setSimuladorPgblData] = useState(null);
     const [aquisicaoData, setAquisicaoData] = useState({ imoveis: [], automoveis: [] });
+    const [milhasData, setMilhasData] = useState({ carteiras: [], metas: [] });
 
 
     useEffect(() => {
@@ -70,7 +73,11 @@ export default function App() {
 
                 try {
                     const headers = { 'Authorization': `Bearer ${token}` };
-                    const [perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes, aposentadoriaRes, simuladorPgblRes, aquisicaoImoveisRes, aquisicaoAutomoveisRes] = await Promise.all([
+                    const [
+                        perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes, 
+                        aposentadoriaRes, simuladorPgblRes, aquisicaoImoveisRes, 
+                        aquisicaoAutomoveisRes, milhasCarteirasRes, milhasMetasRes
+                    ] = await Promise.all([
                         fetch('http://localhost:3001/api/perfil', { headers }),
                         fetch('http://localhost:3001/api/transacoes', { headers }),
                         fetch('http://localhost:3001/api/ativos', { headers }),
@@ -79,11 +86,19 @@ export default function App() {
                         fetch('http://localhost:3001/api/aposentadoria', { headers }),
                         fetch('http://localhost:3001/api/simulador-pgbl', { headers }),
                         fetch('http://localhost:3001/api/aquisicoes/imoveis', { headers }),
-                        fetch('http://localhost:3001/api/aquisicoes/automoveis', { headers })
+                        fetch('http://localhost:3001/api/aquisicoes/automoveis', { headers }),
+                        fetch('http://localhost:3001/api/milhas/carteiras', { headers }),
+                        fetch('http://localhost:3001/api/milhas/metas', { headers })
                     ]);
 
-                    if (!perfilRes.ok || !transacoesRes.ok || !ativosRes.ok || !dividasRes.ok || !orcamentoRes.ok || !aposentadoriaRes.ok || !simuladorPgblRes.ok || !aquisicaoImoveisRes.ok || !aquisicaoAutomoveisRes.ok) {
-                        throw new Error('Sessão inválida ou falha ao buscar dados');
+                    const allResponses = [
+                        perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes, 
+                        aposentadoriaRes, simuladorPgblRes, aquisicaoImoveisRes, 
+                        aquisicaoAutomoveisRes, milhasCarteirasRes, milhasMetasRes
+                    ];
+
+                    if (allResponses.some(res => !res.ok)) {
+                         throw new Error('Sessão inválida ou falha ao buscar dados');
                     }
 
                     const perfilData = await perfilRes.json();
@@ -95,6 +110,8 @@ export default function App() {
                     const simuladorPgblResult = await simuladorPgblRes.json();
                     const aquisicaoImoveisResult = await aquisicaoImoveisRes.json();
                     const aquisicaoAutomoveisResult = await aquisicaoAutomoveisRes.json();
+                    const milhasCarteirasData = await milhasCarteirasRes.json();
+                    const milhasMetasData = await milhasMetasRes.json();
                     
                     setProtecaoData(perfilData.protecao || { invalidez: [], despesasFuturas: [], patrimonial: [] });
                     setTransacoes(transacoesData || []);
@@ -103,6 +120,7 @@ export default function App() {
                     setAposentadoriaData(aposentadoriaResult);
                     setSimuladorPgblData(simuladorPgblResult);
                     setAquisicaoData({ imoveis: aquisicaoImoveisResult || [], automoveis: aquisicaoAutomoveisResult || [] });
+                    setMilhasData({ carteiras: milhasCarteirasData || [], metas: milhasMetasData || [] });
 
                 } catch (error) {
                     console.error('Erro ao buscar dados iniciais:', error);
@@ -156,9 +174,7 @@ export default function App() {
 
     const handleDeleteProtecaoItem = async (itemId, tipo) => {
         const token = localStorage.getItem('authToken');
-        if (!token) return;
-
-        if (!window.confirm("Tem certeza que deseja apagar este item?")) return;
+        if (!token || !window.confirm("Tem certeza que deseja apagar este item?")) return;
 
         try {
             const response = await fetch(`http://localhost:3001/api/protecao/${tipo}/${itemId}`, {
@@ -275,9 +291,7 @@ export default function App() {
 
     const handleDeletePatrimonioItem = async (itemId, tipoItem) => {
         const token = localStorage.getItem('authToken');
-        if (!token) return;
-
-        if (!window.confirm("Tem certeza que deseja apagar este item?")) return;
+        if (!token || !window.confirm("Tem certeza que deseja apagar este item?")) return;
 
         try {
             const response = await fetch(`http://localhost:3001/api/${tipoItem}/${itemId}`, {
@@ -313,10 +327,8 @@ export default function App() {
                 body: JSON.stringify(data)
             });
 
-            if (!response.ok) {
-                throw new Error("Falha ao salvar os dados de aposentadoria.");
-            }
-
+            if (!response.ok) throw new Error("Falha ao salvar os dados de aposentadoria.");
+            
             const dadosSalvos = await response.json();
             setAposentadoriaData(dadosSalvos);
             toast.success("Plano de aposentadoria salvo com sucesso!");
@@ -337,10 +349,8 @@ export default function App() {
                 body: JSON.stringify(data)
             });
 
-            if (!response.ok) {
-                throw new Error("Falha ao salvar os dados do simulador.");
-            }
-
+            if (!response.ok) throw new Error("Falha ao salvar os dados do simulador.");
+            
             const dadosSalvos = await response.json();
             setSimuladorPgblData(dadosSalvos);
             toast.success("Simulação PGBL/VGBL salva com sucesso!");
@@ -365,11 +375,7 @@ export default function App() {
             
             const casosSalvos = await response.json();
             
-            setAquisicaoData(prev => ({
-                ...prev,
-                [tipo]: casosSalvos
-            }));
-
+            setAquisicaoData(prev => ({ ...prev, [tipo]: casosSalvos }));
             toast.success("Simulações salvas com sucesso!");
 
         } catch (error) {
@@ -387,9 +393,7 @@ export default function App() {
             ? `http://localhost:3001/api/orcamento/itens/${itemData.id}`
             : `http://localhost:3001/api/orcamento/itens`;
 
-        const payload = isEdicao 
-            ? itemData 
-            : { ...itemData, categoria_id: categoriaPaiId };
+        const payload = isEdicao ? itemData : { ...itemData, categoria_id: categoriaPaiId };
 
         try {
             const response = await fetch(endpoint, {
@@ -444,6 +448,66 @@ export default function App() {
         }
     };
 
+    const handleSaveMilhasItem = async (item, tipo) => { // tipo será 'carteiras' ou 'metas'
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const isEdicao = !!item.id;
+        const method = isEdicao ? 'PUT' : 'POST';
+        const endpoint = isEdicao
+            ? `http://localhost:3001/api/milhas/${tipo}/${item.id}`
+            : `http://localhost:3001/api/milhas/${tipo}`;
+
+        try {
+            const response = await fetch(endpoint, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(item)
+            });
+
+            if (!response.ok) throw new Error(`Falha ao salvar item.`);
+            
+            const itemSalvo = await response.json();
+
+            setMilhasData(prev => {
+                const listaAntiga = prev[tipo] || [];
+                const listaAtualizada = isEdicao
+                    ? listaAntiga.map(i => i.id === itemSalvo.id ? itemSalvo : i)
+                    : [itemSalvo, ...listaAntiga];
+                return { ...prev, [tipo]: listaAtualizada };
+            });
+            
+            toast.success(`Item de ${tipo === 'carteiras' ? 'carteira' : 'meta'} salvo!`);
+
+        } catch (error) {
+            toast.error(`Erro ao salvar: ${error.message}`);
+        }
+    };
+
+    const handleDeleteMilhasItem = async (itemId, tipo) => {
+        const token = localStorage.getItem('authToken');
+        if (!token || !window.confirm("Tem certeza que deseja apagar este item?")) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/milhas/${tipo}/${itemId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error("Falha ao apagar o item.");
+
+            setMilhasData(prev => ({
+                ...prev,
+                [tipo]: prev[tipo].filter(i => i.id !== itemId)
+            }));
+
+            toast.success("Item apagado com sucesso!");
+
+        } catch (error) {
+            toast.error(`Erro ao apagar: ${error.message}`);
+        }
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('authToken');
         setIsAuthenticated(false);
@@ -454,6 +518,7 @@ export default function App() {
         setAposentadoriaData(null);
         setSimuladorPgblData(null);
         setAquisicaoData({ imoveis: [], automoveis: [] });
+        setMilhasData({ carteiras: [], metas: [] });
         setCurrentPage('objetivos');
         if (theme !== 'dark') {
             toggleTheme();
@@ -657,7 +722,14 @@ export default function App() {
                 />; 
                 break;
             case 'objetivos': content = <TelaObjetivos />; break;
-            case 'viagensMilhas': content = <TelaMilhas />; break;
+            case 'viagensMilhas': 
+                content = <TelaMilhas 
+                    carteiras={milhasData.carteiras}
+                    metas={milhasData.metas}
+                    onSave={handleSaveMilhasItem}
+                    onDelete={handleDeleteMilhasItem}
+                />; 
+                break;
             case 'viagensCartoes': content = <TelaCartoes />; break;
             case 'EducacaoFinanceira': content = <TelaEducacaoFinanceira />; break;
             case 'aposentadoriaPGBL': 
@@ -714,7 +786,7 @@ export default function App() {
                             {item.subItems && openMenu === item.id && (
                                 <div className="ml-6 mt-1 space-y-1">
                                     {item.subItems.map(sub => (
-                                        <button key={sub.id} onClick={() => { setCurrentPage(sub.id); setOpenMenu(null); }} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm w-full text-left ${currentPage === sub.id ? 'bg-slate-100 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-500 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
+                                        <button key={sub.id} onClick={() => { setCurrentPage(sub.id); }} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm w-full text-left ${currentPage === sub.id ? 'bg-slate-100 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-500 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
                                             <sub.icon size={14} />{sub.label}
                                         </button>
                                     ))}

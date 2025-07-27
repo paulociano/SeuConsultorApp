@@ -33,10 +33,10 @@ import { toast } from 'sonner';
 
 export default function App() {
     const { theme, toggleTheme } = useContext(ThemeContext);
-    const [currentPage, setCurrentPage] = useState('patrimonio');
+    const [currentPage, setCurrentPage] = useState('orcamento');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [patrimonioData, setPatrimonioData] = useState({ ativos: [], dividas: [] });
-    const [openMenu, setOpenMenu] = useState('patrimonio');
+    const [openMenu, setOpenMenu] = useState('orcamento');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [transacoes, setTransacoes] = useState([]);
     const [perfilAberto, setPerfilAberto] = useState(false);
@@ -44,6 +44,8 @@ export default function App() {
     const [usuario, setUsuario] = useState({});
     const [isTransacaoModalOpen, setIsTransacaoModalOpen] = useState(false);
     const [protecaoData, setProtecaoData] = useState({ invalidez: [], despesasFuturas: [], patrimonial: [] });
+    const [aposentadoriaData, setAposentadoriaData] = useState(null);
+    const [simuladorPgblData, setSimuladorPgblData] = useState(null);
 
 
     useEffect(() => {
@@ -67,15 +69,17 @@ export default function App() {
 
                 try {
                     const headers = { 'Authorization': `Bearer ${token}` };
-                    const [perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes] = await Promise.all([
+                    const [perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes, aposentadoriaRes, simuladorPgblRes] = await Promise.all([
                         fetch('http://localhost:3001/api/perfil', { headers }),
                         fetch('http://localhost:3001/api/transacoes', { headers }),
                         fetch('http://localhost:3001/api/ativos', { headers }),
                         fetch('http://localhost:3001/api/dividas', { headers }),
-                        fetch('http://localhost:3001/api/orcamento', { headers })
+                        fetch('http://localhost:3001/api/orcamento', { headers }),
+                        fetch('http://localhost:3001/api/aposentadoria', { headers }),
+                        fetch('http://localhost:3001/api/simulador-pgbl', { headers })
                     ]);
 
-                    if (!perfilRes.ok || !transacoesRes.ok || !ativosRes.ok || !dividasRes.ok || !orcamentoRes.ok) {
+                    if (!perfilRes.ok || !transacoesRes.ok || !ativosRes.ok || !dividasRes.ok || !orcamentoRes.ok || !aposentadoriaRes.ok || !simuladorPgblRes.ok) {
                         throw new Error('Sessão inválida ou falha ao buscar dados');
                     }
 
@@ -84,11 +88,15 @@ export default function App() {
                     const ativosData = await ativosRes.json();
                     const dividasData = await dividasRes.json();
                     const orcamentoData = await orcamentoRes.json();
+                    const aposentadoriaResult = await aposentadoriaRes.json();
+                    const simuladorPgblResult = await simuladorPgblRes.json();
                     
                     setProtecaoData(perfilData.protecao || { invalidez: [], despesasFuturas: [], patrimonial: [] });
                     setTransacoes(transacoesData || []);
                     setPatrimonioData({ ativos: ativosData || [], dividas: dividasData || [] });
                     setUsuario({ ...perfilData.usuario, categorias: orcamentoData || [] });
+                    setAposentadoriaData(aposentadoriaResult);
+                    setSimuladorPgblData(simuladorPgblResult);
 
                 } catch (error) {
                     console.error('Erro ao buscar dados iniciais:', error);
@@ -168,17 +176,58 @@ export default function App() {
             toast.error(`Erro ao apagar o item: ${error.message}`);
         }
     };
-
+    
     const handleSaveTransacao = async (transacao) => {
-        // Implementation remains the same
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const isEdicao = !!transacao.id;
+        const method = isEdicao ? 'PUT' : 'POST';
+        const endpoint = isEdicao
+            ? `http://localhost:3001/api/transacoes/${transacao.id}`
+            : 'http://localhost:3001/api/transacoes';
+
+        try {
+            const response = await fetch(endpoint, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(transacao)
+            });
+
+            if (!response.ok) throw new Error('Falha ao salvar a transação.');
+
+            const transacaoSalva = await response.json();
+            setTransacoes(prev => 
+                isEdicao 
+                ? prev.map(t => t.id === transacaoSalva.id ? transacaoSalva : t)
+                : [transacaoSalva, ...prev]
+            );
+            toast.success('Transação salva com sucesso!');
+        } catch (error) {
+            toast.error(`Erro: ${error.message}`);
+        }
     };
     
     const handleDeleteTransacao = async (transactionId) => {
-        // Implementation remains the same
+        const token = localStorage.getItem('authToken');
+        if (!token || !window.confirm("Tem certeza que deseja apagar esta transação?")) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/transacoes/${transactionId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error('Falha ao apagar a transação.');
+
+            setTransacoes(prev => prev.filter(t => t.id !== transactionId));
+            toast.success('Transação apagada com sucesso!');
+        } catch (error) {
+            toast.error(`Erro: ${error.message}`);
+        }
     };
 
-    // CORRIGIDO: Implementação completa da função de salvar patrimônio
-    const handleSavePatrimonioItem = async (item, tipoItem) => { // tipoItem será 'ativos' ou 'dividas'
+    const handleSavePatrimonioItem = async (item, tipoItem) => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
@@ -218,7 +267,6 @@ export default function App() {
         }
     };
 
-    // CORRIGIDO: Implementação completa da função de apagar patrimônio
     const handleDeletePatrimonioItem = async (itemId, tipoItem) => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
@@ -248,17 +296,119 @@ export default function App() {
         }
     };
 
+    const handleSaveAposentadoria = async (data) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
 
-    const handleUpdateOrcamentoMeta = async (itemId, novoValorPlanejado) => {
-        // Implementation remains the same
+        try {
+            const response = await fetch('http://localhost:3001/api/aposentadoria', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Error("Falha ao salvar os dados de aposentadoria.");
+            }
+
+            const dadosSalvos = await response.json();
+            setAposentadoriaData(dadosSalvos);
+            toast.success("Plano de aposentadoria salvo com sucesso!");
+
+        } catch (error) {
+            toast.error(`Erro ao salvar: ${error.message}`);
+        }
+    };
+    
+    const handleSaveSimuladorPgbl = async (data) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        try {
+            const response = await fetch('http://localhost:3001/api/simulador-pgbl', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Error("Falha ao salvar os dados do simulador.");
+            }
+
+            const dadosSalvos = await response.json();
+            setSimuladorPgblData(dadosSalvos);
+            toast.success("Simulação PGBL/VGBL salva com sucesso!");
+
+        } catch (error) {
+            toast.error(`Erro ao salvar: ${error.message}`);
+        }
     };
 
     const handleSaveOrcamentoItem = async (itemData, categoriaPaiId) => {
-        // Implementation remains the same
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        
+        const isEdicao = !!itemData.id;
+        const method = isEdicao ? 'PUT' : 'POST';
+        const endpoint = isEdicao 
+            ? `http://localhost:3001/api/orcamento/itens/${itemData.id}`
+            : `http://localhost:3001/api/orcamento/itens`;
+
+        const payload = isEdicao 
+            ? itemData 
+            : { ...itemData, categoria_id: categoriaPaiId };
+
+        try {
+            const response = await fetch(endpoint, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('Falha ao salvar item do orçamento.');
+            
+            const itemSalvo = await response.json();
+
+            setUsuario(prevUsuario => {
+                const novasCategorias = prevUsuario.categorias.map(cat => {
+                    if (cat.id === (isEdicao ? itemSalvo.categoria_id : categoriaPaiId)) {
+                        const subItens = isEdicao
+                            ? cat.subItens.map(item => item.id === itemSalvo.id ? itemSalvo : item)
+                            : [...cat.subItens, itemSalvo];
+                        return { ...cat, subItens };
+                    }
+                    return cat;
+                });
+                return { ...prevUsuario, categorias: novasCategorias };
+            });
+            toast.success('Item do orçamento salvo!');
+
+        } catch(error) {
+            toast.error(`Erro: ${error.message}`);
+        }
     };
 
     const handleDeleteOrcamentoItem = async (itemId) => {
-        // Implementation remains the same
+        const token = localStorage.getItem('authToken');
+        if (!token || !window.confirm("Tem certeza que deseja apagar este item do orçamento?")) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/orcamento/itens/${itemId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Falha ao apagar o item.');
+
+            setUsuario(prevUsuario => {
+                const novasCategorias = prevUsuario.categorias.map(cat => ({
+                    ...cat,
+                    subItens: cat.subItens.filter(item => item.id !== itemId)
+                }));
+                return { ...prevUsuario, categorias: novasCategorias };
+            });
+            toast.success('Item do orçamento apagado.');
+        } catch(error) {
+            toast.error(`Erro: ${error.message}`);
+        }
     };
 
     const handleLogout = () => {
@@ -268,17 +418,12 @@ export default function App() {
         setTransacoes([]);
         setPatrimonioData({ ativos: [], dividas: [] });
         setProtecaoData({ invalidez: [], despesasFuturas: [], patrimonial: [] });
+        setAposentadoriaData(null);
+        setSimuladorPgblData(null);
         setCurrentPage('objetivos');
         if (theme !== 'dark') {
             toggleTheme();
         }
-    };
-
-    const setUsuarioCategorias = (newCategorias) => {
-        setUsuario(prevUsuario => ({
-            ...prevUsuario,
-            categorias: newCategorias
-        }));
     };
 
     const handleEditClick = (transacao) => {
@@ -312,9 +457,9 @@ export default function App() {
                 totais.atual.despesas += totalCatAtual;
                 totais.sugerido.despesas += totalCatSugerido;
                 pieData.push({ name: cat.nome, valueAtual: totalCatAtual, valueSugerido: totalCatSugerido });
-                if(cat.nome.toLowerCase().includes('fixa')) totaisCategorias.fixos += totalCatAtual;
-                if(cat.nome.toLowerCase().includes('variável')) totaisCategorias.variaveis += totalCatAtual;
-                if(cat.nome.toLowerCase().includes('investimento')) totaisCategorias.investimentos += totalCatAtual;
+                if (cat.nome.toLowerCase().includes('fixa')) totaisCategorias.fixos += totalCatAtual;
+                if (cat.nome.toLowerCase().includes('variável')) totaisCategorias.variaveis += totalCatAtual;
+                if (cat.nome.toLowerCase().includes('investimento')) totaisCategorias.investimentos += totalCatAtual;
             }
         });
         
@@ -346,17 +491,20 @@ export default function App() {
         return patrimonioData.ativos.filter(ativo => ativo.tipo === 'Investimentos');
     }, [patrimonioData.ativos]);
 
-    const handleCategoryChange = (transactionId, newCategory) => {
-        // Implementation remains the same
+    const handleCategoryChange = async (transactionId, newCategory) => {
+        const transacaoOriginal = transacoes.find(t => t.id === transactionId);
+        if (!transacaoOriginal) return;
+        
+        const transacaoAtualizada = { ...transacaoOriginal, categoria: newCategory };
+        await handleSaveTransacao(transacaoAtualizada);
     };
 
+    const handleIgnoreToggle = async (transactionId) => {
+        const transacaoOriginal = transacoes.find(t => t.id === transactionId);
+        if (!transacaoOriginal) return;
 
-    const handleIgnoreToggle = (transactionId) => {
-        // Implementation remains the same
-    };
-
-    const handleEditarMeta = (categoriaId, novaMeta) => {
-        // Implementation remains the same
+        const transacaoAtualizada = { ...transacaoOriginal, ignorada: !transacaoOriginal.ignorada };
+        await handleSaveTransacao(transacaoAtualizada);
     };
 
     const menuItems = [
@@ -415,7 +563,6 @@ export default function App() {
                 }
                 content = <TelaOrcamento 
                     categorias={usuario.categorias} 
-                    onUpdateMeta={handleUpdateOrcamentoMeta}
                     onSaveItem={handleSaveOrcamentoItem}
                     onDeleteItem={handleDeleteOrcamentoItem}
                     orcamentoCalculos={orcamentoCalculos} 
@@ -438,7 +585,12 @@ export default function App() {
                     investimentosDisponiveis={investimentosDisponiveis} 
                 />; 
                 break;
-            case 'aposentadoriaAportes': content = <TelaAposentadoria />; break;
+            case 'aposentadoriaAportes': 
+                content = <TelaAposentadoria 
+                    dadosIniciais={aposentadoriaData}
+                    onSave={handleSaveAposentadoria}
+                />; 
+                break;
             case 'patrimonio': 
                 content = <TelaPatrimonio 
                     patrimonioData={patrimonioData} 
@@ -457,15 +609,20 @@ export default function App() {
                     onDeleteClick={handleDeleteTransacao}
                 />; 
                 break;
-            case 'fluxoPlanejamento': content = <TelaPlanejamento orcamento={usuario.categorias} gastosReais={transacoes} onEditarMeta={handleEditarMeta} />; break;
+            case 'fluxoPlanejamento': content = <TelaPlanejamento orcamento={usuario.categorias} gastosReais={transacoes} />; break;
             case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis />; break;
             case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis />; break;
             case 'objetivos': content = <TelaObjetivos />; break;
             case 'viagensMilhas': content = <TelaMilhas />; break;
             case 'viagensCartoes': content = <TelaCartoes />; break;
             case 'EducacaoFinanceira': content = <TelaEducacaoFinanceira />; break;
-            case 'aposentadoriaPGBL': content = <TelaSimuladorPGBL />; break;
-            case 'configuracoesPerfil': content = <TelaConfiguracoesPerfil usuario={usuario} setUsuario={setUsuario} />; break;
+            case 'aposentadoriaPGBL': 
+                content = <TelaSimuladorPGBL 
+                    dadosIniciais={simuladorPgblData}
+                    onSave={handleSaveSimuladorPgbl}
+                />; 
+                break;
+            case 'configuracoesPerfil': content = <TelaConfiguracoesPerfil usuario={usuario} setUsuario={() => {}} />; break;
             case 'agendaReunioes': content = <TelaReunioesAgenda />; break;
             default: content = <TelaObjetivos />; break;
         }

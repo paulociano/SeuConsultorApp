@@ -404,6 +404,83 @@ app.delete('/api/orcamento/itens/:id', verificarToken, async (req, res) => {
     }
 });
 
+// --- ROTAS PARA APOSENTADORIA ---
+app.get('/api/aposentadoria', verificarToken, async (req, res) => {
+    try {
+        const result = await pool.query('SELECT dados FROM aposentadoria_dados WHERE user_id = $1', [req.usuario.id]);
+        if (result.rows.length === 0) {
+            // Se não houver dados, retorna nulo para o frontend saber que precisa criar
+            return res.json(null);
+        }
+        res.json(result.rows[0].dados);
+    } catch (error) {
+        console.error("Erro ao buscar dados de aposentadoria:", error);
+        res.status(500).json({ message: 'Erro ao buscar dados de aposentadoria.' });
+    }
+});
+
+app.post('/api/aposentadoria', verificarToken, async (req, res) => {
+    const dados = req.body;
+    const userId = req.usuario.id;
+
+    const sql = `
+        INSERT INTO aposentadoria_dados (user_id, dados, atualizado_em)
+        VALUES ($1, $2, CURRENT_TIMESTAMP)
+        ON CONFLICT (user_id) 
+        DO UPDATE SET 
+            dados = EXCLUDED.dados,
+            atualizado_em = CURRENT_TIMESTAMP
+        RETURNING dados;
+    `;
+
+    try {
+        const result = await pool.query(sql, [userId, dados]);
+        res.status(200).json(result.rows[0].dados);
+    } catch (error) {
+        console.error("Erro ao salvar dados de aposentadoria:", error);
+        res.status(500).json({ message: 'Erro ao salvar dados de aposentadoria.' });
+    }
+});
+
+// --- ROTAS PARA SIMULADOR PGBL ---
+app.get('/api/simulador-pgbl', verificarToken, async (req, res) => {
+    try {
+        const result = await pool.query('SELECT dados FROM simulador_pgbl_dados WHERE user_id = $1', [req.usuario.id]);
+        if (result.rows.length === 0) {
+            // Se não houver dados, retorna nulo para o frontend saber que precisa criar
+            return res.json(null);
+        }
+        res.json(result.rows[0].dados);
+    } catch (error) {
+        console.error("Erro ao buscar dados do simulador PGBL:", error);
+        res.status(500).json({ message: 'Erro ao buscar dados do simulador PGBL.' });
+    }
+});
+
+app.post('/api/simulador-pgbl', verificarToken, async (req, res) => {
+    const dados = req.body;
+    const userId = req.usuario.id;
+
+    // Query "Upsert": Insere se não existir, ou atualiza se já existir para o user_id
+    const sql = `
+        INSERT INTO simulador_pgbl_dados (user_id, dados, atualizado_em)
+        VALUES ($1, $2, CURRENT_TIMESTAMP)
+        ON CONFLICT (user_id) 
+        DO UPDATE SET 
+            dados = EXCLUDED.dados,
+            atualizado_em = CURRENT_TIMESTAMP
+        RETURNING dados;
+    `;
+
+    try {
+        const result = await pool.query(sql, [userId, dados]);
+        res.status(200).json(result.rows[0].dados);
+    } catch (error) {
+        console.error("Erro ao salvar dados do simulador PGBL:", error);
+        res.status(500).json({ message: 'Erro ao salvar dados do simulador PGBL.' });
+    }
+});
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

@@ -1,4 +1,4 @@
-import { useState, useContext, useMemo } from 'react';
+import { useState, useContext, useMemo, useEffect } from 'react';
 import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { Edit, PlusCircle, Trash2 } from 'lucide-react';
@@ -6,10 +6,10 @@ import ReactECharts from 'echarts-for-react';
 import { ThemeContext } from '../../ThemeContext';
 import { v4 as uuidv4 } from 'uuid';
 
-const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS }) => {
+const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dadosIniciais, onSave }) => {
     const { theme } = useContext(ThemeContext);
-    
-    const initialFormState = {
+
+    const initialFormState = useMemo(() => ({
         descricao: descricaoBem,
         valorTotal: permitirFGTS ? 500000 : 80000,
         valorDisponivel: 10000,
@@ -28,12 +28,27 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS }) => {
         taxaAdmTotal: 18.5,
         lancePercentual: 55,
         reajusteAnualConsorcio: 4.5,
-    };
+    }), [descricaoBem, permitirFGTS]);
 
     const [novoCaso, setNovoCaso] = useState(initialFormState);
     const [casos, setCasos] = useState([]);
     const [casoSelecionado, setCasoSelecionado] = useState(null);
     const [activeChart, setActiveChart] = useState('acumulo');
+
+    // Estados para o novo comparativo de consórcio
+    const [percentualReducao, setPercentualReducao] = useState(0);
+    const [percentualEmbutido, setPercentualEmbutido] = useState(0);
+
+    useEffect(() => {
+        if (dadosIniciais && dadosIniciais.length > 0) {
+            setCasos(dadosIniciais);
+            handleSelectCaso(dadosIniciais[0]);
+        } else {
+            setCasos([]);
+            setCasoSelecionado(null);
+            setNovoCaso(initialFormState);
+        }
+    }, [dadosIniciais, initialFormState]);
 
     const handleSelectCaso = (caso) => {
         setNovoCaso(caso);
@@ -43,13 +58,17 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS }) => {
     const handleUpdateCaso = () => {
         if (!casoSelecionado) return;
         const casoAtualizado = { ...novoCaso, id: casoSelecionado.id };
-        setCasos(prev => prev.map(c => c.id === casoSelecionado.id ? casoAtualizado : c));
+        const novosCasos = casos.map(c => c.id === casoSelecionado.id ? casoAtualizado : c);
+        setCasos(novosCasos);
         setCasoSelecionado(casoAtualizado);
-        alert("Simulação atualizada com sucesso!");
+        onSave(tipo, novosCasos);
     };
 
     const handleDeleteCaso = (idToDelete) => {
-        setCasos(prev => prev.filter(c => c.id !== idToDelete));
+        const novosCasos = casos.filter(c => c.id !== idToDelete);
+        setCasos(novosCasos);
+        onSave(tipo, novosCasos);
+
         if (casoSelecionado?.id === idToDelete) {
             setCasoSelecionado(null);
             setNovoCaso(initialFormState);
@@ -70,10 +89,12 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS }) => {
         e.preventDefault();
         if (!novoCaso.descricao || !novoCaso.valorTotal) return;
         const casoAdicionado = { ...novoCaso, id: uuidv4() };
-        setCasos(prev => [...prev, casoAdicionado]);
+        const novosCasos = [...casos, casoAdicionado];
+        setCasos(novosCasos);
         setCasoSelecionado(casoAdicionado);
+        onSave(tipo, novosCasos);
     };
-    
+
     const calcularPrevisaoComJuros = (valorAlvo, valorDisponivel, aporteMensal, rentabilidade) => {
         if (valorAlvo <= valorDisponivel) return { meses: 0, data: 'Imediata' };
         if (aporteMensal <= 0 && valorDisponivel < valorAlvo) return { meses: Infinity, data: 'N/A' };
@@ -189,8 +210,165 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS }) => {
     };
     }, [projecaoData, activeChart, theme]);
 
+    // LÓGICA PARA OS NOVOS GRÁFICOS DE COMPARAÇÃO DE CONSÓRCIO (VERSÃO COM LANCE EMBUTIDO CORRIGIDO)
+    const projecaoConsorcioComparativo = useMemo(() => {
+        if (!casoSelecionado) return { cenarioPadrao: [], cenarioReduzido: null, cenarioEmbutido: null };
+
+        const calcularCenario = (params) => {
+            const { 
+                valorTotal, valorDisponivel, aporteMensal, rentabilidadeMensal, taxaAdmTotal, 
+                prazoConsorcio, lancePercentual, possuiFGTS, valorFGTS, reajusteAnualConsorcio 
+            } = casoSelecionado;
+            
+            const { reducao, embutido } = params;
+
+            const taxaJurosMensal = rentabilidadeMensal / 100;
+            const maxPrazo = prazoConsorcio;
+            const data = [];
+            
+            let capitalLiquido = valorDisponivel;
+            let foiContemplado = false;
+            
+            const creditoContratado = embutido > 0 ? valorTotal / (1 - embutido / 100) : valorTotal;
+            let saldoDevedor = creditoContratado * (1 + taxaAdmTotal / 100);
+            let parcelaCheia = prazoConsorcio > 0 ? saldoDevedor / prazoConsorcio : 0;
+            
+            // --- LÓGICA DE CÁLCULO DO LANCE CORRIGIDA PARA ANTECIPAÇÃO DA CONTEMPLAÇÃO ---
+
+            // 1. Valor total do lance (em R$) necessário para a contemplação.
+            const lanceTotalNecessario = valorTotal * (lancePercentual / 100);
+
+            // 2. Valor (em R$) que virá do próprio crédito na estratégia de lance embutido.
+            const valorDoLanceEmbutido = embutido > 0 ? creditoContratado * (embutido / 100) : 0;
+            
+            // 3. Valor (em R$) que o usuário realmente precisa juntar do próprio bolso.
+            //    É a diferença entre o lance total e a parte embutida.
+            const lanceDeRecursoProprio = Math.max(0, lanceTotalNecessario - valorDoLanceEmbutido);
+            
+            // 4. Calcula o tempo para juntar APENAS o 'lanceDeRecursoProprio'.
+            //    Isto fará com que a contemplação no cenário embutido seja antecipada.
+            const parcelaConsideradaParaPrevisao = reducao > 0 ? parcelaCheia * (1 - reducao / 100) : parcelaCheia;
+            const aporteLiquidoParaLance = aporteMensal - parcelaConsideradaParaPrevisao;
+            const capitalInicialTotal = valorDisponivel + (permitirFGTS && possuiFGTS ? valorFGTS : 0);
+            const { meses: mesesParaLance } = calcularPrevisaoComJuros(lanceDeRecursoProprio, capitalInicialTotal, aporteLiquidoParaLance, rentabilidadeMensal);
+            
+            // --- FIM DA CORREÇÃO ---
+            
+            for (let i = 1; i <= maxPrazo; i++) {
+                let parcelaDoMes = parcelaCheia;
+
+                if ((i - 1) > 0 && (i - 1) % 12 === 0) {
+                    const reajuste = (1 + reajusteAnualConsorcio / 100);
+                    if (foiContemplado) {
+                        saldoDevedor *= reajuste;
+                        const prazoRestante = prazoConsorcio - (i - 1);
+                        parcelaCheia = prazoRestante > 0 ? saldoDevedor / prazoRestante : 0;
+                    } else {
+                        let valorCartaAtual = (saldoDevedor / (1 + taxaAdmTotal/100)) * prazoConsorcio / (prazoConsorcio - (i-1));
+                        valorCartaAtual *= reajuste;
+                        saldoDevedor = valorCartaAtual * (1 + taxaAdmTotal/100) / prazoConsorcio * (prazoConsorcio-(i-1));
+                        parcelaCheia = (valorCartaAtual * (1+taxaAdmTotal/100))/prazoConsorcio;
+                    }
+                }
+
+                if (i === mesesParaLance && !foiContemplado) {
+                    const lanceEfetivo = lanceTotalNecessario; // O lance total ofertado é o mesmo
+                    saldoDevedor -= lanceEfetivo;
+                    foiContemplado = true;
+                    
+                    const prazoRestante = prazoConsorcio - (i - 1);
+                    parcelaCheia = prazoRestante > 0 ? saldoDevedor / prazoRestante : 0;
+                    
+                    // Apenas o 'lanceDeRecursoProprio' (e FGTS) sai do capital líquido do usuário.
+                    const fgtsDisponivel = permitirFGTS && possuiFGTS ? valorFGTS : 0;
+                    capitalLiquido -= Math.max(0, lanceDeRecursoProprio - fgtsDisponivel);
+                }
+
+                if (!foiContemplado && reducao > 0) {
+                    parcelaDoMes = parcelaCheia * (1 - reducao / 100);
+                } else {
+                    parcelaDoMes = parcelaCheia;
+                }
+                
+                const capacidadePoupanca = aporteMensal - parcelaDoMes;
+                capitalLiquido = capitalLiquido * (1 + taxaJurosMensal) + capacidadePoupanca;
+                
+                if (saldoDevedor > 0) {
+                    saldoDevedor -= parcelaDoMes;
+                }
+
+                if (i % 12 === 0) {
+                    data.push({
+                        ano: i / 12,
+                        acumuloCapital: capitalLiquido,
+                        capacidadePoupanca: capacidadePoupanca,
+                        parcela: parcelaDoMes
+                    });
+                }
+            }
+            return data;
+        };
+
+        const cenarioPadrao = calcularCenario({ reducao: 0, embutido: 0 });
+        const cenarioReduzido = percentualReducao > 0 ? calcularCenario({ reducao: percentualReducao, embutido: 0 }) : null;
+        const cenarioEmbutido = percentualEmbutido > 0 ? calcularCenario({ reducao: 0, embutido: percentualEmbutido }) : null;
+
+        return { cenarioPadrao, cenarioReduzido, cenarioEmbutido };
+
+    }, [casoSelecionado, percentualReducao, percentualEmbutido, permitirFGTS]);
+
+    const getConsorcioChartOptions = (tipoGrafico) => {
+        const { cenarioPadrao, cenarioReduzido, cenarioEmbutido } = projecaoConsorcioComparativo;
+        if (!cenarioPadrao || cenarioPadrao.length === 0) return {};
+
+        const anos = cenarioPadrao.map(p => p.ano);
+        const series = [];
+        const legend = [];
+        
+        const seriesMapping = {
+            acumulo: {
+                padrao: cenarioPadrao.map(p => p.acumuloCapital),
+                reduzido: cenarioReduzido ? cenarioReduzido.map(p => p.acumuloCapital) : [],
+                embutido: cenarioEmbutido ? cenarioEmbutido.map(p => p.acumuloCapital) : []
+            },
+            capacidade: {
+                padrao: cenarioPadrao.map(p => p.capacidadePoupanca),
+                reduzido: cenarioReduzido ? cenarioReduzido.map(p => p.capacidadePoupanca) : [],
+                embutido: cenarioEmbutido ? cenarioEmbutido.map(p => p.capacidadePoupanca) : []
+            },
+            parcelas: {
+                padrao: cenarioPadrao.map(p => p.parcela),
+                reduzido: cenarioReduzido ? cenarioReduzido.map(p => p.parcela) : [],
+                embutido: cenarioEmbutido ? cenarioEmbutido.map(p => p.parcela) : []
+            }
+        };
+
+        legend.push('Padrão');
+        series.push({ name: 'Padrão', type: 'line', symbol: 'none', data: seriesMapping[tipoGrafico].padrao, color: '#c084fc' });
+
+        if (cenarioReduzido) {
+            legend.push(`Redução ${percentualReducao}%`);
+            series.push({ name: `Redução ${percentualReducao}%`, type: 'line', symbol: 'none', data: seriesMapping[tipoGrafico].reduzido, color: '#ffc658' });
+        }
+        if (cenarioEmbutido) {
+            legend.push(`Embutido ${percentualEmbutido}%`);
+            series.push({ name: `Embutido ${percentualEmbutido}%`, type: 'line', symbol: 'none', data: seriesMapping[tipoGrafico].embutido, color: '#00d971' });
+        }
+
+        return {
+            backgroundColor: 'transparent',
+            tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+            legend: { data: legend, textStyle: { color: theme === 'dark' ? '#ccc' : '#333' } },
+            grid: { left: '3%', right: '4%', bottom: '20%', containLabel: true },
+            xAxis: { type: 'category', boundaryGap: false, data: anos, axisLine: { lineStyle: { color: theme === 'dark' ? '#888' : '#ccc' } } },
+            yAxis: { type: 'value', axisLine: { lineStyle: { color: theme === 'dark' ? '#888' : '#ccc' } }, splitLine: { lineStyle: { color: theme === 'dark' ? '#3e388b' : '#eee' } }, axisLabel: { formatter: (value) => formatCurrency(value) } },
+            series: series,
+            dataZoom: [ { type: 'inside', start: 0, end: 100 }, { type: 'slider', start: 0, end: 100, handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z', handleSize: '80%', handleStyle: { color: '#fff', shadowBlur: 3, shadowColor: 'rgba(0, 0, 0, 0.6)', shadowOffsetX: 2, shadowOffsetY: 2 } } ]
+        };
+    };
+
     return (
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">{titulo}</h1>
             
             <Card className="mb-6">
@@ -261,28 +439,77 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS }) => {
             )}
             
             {casoSelecionado && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <Card><h3 className="font-bold text-base text-slate-800 dark:text-white">Financiamento</h3><div className="p-2 rounded-lg text-xs"><p className="text-gray-600 dark:text-gray-400">Previsão p/ Entrada:</p><p className="font-bold text-lg text-[#00d971]">{previsaoEntradaFinanciamento.data}</p></div></Card>
-                        <Card><h3 className="font-bold text-base text-slate-800 dark:text-white">Consórcio</h3><div className="p-2 rounded-lg text-xs"><p className="text-gray-600 dark:text-gray-400">Previsão p/ Lance:</p><p className="font-bold text-lg text-[#00d971]">{previsaoLanceConsorcio.data}</p></div></Card>
-                        <Card><h3 className="font-bold text-base text-slate-800 dark:text-white">À Vista</h3><div className="p-2 rounded-lg text-xs"><p className="text-gray-600 dark:text-gray-400">Previsão para Acumular Valor Total:</p><p className="font-bold text-lg text-[#00d971]">{previsaoAVista.data}</p></div></Card>
+                <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <Card><h3 className="font-bold text-base text-slate-800 dark:text-white">Financiamento</h3><div className="p-2 rounded-lg text-xs"><p className="text-gray-600 dark:text-gray-400">Previsão p/ Entrada:</p><p className="font-bold text-lg text-[#00d971]">{previsaoEntradaFinanciamento.data}</p></div></Card>
+                            <Card><h3 className="font-bold text-base text-slate-800 dark:text-white">Consórcio</h3><div className="p-2 rounded-lg text-xs"><p className="text-gray-600 dark:text-gray-400">Previsão p/ Lance:</p><p className="font-bold text-lg text-[#00d971]">{previsaoLanceConsorcio.data}</p></div></Card>
+                            <Card><h3 className="font-bold text-base text-slate-800 dark:text-white">À Vista</h3><div className="p-2 rounded-lg text-xs"><p className="text-gray-600 dark:text-gray-400">Previsão para Acumular Valor Total:</p><p className="font-bold text-lg text-[#00d971]">{previsaoAVista.data}</p></div></Card>
+                        </div>
+                        <Card>
+                            <div className="flex justify-center border-b border-slate-200 dark:border-b-[#3e388b] mb-4">
+                                <button onClick={() => setActiveChart('acumulo')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeChart === 'acumulo' ? 'border-b-2 border-[#00d971] text-[#00d971]' : 'text-gray-500 dark:text-gray-400'}`}>Acúmulo de Capital</button>
+                                <button onClick={() => setActiveChart('capacidade')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeChart === 'capacidade' ? 'border-b-2 border-[#00d971] text-[#00d971]' : 'text-gray-500 dark:text-gray-400'}`}>Capacidade de Poupar</button>
+                                <button onClick={() => setActiveChart('parcela')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeChart === 'parcela' ? 'border-b-2 border-[#00d971] text-[#00d971]' : 'text-gray-500 dark:text-gray-400'}`}>Valor da Parcela</button>
+                            </div>
+                            <div className="h-96">
+                               <ReactECharts
+                                    option={getChartOptions}
+                                    style={{ height: '100%', width: '100%' }}
+                                    notMerge={true}
+                                    lazyUpdate={true}
+                                />
+                            </div>
+                        </Card>
                     </div>
-                    <Card>
-                        <div className="flex justify-center border-b border-slate-200 dark:border-b-[#3e388b] mb-4">
-                            <button onClick={() => setActiveChart('acumulo')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeChart === 'acumulo' ? 'border-b-2 border-[#00d971] text-[#00d971]' : 'text-gray-500 dark:text-gray-400'}`}>Acúmulo de Capital</button>
-                            <button onClick={() => setActiveChart('capacidade')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeChart === 'capacidade' ? 'border-b-2 border-[#00d971] text-[#00d971]' : 'text-gray-500 dark:text-gray-400'}`}>Capacidade de Poupar</button>
-                            <button onClick={() => setActiveChart('parcela')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeChart === 'parcela' ? 'border-b-2 border-[#00d971] text-[#00d971]' : 'text-gray-500 dark:text-gray-400'}`}>Valor da Parcela</button>
-                        </div>
-                        <div className="h-96">
-                           <ReactECharts
-                                option={getChartOptions}
-                                style={{ height: '100%', width: '100%' }}
-                                notMerge={true}
-                                lazyUpdate={true}
-                            />
-                        </div>
-                    </Card>
-                </div>
+
+                    {/* NOVA SEÇÃO DE COMPARATIVO DE CONSÓRCIO */}
+                    <div className="mt-8">
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Comparativo de Cenários de Consórcio</h2>
+                        <Card className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label className="block font-medium text-gray-700 dark:text-gray-300 mb-2">Parcela Reduzida (até a contemplação)</label>
+                                    <select value={percentualReducao} onChange={(e) => setPercentualReducao(parseFloat(e.target.value))} className="w-full bg-white dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-2 py-1 border border-slate-300 dark:border-[#3e388b]">
+                                        <option value="0">Sem Redução</option>
+                                        <option value="30">Redução de 30%</option>
+                                        <option value="50">Redução de 50%</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block font-medium text-gray-700 dark:text-gray-300 mb-2">Lance Embutido (do valor do crédito)</label>
+                                    <select value={percentualEmbutido} onChange={(e) => setPercentualEmbutido(parseFloat(e.target.value))} className="w-full bg-white dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-2 py-1 border border-slate-300 dark:border-[#3e388b]">
+                                        <option value="0">Sem Lance Embutido</option>
+                                        <option value="10">10%</option>
+                                        <option value="20">20%</option>
+                                        <option value="30">30%</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                                <Card>
+                                    <h3 className="font-bold text-center text-base text-slate-800 dark:text-white mb-2">Acúmulo de Capital (Consórcio)</h3>
+                                    <div className="h-80">
+                                        <ReactECharts option={getConsorcioChartOptions('acumulo')} style={{ height: '100%', width: '100%' }} notMerge={true} />
+                                    </div>
+                                </Card>
+                                 <Card>
+                                    <h3 className="font-bold text-center text-base text-slate-800 dark:text-white mb-2">Capacidade de Poupar (Consórcio)</h3>
+                                    <div className="h-80">
+                                        <ReactECharts option={getConsorcioChartOptions('capacidade')} style={{ height: '100%', width: '100%' }} notMerge={true} />
+                                    </div>
+                                </Card>
+                                <Card>
+                                    <h3 className="font-bold text-center text-base text-slate-800 dark:text-white mb-2">Valor da Parcela (Consórcio)</h3>
+                                    <div className="h-80">
+                                        <ReactECharts option={getConsorcioChartOptions('parcelas')} style={{ height: '100%', width: '100%' }} notMerge={true} />
+                                    </div>
+                                </Card>
+                            </div>
+                        </Card>
+                    </div>
+                </>
             )}
         </div>
     );

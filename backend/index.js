@@ -481,6 +481,54 @@ app.post('/api/simulador-pgbl', verificarToken, async (req, res) => {
     }
 });
 
+// --- ROTAS PARA AQUISIÇÃO DE BENS ---
+app.get('/api/aquisicoes/:tipo', verificarToken, async (req, res) => {
+    const { tipo } = req.params;
+    if (tipo !== 'imoveis' && tipo !== 'automoveis') {
+        return res.status(400).json({ message: 'Tipo de bem inválido.' });
+    }
+    try {
+        const result = await pool.query('SELECT simulacoes FROM aquisicao_simulacoes WHERE user_id = $1 AND tipo_bem = $2', [req.usuario.id, tipo]);
+        if (result.rows.length === 0) {
+            // Se não houver dados, retorna um array vazio
+            return res.json([]);
+        }
+        // Retorna o array de simulações que está no campo JSONB
+        res.json(result.rows[0].simulacoes);
+    } catch (error) {
+        console.error(`Erro ao buscar dados de aquisição (${tipo}):`, error);
+        res.status(500).json({ message: `Erro ao buscar dados de aquisição (${tipo}).` });
+    }
+});
+
+app.post('/api/aquisicoes/:tipo', verificarToken, async (req, res) => {
+    const { tipo } = req.params;
+    const simulacoes = req.body; // Espera-se um array de simulações
+    const userId = req.usuario.id;
+
+    if (tipo !== 'imoveis' && tipo !== 'automoveis') {
+        return res.status(400).json({ message: 'Tipo de bem inválido.' });
+    }
+
+    const sql = `
+        INSERT INTO aquisicao_simulacoes (user_id, tipo_bem, simulacoes, atualizado_em)
+        VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+        ON CONFLICT (user_id, tipo_bem) 
+        DO UPDATE SET 
+            simulacoes = EXCLUDED.simulacoes,
+            atualizado_em = CURRENT_TIMESTAMP
+        RETURNING simulacoes;
+    `;
+
+    try {
+        const result = await pool.query(sql, [userId, tipo, JSON.stringify(simulacoes)]);
+        res.status(200).json(result.rows[0].simulacoes);
+    } catch (error) {
+        console.error(`Erro ao salvar dados de aquisição (${tipo}):`, error);
+        res.status(500).json({ message: `Erro ao salvar dados de aquisição (${tipo}).` });
+    }
+});
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

@@ -33,10 +33,10 @@ import { toast } from 'sonner';
 
 export default function App() {
     const { theme, toggleTheme } = useContext(ThemeContext);
-    const [currentPage, setCurrentPage] = useState('orcamento');
+    const [currentPage, setCurrentPage] = useState('aquisicaoImoveis');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [patrimonioData, setPatrimonioData] = useState({ ativos: [], dividas: [] });
-    const [openMenu, setOpenMenu] = useState('orcamento');
+    const [openMenu, setOpenMenu] = useState('aquisicao');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [transacoes, setTransacoes] = useState([]);
     const [perfilAberto, setPerfilAberto] = useState(false);
@@ -46,6 +46,7 @@ export default function App() {
     const [protecaoData, setProtecaoData] = useState({ invalidez: [], despesasFuturas: [], patrimonial: [] });
     const [aposentadoriaData, setAposentadoriaData] = useState(null);
     const [simuladorPgblData, setSimuladorPgblData] = useState(null);
+    const [aquisicaoData, setAquisicaoData] = useState({ imoveis: [], automoveis: [] });
 
 
     useEffect(() => {
@@ -69,17 +70,19 @@ export default function App() {
 
                 try {
                     const headers = { 'Authorization': `Bearer ${token}` };
-                    const [perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes, aposentadoriaRes, simuladorPgblRes] = await Promise.all([
+                    const [perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes, aposentadoriaRes, simuladorPgblRes, aquisicaoImoveisRes, aquisicaoAutomoveisRes] = await Promise.all([
                         fetch('http://localhost:3001/api/perfil', { headers }),
                         fetch('http://localhost:3001/api/transacoes', { headers }),
                         fetch('http://localhost:3001/api/ativos', { headers }),
                         fetch('http://localhost:3001/api/dividas', { headers }),
                         fetch('http://localhost:3001/api/orcamento', { headers }),
                         fetch('http://localhost:3001/api/aposentadoria', { headers }),
-                        fetch('http://localhost:3001/api/simulador-pgbl', { headers })
+                        fetch('http://localhost:3001/api/simulador-pgbl', { headers }),
+                        fetch('http://localhost:3001/api/aquisicoes/imoveis', { headers }),
+                        fetch('http://localhost:3001/api/aquisicoes/automoveis', { headers })
                     ]);
 
-                    if (!perfilRes.ok || !transacoesRes.ok || !ativosRes.ok || !dividasRes.ok || !orcamentoRes.ok || !aposentadoriaRes.ok || !simuladorPgblRes.ok) {
+                    if (!perfilRes.ok || !transacoesRes.ok || !ativosRes.ok || !dividasRes.ok || !orcamentoRes.ok || !aposentadoriaRes.ok || !simuladorPgblRes.ok || !aquisicaoImoveisRes.ok || !aquisicaoAutomoveisRes.ok) {
                         throw new Error('Sessão inválida ou falha ao buscar dados');
                     }
 
@@ -90,6 +93,8 @@ export default function App() {
                     const orcamentoData = await orcamentoRes.json();
                     const aposentadoriaResult = await aposentadoriaRes.json();
                     const simuladorPgblResult = await simuladorPgblRes.json();
+                    const aquisicaoImoveisResult = await aquisicaoImoveisRes.json();
+                    const aquisicaoAutomoveisResult = await aquisicaoAutomoveisRes.json();
                     
                     setProtecaoData(perfilData.protecao || { invalidez: [], despesasFuturas: [], patrimonial: [] });
                     setTransacoes(transacoesData || []);
@@ -97,6 +102,7 @@ export default function App() {
                     setUsuario({ ...perfilData.usuario, categorias: orcamentoData || [] });
                     setAposentadoriaData(aposentadoriaResult);
                     setSimuladorPgblData(simuladorPgblResult);
+                    setAquisicaoData({ imoveis: aquisicaoImoveisResult || [], automoveis: aquisicaoAutomoveisResult || [] });
 
                 } catch (error) {
                     console.error('Erro ao buscar dados iniciais:', error);
@@ -344,6 +350,33 @@ export default function App() {
         }
     };
 
+    const handleSaveAquisicao = async (tipo, casos) => {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/aquisicoes/${tipo}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(casos)
+            });
+
+            if (!response.ok) throw new Error("Falha ao salvar as simulações.");
+            
+            const casosSalvos = await response.json();
+            
+            setAquisicaoData(prev => ({
+                ...prev,
+                [tipo]: casosSalvos
+            }));
+
+            toast.success("Simulações salvas com sucesso!");
+
+        } catch (error) {
+            toast.error(`Erro ao salvar: ${error.message}`);
+        }
+    };
+
     const handleSaveOrcamentoItem = async (itemData, categoriaPaiId) => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
@@ -420,6 +453,7 @@ export default function App() {
         setProtecaoData({ invalidez: [], despesasFuturas: [], patrimonial: [] });
         setAposentadoriaData(null);
         setSimuladorPgblData(null);
+        setAquisicaoData({ imoveis: [], automoveis: [] });
         setCurrentPage('objetivos');
         if (theme !== 'dark') {
             toggleTheme();
@@ -610,8 +644,18 @@ export default function App() {
                 />; 
                 break;
             case 'fluxoPlanejamento': content = <TelaPlanejamento orcamento={usuario.categorias} gastosReais={transacoes} />; break;
-            case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis />; break;
-            case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis />; break;
+            case 'aquisicaoImoveis': 
+                content = <TelaAquisicaoImoveis 
+                    dadosIniciais={aquisicaoData.imoveis}
+                    onSave={handleSaveAquisicao}
+                />; 
+                break;
+            case 'aquisicaoAutomoveis': 
+                content = <TelaAquisicaoAutomoveis 
+                    dadosIniciais={aquisicaoData.automoveis}
+                    onSave={handleSaveAquisicao}
+                />; 
+                break;
             case 'objetivos': content = <TelaObjetivos />; break;
             case 'viagensMilhas': content = <TelaMilhas />; break;
             case 'viagensCartoes': content = <TelaCartoes />; break;

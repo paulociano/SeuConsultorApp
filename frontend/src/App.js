@@ -33,10 +33,10 @@ import { toast } from 'sonner';
 
 export default function App() {
     const { theme, toggleTheme } = useContext(ThemeContext);
-    const [currentPage, setCurrentPage] = useState('protecao');
+    const [currentPage, setCurrentPage] = useState('patrimonio');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [patrimonioData, setPatrimonioData] = useState({ ativos: [], dividas: [] });
-    const [openMenu, setOpenMenu] = useState('protecao');
+    const [openMenu, setOpenMenu] = useState('patrimonio');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [transacoes, setTransacoes] = useState([]);
     const [perfilAberto, setPerfilAberto] = useState(false);
@@ -177,13 +177,77 @@ export default function App() {
         // Implementation remains the same
     };
 
-    const handleSavePatrimonioItem = async (item, tipoItem) => {
-        // Implementation remains the same
+    // CORRIGIDO: Implementação completa da função de salvar patrimônio
+    const handleSavePatrimonioItem = async (item, tipoItem) => { // tipoItem será 'ativos' ou 'dividas'
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const isEdicao = !!item.id;
+        const method = isEdicao ? 'PUT' : 'POST';
+        const endpoint = isEdicao
+            ? `http://localhost:3001/api/${tipoItem}/${item.id}`
+            : `http://localhost:3001/api/${tipoItem}`;
+
+        try {
+            const response = await fetch(endpoint, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(item)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Falha ao salvar item.`);
+            }
+
+            const itemSalvo = await response.json();
+
+            setPatrimonioData(prev => {
+                const listaAntiga = prev[tipoItem] || [];
+                const listaAtualizada = isEdicao
+                    ? listaAntiga.map(i => i.id === itemSalvo.id ? itemSalvo : i)
+                    : [itemSalvo, ...listaAntiga];
+                
+                return { ...prev, [tipoItem]: listaAtualizada };
+            });
+            
+            toast.success(`Item de patrimônio salvo com sucesso!`);
+
+        } catch (error) {
+            toast.error(`Erro ao salvar item: ${error.message}`);
+        }
     };
 
+    // CORRIGIDO: Implementação completa da função de apagar patrimônio
     const handleDeletePatrimonioItem = async (itemId, tipoItem) => {
-        // Implementation remains the same
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        if (!window.confirm("Tem certeza que deseja apagar este item?")) return;
+
+        try {
+            const response = await fetch(`http://localhost:3001/api/${tipoItem}/${itemId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Falha ao apagar o item.");
+            }
+
+            setPatrimonioData(prev => ({
+                ...prev,
+                [tipoItem]: prev[tipoItem].filter(i => i.id !== itemId)
+            }));
+
+            toast.success("Item apagado com sucesso!");
+
+        } catch (error) {
+            toast.error(`Erro ao apagar o item: ${error.message}`);
+        }
     };
+
 
     const handleUpdateOrcamentoMeta = async (itemId, novoValorPlanejado) => {
         // Implementation remains the same
@@ -248,9 +312,9 @@ export default function App() {
                 totais.atual.despesas += totalCatAtual;
                 totais.sugerido.despesas += totalCatSugerido;
                 pieData.push({ name: cat.nome, valueAtual: totalCatAtual, valueSugerido: totalCatSugerido });
-                if(cat.id === 'fixo') totaisCategorias.fixos += totalCatAtual;
-                if(cat.id === 'variavel') totaisCategorias.variaveis += totalCatAtual;
-                if(cat.id === 'investimento') totaisCategorias.investimentos += totalCatAtual;
+                if(cat.nome.toLowerCase().includes('fixa')) totaisCategorias.fixos += totalCatAtual;
+                if(cat.nome.toLowerCase().includes('variável')) totaisCategorias.variaveis += totalCatAtual;
+                if(cat.nome.toLowerCase().includes('investimento')) totaisCategorias.investimentos += totalCatAtual;
             }
         });
         
@@ -266,7 +330,7 @@ export default function App() {
     const custoDeVidaMensal = useMemo(() => {
         if (!usuario.categorias || usuario.categorias.length === 0) return 0;
         return usuario.categorias
-            .filter(c => c.id === 'fixo' || c.id === 'variavel')
+            .filter(c => c.nome.toLowerCase().includes('fixa') || c.nome.toLowerCase().includes('variável'))
             .reduce((acc, cat) => acc + cat.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0), 0);
     }, [usuario.categorias]);
 
@@ -277,9 +341,15 @@ export default function App() {
         return totalAtivos - totalDividas;
     }, [patrimonioData]);
 
+    const investimentosDisponiveis = useMemo(() => {
+        if (!patrimonioData.ativos) return [];
+        return patrimonioData.ativos.filter(ativo => ativo.tipo === 'Investimentos');
+    }, [patrimonioData.ativos]);
+
     const handleCategoryChange = (transactionId, newCategory) => {
         // Implementation remains the same
     };
+
 
     const handleIgnoreToggle = (transactionId) => {
         // Implementation remains the same
@@ -362,7 +432,12 @@ export default function App() {
                     onDeleteItem={handleDeleteProtecaoItem}
                 />; 
                 break;
-            case 'reserva': content = <TelaReservaEmergencia orcamentoCalculos={orcamentoCalculos} />; break;
+            case 'reserva': 
+                content = <TelaReservaEmergencia 
+                    orcamento={usuario.categorias || []}
+                    investimentosDisponiveis={investimentosDisponiveis} 
+                />; 
+                break;
             case 'aposentadoriaAportes': content = <TelaAposentadoria />; break;
             case 'patrimonio': 
                 content = <TelaPatrimonio 

@@ -1,39 +1,43 @@
 import React, { useState, useContext, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Trash2, PlusCircle, Trophy, Grid2X2, Rotate3D } from 'lucide-react';
+import { 
+    ArrowLeft, Trash2, PlusCircle, Trophy, Grid2X2, Rotate3D, Pencil, // Ícone de lápis adicionado
+    Home, Plane, Car, Shield, Briefcase, School, Gift, HeartHandshake 
+} from 'lucide-react';
 import Card from '../../components/Card/Card';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ThemeContext } from '../../ThemeContext';
 import ModalObjetivo from '../../components/Modals/ModalObjetivo';
-import { mockInvestimentos } from '../../components/mocks/mockInvestimentos';
 import userImage from '../../assets/persona.jpg';
-import { Home, Plane, Car, Shield } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
-import { v4 as uuidv4 } from 'uuid';
 
-const TelaObjetivos = () => {
+// Objeto para mapear nomes de ícones (string do backend) para componentes React
+const iconMap = {
+    Home, Plane, Car, Shield, Briefcase, School, Gift, HeartHandshake
+};
+
+/**
+ * Tela de visualização e gerenciamento de Objetivos Financeiros.
+ * Este componente é "controlado", recebendo seus dados e funções de manipulação via props.
+ */
+const TelaObjetivos = ({ objetivos = [], onSave, onDelete, investimentosDisponiveis = [], patrimonio = [] }) => {
   const { theme } = useContext(ThemeContext);
+  
+  // Estados locais para controle da UI
   const [modoGamificado, setModoGamificado] = useState(false);
   const [objetivoSelecionadoId, setObjetivoSelecionadoId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hoveredObjectiveId, setHoveredObjectiveId] = useState(null);
+  const [objetivoParaEditar, setObjetivoParaEditar] = useState(null); // Estado para guardar o objetivo a ser editado
 
-  const mockObjetivosInicial = [
-    { id: 1, nome: 'Casa na Praia', icon: Home, valorAlvo: 800000, investimentosLinkados: ['inv1', 'inv3'], aporteMensal: 3000 },
-    { id: 2, nome: 'Viagem ao Japão', icon: Plane, valorAlvo: 40000, investimentosLinkados: ['inv2'], aporteMensal: 1000 },
-    { id: 3, nome: 'Carro Novo', icon: Car, valorAlvo: 120000, investimentosLinkados: ['inv1'], aporteMensal: 2500 },
-    { id: 4, nome: 'Fundo de Emergência', icon: Shield, valorAlvo: 50000, investimentosLinkados: ['inv1', 'inv2'], aporteMensal: 500 },
-  ];
-
-  const [objetivos, setObjetivos] = useState(mockObjetivosInicial);
-
-  const objetivosCalculados = useMemo(() => objetivos.map(obj => {
-    const valorAtual = obj.investimentosLinkados.reduce((acc, invId) => {
-      const investimento = mockInvestimentos.find(i => i.id === invId);
-      return acc + (investimento ? investimento.valor : 0);
-    }, 0);
-    return { ...obj, valorAtual };
-  }), [objetivos]);
+  // Processa os dados recebidos para garantir que os valores sejam numéricos
+  const objetivosCalculados = useMemo(() => objetivos.map(obj => ({
+    ...obj,
+    valorAtual: parseFloat(obj.valorAtual) || 0,
+    valorAlvo: parseFloat(obj.valor_alvo) || 0,
+    aporteMensal: parseFloat(obj.aporte_mensal) || 0,
+    investimentosLinkados: obj.investimentos_linkados || []
+  })), [objetivos]);
 
   const metaSelecionada = useMemo(() => objetivosCalculados.find(o => o.id === objetivoSelecionadoId), [objetivosCalculados, objetivoSelecionadoId]);
 
@@ -44,24 +48,36 @@ const TelaObjetivos = () => {
       percentual: Math.min(percentual, 100),
       data: [
         { name: 'Alcançado', value: metaSelecionada.valorAtual },
+        // CORREÇÃO: O valor faltante deve ser subtraído do valor ATUAL, não do alvo.
         { name: 'Faltante', value: Math.max(0, metaSelecionada.valorAlvo - metaSelecionada.valorAtual) }
       ]
     };
   }, [metaSelecionada]);
 
-  const handleSaveObjetivo = (dadosDoForm) => {
-    const novoObjetivo = { ...dadosDoForm, id: uuidv4() };
-    setObjetivos(prev => [...prev, novoObjetivo]);
+  // Abre o modal. Se um objetivo for passado, ele entra em modo de edição.
+  const handleOpenModal = (objetivo = null) => {
+    setObjetivoParaEditar(objetivo);
+    setIsModalOpen(true);
+  };
+
+  // Fecha o modal e limpa o estado de edição
+  const handleCloseModal = () => {
     setIsModalOpen(false);
+    setObjetivoParaEditar(null);
   };
 
+  // Chama a função onSave do App.js e fecha o modal
+  const handleSaveObjetivo = (dadosDoForm) => {
+    onSave(dadosDoForm);
+    handleCloseModal();
+  };
+
+  // Chama a função onDelete do App.js
   const handleDeleteObjetivo = (id) => {
-    if (window.confirm("Tem certeza que deseja excluir este objetivo?")) {
-      setObjetivos(prev => prev.filter(o => o.id !== id));
-      setObjetivoSelecionadoId(null);
-    }
+    onDelete(id);
+    setObjetivoSelecionadoId(null);
   };
-
+  
   const renderClássico = () => {
     const raioBase = 120;
     const objetivosPorAnel = [];
@@ -86,7 +102,7 @@ const TelaObjetivos = () => {
                   if (anelIndex % 2 !== 0) angulo += Math.PI / totalObjetivosNoAnel;
                   const x = raioAtual * Math.cos(angulo);
                   const y = raioAtual * Math.sin(angulo);
-                  const Icone = objetivo.icon;
+                  const Icone = iconMap[objetivo.icon] || Shield;
                   const porcentagemAtingida = objetivo.valorAlvo > 0 ? (objetivo.valorAtual / objetivo.valorAlvo) * 100 : 0;
                   return (
                     <div key={objetivo.id} className="absolute flex flex-col items-center z-10" style={{ top: '50%', left: '50%', transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}>
@@ -106,24 +122,11 @@ const TelaObjetivos = () => {
                         >
                             <AnimatePresence mode="wait">
                                 {hoveredObjectiveId === objetivo.id ? (
-                                    <motion.span
-                                        key="percentage"
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="text-sm font-bold text-[#00d971]"
-                                    >
+                                    <motion.span key="percentage" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="text-sm font-bold text-[#00d971]">
                                         {porcentagemAtingida.toFixed(0)}%
                                     </motion.span>
                                 ) : (
-                                    <motion.div
-                                        key="icon"
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ duration: 0.2 }}
-                                    >
+                                    <motion.div key="icon" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}>
                                         <Icone size={24} className="text-[#00d971]" />
                                     </motion.div>
                                 )}
@@ -142,66 +145,56 @@ const TelaObjetivos = () => {
     );
   };
 
-  const renderGamificado = () => (
-    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-      {objetivosCalculados.map(obj => {
-        const porcentagem = obj.valorAlvo > 0 ? (obj.valorAtual / obj.valorAlvo) * 100 : 0;
-        const completo = porcentagem >= 100;
-        const Icone = obj.icon; // Obter o componente de ícone
+  const renderGamificado = () => {
+    return (
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {objetivosCalculados.map(obj => {
+            const porcentagem = obj.valorAlvo > 0 ? (obj.valorAtual / obj.valorAlvo) * 100 : 0;
+            const completo = porcentagem >= 100;
+            const Icone = iconMap[obj.icon] || Shield;
 
-        return (
-          <motion.div
-            key={obj.id}
-            onClick={() => setObjetivoSelecionadoId(obj.id)}
-            onMouseEnter={() => setHoveredObjectiveId(obj.id)}
-            onMouseLeave={() => setHoveredObjectiveId(null)}
-            whileHover={{ scale: 1.03 }}
-            className="cursor-pointer rounded-xl shadow-md p-4 bg-white dark:bg-[#2a246f] transition-all border border-transparent hover:border-[#00d971] flex flex-col justify-between" // Adicionado flex-col e justify-between
-          >
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    {/* Renderização condicional para ícone ou porcentagem */}
-                    <AnimatePresence mode="wait">
-                        {hoveredObjectiveId === obj.id ? (
-                            <motion.span
-                                key="percentage-gamified"
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                transition={{ duration: 0.2 }}
-                                className="text-sm font-bold text-[#00d971] w-6 h-6 flex items-center justify-center" // Ajustar tamanho se necessário
-                            >
-                                {porcentagem.toFixed(0)}%
-                            </motion.span>
-                        ) : (
-                            <motion.div
-                                key="icon-gamified"
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                transition={{ duration: 0.2 }}
-                            >
-                                <Icone size={24} className="text-[#00d971]" />
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    <h2 className="font-semibold text-slate-800 dark:text-white truncate">{obj.nome}</h2>
+            return (
+              <motion.div
+                key={obj.id}
+                onClick={() => setObjetivoSelecionadoId(obj.id)}
+                onMouseEnter={() => setHoveredObjectiveId(obj.id)}
+                onMouseLeave={() => setHoveredObjectiveId(null)}
+                whileHover={{ scale: 1.03 }}
+                className="cursor-pointer rounded-xl shadow-md p-4 bg-white dark:bg-[#2a246f] transition-all border border-transparent hover:border-[#00d971] flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <AnimatePresence mode="wait">
+                            {hoveredObjectiveId === obj.id ? (
+                                <motion.span key="percentage-gamified" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }} className="text-sm font-bold text-[#00d971] w-6 h-6 flex items-center justify-center">
+                                    {porcentagem.toFixed(0)}%
+                                </motion.span>
+                            ) : (
+                                <motion.div key="icon-gamified" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}>
+                                    <Icone size={24} className="text-[#00d971]" />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <h2 className="font-semibold text-slate-800 dark:text-white truncate">{obj.nome}</h2>
+                    </div>
+                    {completo && <Trophy className="text-yellow-400" title="Objetivo Concluído" />}
                 </div>
-                {completo && <Trophy className="text-yellow-400" title="Objetivo Concluído" />}
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">{formatCurrency(obj.valorAtual)} de {formatCurrency(obj.valorAlvo)}</p>
-            <div className="relative w-full h-3 bg-slate-200 dark:bg-slate-700 rounded mt-2">
-              <div className="absolute top-0 left-0 h-3 rounded bg-[#00d971]" style={{ width: `${Math.min(porcentagem, 100)}%` }}></div>
-            </div>
-            {obj.aporteMensal > 0 && <p className="text-xs mt-1 text-gray-400">Aporte: {formatCurrency(obj.aporteMensal)} / mês</p>}
-          </motion.div>
-        );
-      })}
-    </div>
-  );
+                <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">{formatCurrency(obj.valorAtual)} de {formatCurrency(obj.valorAlvo)}</p>
+                <div className="relative w-full h-3 bg-slate-200 dark:bg-slate-700 rounded mt-2">
+                  <div className="absolute top-0 left-0 h-3 rounded bg-[#00d971]" style={{ width: `${Math.min(porcentagem, 100)}%` }}></div>
+                </div>
+                {obj.aporteMensal > 0 && <p className="text-xs mt-1 text-gray-400">Aporte: {formatCurrency(obj.aporteMensal)} / mês</p>}
+              </motion.div>
+            );
+          })}
+        </div>
+    );
+  };
 
   const renderDetalheObjetivo = () => {
     if (!metaSelecionada || !progressoMetaDetalhe) return null;
+    const IconeDetalhe = iconMap[metaSelecionada.icon] || Shield;
+
     return (
       <motion.div
         key="detalhe"
@@ -217,12 +210,16 @@ const TelaObjetivos = () => {
           <Card>
             <div className="flex flex-col items-center text-center">
               <div className="flex justify-end w-full gap-4 -mt-2 -mr-2">
-                <button onClick={() => handleDeleteObjetivo(metaSelecionada.id)} className="text-gray-500 dark:text-gray-400 hover:text-red-500">
+                {/* BOTÃO DE EDITAR ADICIONADO */}
+                <button onClick={() => handleOpenModal(metaSelecionada)} className="text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors">
+                  <Pencil size={18} />
+                </button>
+                <button onClick={() => handleDeleteObjetivo(metaSelecionada.id)} className="text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors">
                   <Trash2 size={18} />
                 </button>
               </div>
               <div className="p-4 bg-slate-200 dark:bg-[#2a246f] rounded-full mb-4 -mt-4">
-                <metaSelecionada.icon size={32} className="text-[#00d971]" />
+                <IconeDetalhe size={32} className="text-[#00d971]" />
               </div>
               <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{metaSelecionada.nome}</h1>
               <p className="text-lg text-gray-500 dark:text-gray-400 mt-1">Alcançado: <span className="font-bold text-[#00d971]">{formatCurrency(metaSelecionada.valorAtual)}</span> de {formatCurrency(metaSelecionada.valorAlvo)}</p>
@@ -230,8 +227,7 @@ const TelaObjetivos = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={progressoMetaDetalhe.data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="70%" outerRadius="90%" startAngle={90} endAngle={-270} paddingAngle={2}>
-                      <Cell fill="#00d971" stroke="none" />
-                      <Cell fill={theme === 'dark' ? '#2a246f' : '#e2e8f0'} stroke="none" />
+                      <Cell fill="#00d971" stroke="none" /><Cell fill={theme === 'dark' ? '#2a246f' : '#e2e8f0'} stroke="none" />
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
@@ -242,15 +238,15 @@ const TelaObjetivos = () => {
               <div className="w-full text-left mt-4">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Investimentos Vinculados</h3>
                 <div className="space-y-2">
-                  {metaSelecionada.investimentosLinkados.map(invId => {
-                    const investimento = mockInvestimentos.find(i => i.id === invId);
+                  {metaSelecionada.investimentosLinkados.length > 0 ? metaSelecionada.investimentosLinkados.map(invId => {
+                    const investimento = patrimonio.find(i => i.id === invId);
                     return (
                       <div key={invId} className="flex justify-between items-center p-3 bg-slate-100 dark:bg-[#2a246f] rounded-lg">
                         <span className="font-medium text-slate-700 dark:text-gray-300">{investimento?.nome || 'Investimento não encontrado'}</span>
                         <span className="font-bold text-slate-800 dark:text-white">{investimento ? formatCurrency(investimento.valor) : ''}</span>
                       </div>
                     );
-                  })}
+                  }) : <p className="text-sm text-center text-gray-500 dark:text-gray-400">Nenhum investimento vinculado.</p>}
                 </div>
               </div>
             </div>
@@ -262,20 +258,40 @@ const TelaObjetivos = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4">
-      <div className="flex justify-between items-center mb-4">
-        <button onClick={() => setModoGamificado(prev => !prev)} className="flex items-center gap-2 text-sm bg-[#00d971] text-white px-4 py-1.5 rounded hover:brightness-110">
-          {modoGamificado ? <Rotate3D size={16} /> : <Grid2X2 size={16} />} Mudar para modo {modoGamificado ? 'Clássico' : 'Gamificado'}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Seus Objetivos</h1>
+        <button onClick={() => setModoGamificado(prev => !prev)} className="flex items-center gap-2 text-sm bg-slate-200 dark:bg-[#2a246f] text-slate-700 dark:text-white px-4 py-1.5 rounded-lg hover:bg-slate-300 dark:hover:bg-[#3e388b] transition-colors">
+          {modoGamificado ? <Rotate3D size={16} /> : <Grid2X2 size={16} />} 
+          <span>{modoGamificado ? 'Modo Clássico' : 'Modo Gamificado'}</span>
         </button>
       </div>
 
       <AnimatePresence mode="wait">
-        {objetivoSelecionadoId ? renderDetalheObjetivo() : (modoGamificado ? renderGamificado() : renderClássico())}
+        {objetivoSelecionadoId ? renderDetalheObjetivo() : (
+            objetivosCalculados.length > 0 ? (modoGamificado ? renderGamificado() : renderClássico()) : (
+                <div className="text-center py-20">
+                    <p className="text-gray-500 dark:text-gray-400">Você ainda não tem nenhum objetivo.</p>
+                    <p className="text-gray-500 dark:text-gray-400">Clique no botão <span className="text-[#00d971] font-bold">+</span> para começar a planejar seu futuro!</p>
+                </div>
+            )
+        )}
       </AnimatePresence>
 
-      <button onClick={() => setIsModalOpen(true)} className="fixed bottom-10 right-10 bg-[#00d971] text-black w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-30">
+      {/* O botão de + agora chama handleOpenModal sem argumentos para criar um novo */}
+      <button onClick={() => handleOpenModal()} className="fixed bottom-10 right-10 bg-[#00d971] text-black w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-30">
         <PlusCircle size={32} />
       </button>
-      <ModalObjetivo isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveObjetivo} />
+
+      {/* O modal agora recebe o objetivo a ser editado */}
+      {isModalOpen && (
+        <ModalObjetivo 
+          isOpen={isModalOpen} 
+          onClose={handleCloseModal} 
+          onSave={handleSaveObjetivo} 
+          investimentosDisponiveis={investimentosDisponiveis}
+          objetivoExistente={objetivoParaEditar}
+        />
+      )}
     </div>
   );
 };

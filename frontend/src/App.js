@@ -34,9 +34,9 @@ export default function App() {
     const { theme, toggleTheme } = useContext(ThemeContext);
     
     // State for UI and navigation
-    const [currentPage, setCurrentPage] = useState('agendaReunioes');
+    const [currentPage, setCurrentPage] = useState('objetivos');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [openMenu, setOpenMenu] = useState('agendaReunioes');
+    const [openMenu, setOpenMenu] = useState('objetivos');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [perfilAberto, setPerfilAberto] = useState(false);
     const [transacaoSelecionada, setTransacaoSelecionada] = useState(null);
@@ -53,16 +53,14 @@ export default function App() {
     const [milhasData, setMilhasData] = useState({ carteiras: [], metas: [] });
     const [atas, setAtas] = useState([]);
     const [agenda, setAgenda] = useState([]);
+    const [objetivos, setObjetivos] = useState([]);
+    const [reservaInvestimentos, setReservaInvestimentos] = useState({});
 
     // Effect to check for existing token on initial load
     useEffect(() => {
         const token = localStorage.getItem('authToken');
         if (token) {
             setIsAuthenticated(true);
-        }
-        // Set a default theme if none is set
-        if (theme !== 'dark') {
-            toggleTheme();
         }
     }, []);
 
@@ -80,7 +78,7 @@ export default function App() {
                     const endpoints = [
                         'perfil', 'transacoes', 'ativos', 'dividas', 'orcamento', 'aposentadoria',
                         'simulador-pgbl', 'aquisicoes/imoveis', 'aquisicoes/automoveis',
-                        'milhas/carteiras', 'milhas/metas', 'atas', 'agenda'
+                        'milhas/carteiras', 'milhas/metas', 'atas', 'agenda', 'objetivos'
                     ];
                     const requests = endpoints.map(endpoint => fetch(`http://localhost:3001/api/${endpoint}`, { headers }));
                     const responses = await Promise.all(requests);
@@ -105,6 +103,7 @@ export default function App() {
                     setMilhasData({ carteiras: data[9] || [], metas: data[10] || [] });
                     setAtas(data[11] || []);
                     setAgenda(data[12] || []);
+                    setObjetivos(data[13] || []);
 
                 } catch (error) {
                     console.error('Erro ao buscar dados iniciais:', error);
@@ -121,6 +120,7 @@ export default function App() {
         const token = localStorage.getItem('authToken');
         if (!token) {
             toast.error("Usuário não autenticado.");
+            handleLogout();
             return null;
         }
         try {
@@ -133,9 +133,10 @@ export default function App() {
                 options.body = JSON.stringify(body);
             }
             const response = await fetch(`http://localhost:3001/api${endpoint}`, options);
-            if (response.status === 204) return true; // For DELETE requests
+            if (response.status === 204) return true;
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({ message: `Erro ${response.status}` }));
+                if(response.status === 401 || response.status === 403) handleLogout();
                 throw new Error(errorData.message || `Falha na requisição ${method} ${endpoint}`);
             }
             return response.json();
@@ -146,6 +147,31 @@ export default function App() {
     };
     
     // --- CRUD Handlers ---
+    const handleSaveObjetivo = async (objetivo) => {
+        const isEditing = !!objetivo.id;
+        const endpoint = isEditing ? `/objetivos/${objetivo.id}` : '/objetivos';
+        const method = isEditing ? 'PUT' : 'POST';
+        
+        const savedObjetivo = await apiRequest(endpoint, method, objetivo);
+        
+        if (savedObjetivo) {
+            if (isEditing) {
+                setObjetivos(prev => prev.map(o => o.id === savedObjetivo.id ? savedObjetivo : o));
+            } else {
+                setObjetivos(prev => [...prev, savedObjetivo]);
+            }
+            toast.success('Objetivo salvo com sucesso!');
+        }
+    };
+
+    const handleDeleteObjetivo = async (objetivoId) => {
+        if (!window.confirm("Tem certeza que deseja apagar este objetivo?")) return;
+        if (await apiRequest(`/objetivos/${objetivoId}`, 'DELETE')) {
+            setObjetivos(prev => prev.filter(o => o.id !== objetivoId));
+            toast.success("Objetivo apagado!");
+        }
+    };
+
     const handleSaveProtecaoItem = async (item, tipo) => {
         const endpoint = item.id ? `/protecao/${tipo}/${item.id}` : `/protecao/${tipo}`;
         const method = item.id ? 'PUT' : 'POST';
@@ -164,7 +190,6 @@ export default function App() {
             toast.success("Item apagado!");
         }
     };
-
     const handleSaveTransacao = async (transacao) => {
         const endpoint = transacao.id ? `/transacoes/${transacao.id}` : '/transacoes';
         const method = transacao.id ? 'PUT' : 'POST';
@@ -181,7 +206,6 @@ export default function App() {
             toast.success('Transação apagada!');
         }
     };
-    
     const handleSavePatrimonioItem = async (item, tipoItem) => {
         const endpoint = item.id ? `/${tipoItem}/${item.id}` : `/${tipoItem}`;
         const method = item.id ? 'PUT' : 'POST';
@@ -198,22 +222,18 @@ export default function App() {
             toast.success("Item apagado!");
         }
     };
-
     const handleSaveAposentadoria = async (data) => {
         const savedData = await apiRequest('/aposentadoria', 'POST', data);
         if (savedData) { setAposentadoriaData(savedData); toast.success("Plano de aposentadoria salvo!"); }
     };
-    
     const handleSaveSimuladorPgbl = async (data) => {
         const savedData = await apiRequest('/simulador-pgbl', 'POST', data);
         if (savedData) { setSimuladorPgblData(savedData); toast.success("Simulação PGBL/VGBL salva!"); }
     };
-
     const handleSaveAquisicao = async (tipo, casos) => {
         const savedCasos = await apiRequest(`/aquisicoes/${tipo}`, 'POST', casos);
         if (savedCasos) { setAquisicaoData(prev => ({ ...prev, [tipo]: savedCasos })); toast.success("Simulações salvas!"); }
     };
-
     const handleSaveOrcamentoItem = async (itemData, categoriaPaiId) => {
         const endpoint = itemData.id ? `/orcamento/itens/${itemData.id}` : '/orcamento/itens';
         const method = itemData.id ? 'PUT' : 'POST';
@@ -231,7 +251,6 @@ export default function App() {
             toast.success('Item do orçamento apagado.');
         }
     };
-
     const handleSaveMilhasItem = async (item, tipo) => {
         const endpoint = item.id ? `/milhas/${tipo}/${item.id}` : `/milhas/${tipo}`;
         const method = item.id ? 'PUT' : 'POST';
@@ -248,7 +267,6 @@ export default function App() {
             toast.success("Item apagado!");
         }
     };
-
     const handleSaveAta = async (ata) => {
         const endpoint = ata.id ? `/atas/${ata.id}` : '/atas';
         const method = ata.id ? 'PUT' : 'POST';
@@ -266,7 +284,6 @@ export default function App() {
             toast.success('Ata apagada!');
         }
     };
-
     const handleSaveCompromisso = async (compromisso) => {
         const endpoint = compromisso.id ? `/agenda/${compromisso.id}` : '/agenda';
         const method = compromisso.id ? 'PUT' : 'POST';
@@ -288,6 +305,7 @@ export default function App() {
         }
     };
 
+
     const handleLogout = () => {
         localStorage.removeItem('authToken');
         setIsAuthenticated(false);
@@ -296,24 +314,37 @@ export default function App() {
         setAposentadoriaData(null); setSimuladorPgblData(null);
         setAquisicaoData({ imoveis: [], automoveis: [] }); setMilhasData({ carteiras: [], metas: [] });
         setAtas([]); setAgenda([]);
+        setObjetivos([]);
+        setReservaInvestimentos({});
         setCurrentPage('objetivos');
-        if (theme !== 'dark') toggleTheme();
     };
 
     // --- Memos for derived data ---
+    // CORREÇÃO: useMemo agora é mais robusto para evitar crashes se os dados não carregarem.
     const { orcamentoCalculos, pieChartData } = useMemo(() => {
-        if (!usuario.categorias || usuario.categorias.length === 0) return { orcamentoCalculos: { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 }, categorias: { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 } }, pieChartData: [] };
-        const totais = { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 } };
-        const totaisCategorias = { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 };
-        let pieData = [];
-        usuario.categorias.forEach(cat => {
-            const totalCatAtual = cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
-            const totalCatSugerido = cat.subItens.reduce((acc, item) => acc + (item.sugerido || 0), 0);
-            if (cat.tipo === 'receita') { totais.atual.receitas += totalCatAtual; totais.sugerido.receitas += totalCatSugerido; totaisCategorias.renda += totalCatAtual; } 
-            else { totais.atual.despesas += totalCatAtual; totais.sugerido.despesas += totalCatSugerido; pieData.push({ name: cat.nome, valueAtual: totalCatAtual, valueSugerido: totalCatSugerido }); if (cat.nome.toLowerCase().includes('fixa')) totaisCategorias.fixos += totalCatAtual; if (cat.nome.toLowerCase().includes('variável')) totaisCategorias.variaveis += totalCatAtual; if (cat.nome.toLowerCase().includes('investimento')) totaisCategorias.investimentos += totalCatAtual; }
-        });
-        const finalPieData = pieData.map(d => ({ ...d, percAtual: totais.atual.despesas > 0 ? ((d.valueAtual / totais.atual.despesas) * 100).toFixed(1) : "0.0", percSugerido: totais.sugerido.despesas > 0 ? ((d.valueSugerido / totais.sugerido.despesas) * 100).toFixed(1) : "0.0" }));
-        return { orcamentoCalculos: { ...totais, categorias: totaisCategorias }, pieChartData: finalPieData };
+        const defaultReturn = { 
+            orcamentoCalculos: { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 }, categorias: { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 } }, 
+            pieChartData: [] 
+        };
+        if (!usuario || !usuario.categorias || usuario.categorias.length === 0) {
+            return defaultReturn;
+        }
+        try {
+            const totais = { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 } };
+            const totaisCategorias = { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 };
+            let pieData = [];
+            usuario.categorias.forEach(cat => {
+                const totalCatAtual = cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
+                const totalCatSugerido = cat.subItens.reduce((acc, item) => acc + (item.sugerido || 0), 0);
+                if (cat.tipo === 'receita') { totais.atual.receitas += totalCatAtual; totais.sugerido.receitas += totalCatSugerido; totaisCategorias.renda += totalCatAtual; } 
+                else { totais.atual.despesas += totalCatAtual; totais.sugerido.despesas += totalCatSugerido; pieData.push({ name: cat.nome, valueAtual: totalCatAtual, valueSugerido: totalCatSugerido }); if (cat.nome.toLowerCase().includes('fixa')) totaisCategorias.fixos += totalCatAtual; if (cat.nome.toLowerCase().includes('variável')) totaisCategorias.variaveis += totalCatAtual; if (cat.nome.toLowerCase().includes('investimento')) totaisCategorias.investimentos += totalCatAtual; }
+            });
+            const finalPieData = pieData.map(d => ({ ...d, percAtual: totais.atual.despesas > 0 ? ((d.valueAtual / totais.atual.despesas) * 100).toFixed(1) : "0.0", percSugerido: totais.sugerido.despesas > 0 ? ((d.valueSugerido / totais.sugerido.despesas) * 100).toFixed(1) : "0.0" }));
+            return { orcamentoCalculos: { ...totais, categorias: totaisCategorias }, pieChartData: finalPieData };
+        } catch (e) {
+            console.error("Erro ao calcular orçamento:", e);
+            return defaultReturn;
+        }
     }, [usuario.categorias]);
 
     const custoDeVidaMensal = useMemo(() => {
@@ -328,6 +359,14 @@ export default function App() {
     }, [patrimonioData]);
 
     const investimentosDisponiveis = useMemo(() => patrimonioData.ativos.filter(ativo => ativo.tipo === 'Investimentos'), [patrimonioData.ativos]);
+
+    const investimentosDisponiveisParaObjetivos = useMemo(() => {
+        const idsInvestimentosReserva = Object.keys(reservaInvestimentos).filter(id => reservaInvestimentos[id]);
+        return patrimonioData.ativos.filter(ativo => 
+            ativo.tipo === 'Investimentos' && !idsInvestimentosReserva.includes(String(ativo.id))
+        );
+    }, [patrimonioData.ativos, reservaInvestimentos]);
+
 
     // --- Menu and Page Rendering ---
     const menuItems = [
@@ -346,7 +385,7 @@ export default function App() {
         switch (currentPage) {
             case 'orcamento': content = <TelaOrcamento categorias={usuario.categorias} onSaveItem={handleSaveOrcamentoItem} onDeleteItem={handleDeleteOrcamentoItem} orcamentoCalculos={orcamentoCalculos} pieChartData={pieChartData} />; break;
             case 'protecao': content = <TelaProtecao rendaMensal={orcamentoCalculos.atual.receitas} custoDeVidaMensal={custoDeVidaMensal} patrimonioTotal={patrimonioTotal} protecaoData={protecaoData} onSaveItem={handleSaveProtecaoItem} onDeleteItem={handleDeleteProtecaoItem} />; break;
-            case 'reserva': content = <TelaReservaEmergencia orcamento={usuario.categorias || []} investimentosDisponiveis={investimentosDisponiveis} />; break;
+            case 'reserva': content = <TelaReservaEmergencia orcamento={usuario.categorias || []} investimentosDisponiveis={investimentosDisponiveis} investimentosSelecionados={reservaInvestimentos} onSelectionChange={setReservaInvestimentos} />; break;
             case 'aposentadoriaAportes': content = <TelaAposentadoria dadosIniciais={aposentadoriaData} onSave={handleSaveAposentadoria} />; break;
             case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} patrimonioTotal={patrimonioTotal} onSaveItem={handleSavePatrimonioItem} onDeleteItem={handleDeletePatrimonioItem} />; break;
             case 'fluxoTransacoes': content = <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={(id, cat) => handleSaveTransacao({...transacoes.find(t=>t.id===id), categoria: cat})} handleIgnoreToggle={(id) => handleSaveTransacao({...transacoes.find(t=>t.id===id), ignorada: !transacoes.find(t=>t.id===id).ignorada})} onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} onEditClick={(t) => {setTransacaoSelecionada(t); setIsTransacaoModalOpen(true);}} onDeleteClick={handleDeleteTransacao} />; break;
@@ -359,7 +398,13 @@ export default function App() {
             case 'aposentadoriaPGBL': content = <TelaSimuladorPGBL dadosIniciais={simuladorPgblData} onSave={handleSaveSimuladorPgbl} />; break;
             case 'configuracoesPerfil': content = <TelaConfiguracoesPerfil usuario={usuario} setUsuario={setUsuario} />; break;
             case 'agendaReunioes': content = <TelaReunioesAgenda atasIniciais={atas} agendaInicial={agenda} onSaveAta={handleSaveAta} onDeleteAta={handleDeleteAta} onSaveCompromisso={handleSaveCompromisso} onDeleteCompromisso={handleDeleteCompromisso} />; break;
-            default: content = <TelaObjetivos />; break;
+            default: content = <TelaObjetivos 
+                                    objetivos={objetivos} 
+                                    onSave={handleSaveObjetivo} 
+                                    onDelete={handleDeleteObjetivo} 
+                                    investimentosDisponiveis={investimentosDisponiveisParaObjetivos}
+                                    patrimonio={patrimonioData.ativos}
+                                />; break;
         }
         return <PageTransition key={currentPage}>{content}</PageTransition>;
     };

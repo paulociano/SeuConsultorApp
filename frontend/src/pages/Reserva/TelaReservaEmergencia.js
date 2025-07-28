@@ -3,24 +3,36 @@ import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { Target } from 'lucide-react';
 
-// O componente agora recebe 'orcamento' com os dados detalhados
-const TelaReservaEmergencia = ({ orcamento = [], investimentosDisponiveis = [] }) => {
+/**
+ * Tela para cálculo e composição da Reserva de Emergência.
+ * Este componente agora é controlado pelo componente pai (App.js) no que diz respeito
+ * aos investimentos selecionados, para que essa informação possa ser compartilhada com outras partes da aplicação.
+ * @param {object} props - As propriedades do componente.
+ * @param {Array} props.orcamento - Dados do orçamento do usuário para cálculo da base.
+ * @param {Array} props.investimentosDisponiveis - Lista de todos os investimentos do tipo "Investimento".
+ * @param {object} props.investimentosSelecionados - Um objeto/mapa indicando quais investimentos estão selecionados (ex: {inv_id: true}).
+ * @param {Function} props.onSelectionChange - Função para ser chamada quando a seleção de um investimento muda.
+ */
+const TelaReservaEmergencia = ({ 
+    orcamento = [], 
+    investimentosDisponiveis = [], 
+    investimentosSelecionados = {},
+    onSelectionChange 
+}) => {
+    // Estados locais que controlam apenas a UI desta tela
     const [cenario, setCenario] = useState('cenario1');
     const [mesesReservaIdeal, setMesesReservaIdeal] = useState(6);
-    const [investimentosSelecionados, setInvestimentosSelecionados] = useState({});
 
-    // Lógica de cálculo da base da reserva foi totalmente refeita
+    // O estado de 'investimentosSelecionados' foi removido daqui e agora é gerenciado pelo App.js
+
+    // Lógica de cálculo da base da reserva, baseada nos dados do orçamento
     const baseCalculo = useMemo(() => {
         if (!orcamento || orcamento.length === 0) return 0;
 
-        // Calcula os totais de cada tipo de gasto diretamente dos dados do orçamento
         const totais = orcamento.reduce((acc, categoria) => {
-            // Soma o valor 'atual' de todos os sub-itens da categoria
             const totalCategoria = categoria.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0);
-            
             const nomeCategoria = categoria.nome.toLowerCase();
 
-            // Classifica o total da categoria com base no seu nome
             if (nomeCategoria.includes('fixa')) {
                 acc.fixos += totalCategoria;
             } else if (nomeCategoria.includes('variável')) {
@@ -34,7 +46,6 @@ const TelaReservaEmergencia = ({ orcamento = [], investimentosDisponiveis = [] }
             return acc;
         }, { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 });
 
-        // Aplica o cenário escolhido sobre os totais calculados
         switch (cenario) {
             case 'cenario1': return totais.fixos + (totais.variaveis * 0.7);
             case 'cenario2': return totais.fixos + totais.variaveis;
@@ -42,15 +53,22 @@ const TelaReservaEmergencia = ({ orcamento = [], investimentosDisponiveis = [] }
             case 'cenario4': return totais.renda;
             default: return 0;
         }
-    }, [cenario, orcamento]); // O cálculo agora depende dos dados detalhados do orçamento
+    }, [cenario, orcamento]);
 
     const reservaMinima = baseCalculo * 3;
     const reservaIdeal = baseCalculo * mesesReservaIdeal;
 
+    /**
+     * Manipula o clique no checkbox de um investimento.
+     * Em vez de atualizar um estado local, chama a função 'onSelectionChange'
+     * passada pelo componente pai para "levantar o estado".
+     * @param {string|number} invId - O ID do investimento que foi clicado.
+     */
     const handleSelectInvestimento = (invId) => {
-        setInvestimentosSelecionados(prev => ({...prev, [invId]: !prev[invId]}));
+        onSelectionChange(prev => ({...prev, [invId]: !prev[invId]}));
     };
 
+    // Calcula o valor total acumulado com base nos investimentos selecionados (vindos via props)
     const totalAcumulado = useMemo(() => {
         return investimentosDisponiveis.reduce((acc, inv) => {
             if(investimentosSelecionados[inv.id]) {
@@ -60,6 +78,7 @@ const TelaReservaEmergencia = ({ orcamento = [], investimentosDisponiveis = [] }
         }, 0);
     }, [investimentosSelecionados, investimentosDisponiveis]);
 
+    // Calcula o progresso percentual para a barra de progresso
     const progresso = reservaIdeal > 0 ? (totalAcumulado / reservaIdeal) * 100 : 0;
 
     return (
@@ -102,7 +121,12 @@ const TelaReservaEmergencia = ({ orcamento = [], investimentosDisponiveis = [] }
                         investimentosDisponiveis.map(inv => (
                             <label key={inv.id} className="flex items-center justify-between p-3 bg-slate-100 dark:bg-[#201b5d]/50 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-[#201b5d]">
                                 <div className="flex items-center gap-3">
-                                    <input type="checkbox" checked={!!investimentosSelecionados[inv.id]} onChange={() => handleSelectInvestimento(inv.id)} className="form-checkbox h-4 w-4 text-[#00d971] bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-[#00d971]" />
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!investimentosSelecionados[inv.id]} 
+                                        onChange={() => handleSelectInvestimento(inv.id)} 
+                                        className="form-checkbox h-4 w-4 text-[#00d971] bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-[#00d971]" 
+                                    />
                                     <span className="text-slate-800 dark:text-white">{inv.nome}</span>
                                 </div>
                                 <span className="font-semibold text-slate-800 dark:text-white">{formatCurrency(inv.valor)}</span>
@@ -119,7 +143,7 @@ const TelaReservaEmergencia = ({ orcamento = [], investimentosDisponiveis = [] }
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-[#201b5d] rounded-full h-4">
                         <div className="bg-[#00d971] h-4 rounded-full text-xs text-black flex items-center justify-center font-bold" style={{ width: `${Math.min(progresso, 100)}%` }}>
-                           {progresso > 5 ? `${progresso.toFixed(0)}%` : ''}
+                           {progresso > 10 ? `${progresso.toFixed(0)}%` : ''}
                         </div>
                     </div>
                  </div>

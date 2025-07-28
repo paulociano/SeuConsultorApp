@@ -5,20 +5,21 @@ import { toast } from 'sonner';
 import { Edit, Trash2, PlusCircle, Tag, TrendingDown, TrendingUp, CheckCircle2, AlertTriangle, ChevronsUpDown } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { CATEGORIAS_FLUXO } from '../../components/constants/Categorias';
+import { useOrcamentoStore } from '../../stores/useOrcamentoStore'; // 1. Importar a store
 
 // --- Sub-componente do Modal (sem alterações) ---
 const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
     const { mode, category, item } = context;
     const [nome, setNome] = useState('');
     const [sugerido, setSugerido] = useState('');
-    const [atual, setAtual] = useState(''); 
+    const [atual, setAtual] = useState('');
     const [categoriaPlanejamento, setCategoriaPlanejamento] = useState('');
 
     useEffect(() => {
         if (isOpen && item) {
             setNome(item.nome || '');
             setSugerido(item.sugerido?.toString() || '0');
-            setAtual(item.atual?.toString() || '0'); 
+            setAtual(item.atual?.toString() || '0');
             setCategoriaPlanejamento(item.categoria_planejamento || '');
         } else if (isOpen) {
             setNome('');
@@ -33,7 +34,7 @@ const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         const valorSugeridoFloat = parseFloat(sugerido);
-        const valorAtualFloat = parseFloat(atual); 
+        const valorAtualFloat = parseFloat(atual);
 
         if (!nome || isNaN(valorSugeridoFloat) || isNaN(valorAtualFloat)) {
             toast.error("Por favor, preencha todos os campos com valores válidos.");
@@ -97,19 +98,17 @@ const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
 };
 
 
-// --- Sub-componente para o Resumo do Orçamento com Gráfico de Donut ---
+// --- Sub-componente para o Resumo do Orçamento (sem alterações funcionais) ---
 const OrcamentoResumo = ({ calculos, chartData }) => {
     const { totalReceitas, totalDespesas, saldoAtual } = calculos;
-    // [CORRIGIDO] Adicionada cor para a categoria "Outros"
     const COLORS = {
         'Fixos': '#ef4444',
         'Variáveis': '#f97316',
         'Investimentos': '#3b82f6',
         'Proteção': '#a855f7',
-        'Outros': '#64748b' // Cinza para fallback
+        'Outros': '#64748b'
     };
 
-    // Componente customizado para a legenda do gráfico com percentuais
     const renderLegend = (props) => {
         const { payload } = props;
         return (
@@ -135,21 +134,10 @@ const OrcamentoResumo = ({ calculos, chartData }) => {
             <div className="p-6">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Distribuição das Despesas</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 items-center">
-                    {/* Gráfico de Donut */}
                     <div className="w-full h-48">
                          <ResponsiveContainer width="100%" height="100%">
                              <PieChart>
-                                <Pie 
-                                    data={chartData} 
-                                    dataKey="value" 
-                                    nameKey="name" 
-                                    cx="50%" 
-                                    cy="50%" 
-                                    innerRadius={50} 
-                                    outerRadius={70} 
-                                    fill="#8884d8" 
-                                    paddingAngle={5}
-                                >
+                                <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={70} fill="#8884d8" paddingAngle={5}>
                                     {chartData.map((entry) => (
                                         <Cell key={`cell-${entry.name}`} fill={COLORS[entry.name] || '#8884d8'} />
                                     ))}
@@ -159,8 +147,6 @@ const OrcamentoResumo = ({ calculos, chartData }) => {
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
-
-                    {/* Cards de Métricas */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg">
                             <div className="flex items-center gap-2 text-green-500"><TrendingUp size={18}/> <h3 className="font-semibold">Receitas</h3></div>
@@ -182,7 +168,7 @@ const OrcamentoResumo = ({ calculos, chartData }) => {
 };
 
 
-// --- Sub-componente para a linha de um item do orçamento ---
+// --- Sub-componente para a linha de um item do orçamento (sem alterações funcionais) ---
 const ItemLinha = ({ item, catTipo, onEdit, onDelete }) => {
     const diferenca = item.sugerido - item.atual;
     const categoriaNome = CATEGORIAS_FLUXO[item.categoria_planejamento]?.label || 'Sem categoria';
@@ -212,7 +198,7 @@ const ItemLinha = ({ item, catTipo, onEdit, onDelete }) => {
 }
 
 
-// --- Sub-componente para a linha da Categoria ---
+// --- Sub-componente para a linha da Categoria (sem alterações funcionais) ---
 const CategoriaLinha = ({ cat, onToggle, isExpanded }) => {
     const corTexto = cat.tipo === 'receita' ? 'text-green-500' : (cat.tipo === 'protecao' ? 'text-purple-400' : 'text-red-500');
     const progresso = cat.totalSugerido > 0 ? (cat.totalAtual / cat.totalSugerido) * 100 : 0;
@@ -245,8 +231,16 @@ const CategoriaLinha = ({ cat, onToggle, isExpanded }) => {
 };
 
 
-// --- Componente Principal da Tela de Orçamento ---
-const TelaOrcamento = ({ categorias, onSaveItem, onDeleteItem, orcamentoCalculos, chartData }) => {
+// --- Componente Principal da Tela de Orçamento (REFATORADO) ---
+const TelaOrcamento = () => {
+    // 2. Conectar à store para obter estado e ações
+    const { categorias, isLoading, fetchOrcamento, saveOrcamentoItem, deleteOrcamentoItem } = useOrcamentoStore();
+
+    // 3. Buscar os dados do orçamento na montagem do componente
+    useEffect(() => {
+        fetchOrcamento();
+    }, [fetchOrcamento]);
+
     const [expandedCategories, setExpandedCategories] = useState({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalContext, setModalContext] = useState({ mode: 'add', category: null, item: null });
@@ -260,9 +254,59 @@ const TelaOrcamento = ({ categorias, onSaveItem, onDeleteItem, orcamentoCalculos
         setIsModalOpen(true);
     };
 
+    // 4. A função de salvar agora chama a ação da store
     const handleSave = (itemData) => {
-        onSaveItem(itemData, modalContext.category.id);
+        saveOrcamentoItem(itemData, modalContext.category.id);
     };
+
+    // 5. Cálculos que antes vinham de App.js agora são feitos aqui, usando os dados da store
+    const { orcamentoCalculos, chartData } = useMemo(() => {
+        const normalizeString = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const defaultReturn = { orcamentoCalculos: { totalReceitas: { atual: 0 }, totalDespesas: { atual: 0 }, saldoAtual: 0 }, chartData: [] };
+        
+        if (!categorias || categorias.length === 0) return defaultReturn;
+        
+        try {
+            let totalReceitasAtual = 0;
+            let totalDespesasAtual = 0;
+            const totaisDespesasPorTipo = { 'Fixos': 0, 'Variáveis': 0, 'Investimentos': 0, 'Proteção': 0, 'Outros': 0 };
+
+            categorias.forEach(cat => {
+                const totalCatAtual = cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
+
+                if (cat.tipo === 'receita') {
+                    totalReceitasAtual += totalCatAtual;
+                    return;
+                }
+
+                totalDespesasAtual += totalCatAtual;
+                const nomeNormalizado = normalizeString(cat.nome.toLowerCase());
+
+                if (cat.tipo === 'protecao' || nomeNormalizado.includes('protecao')) totaisDespesasPorTipo['Proteção'] += totalCatAtual;
+                else if (nomeNormalizado.includes('fixa')) totaisDespesasPorTipo['Fixos'] += totalCatAtual;
+                else if (nomeNormalizado.includes('variavel') || nomeNormalizado.includes('variável')) totaisDespesasPorTipo['Variáveis'] += totalCatAtual;
+                else if (nomeNormalizado.includes('investimento')) totaisDespesasPorTipo['Investimentos'] += totalCatAtual;
+                else if (totalCatAtual > 0) totaisDespesasPorTipo['Outros'] += totalCatAtual;
+            });
+
+            const saldoAtual = totalReceitasAtual - totalDespesasAtual;
+            const newDonutChartData = Object.entries(totaisDespesasPorTipo)
+                .map(([name, value]) => ({ name, value }))
+                .filter(item => item.value > 0);
+            
+            return {
+                orcamentoCalculos: {
+                    totalReceitas: { atual: totalReceitasAtual },
+                    totalDespesas: { atual: totalDespesasAtual },
+                    saldoAtual,
+                },
+                chartData: newDonutChartData
+            };
+        } catch (e) {
+            console.error("Erro ao calcular o resumo do orçamento:", e);
+            return defaultReturn;
+        }
+    }, [categorias]);
 
     const categoriasFormatadas = useMemo(() => {
         return categorias.map(cat => {
@@ -276,6 +320,14 @@ const TelaOrcamento = ({ categorias, onSaveItem, onDeleteItem, orcamentoCalculos
             };
         }).sort((a,b) => (a.tipo === 'receita' ? -1 : 1));
     }, [categorias]);
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -303,7 +355,8 @@ const TelaOrcamento = ({ categorias, onSaveItem, onDeleteItem, orcamentoCalculos
                                         item={item}
                                         catTipo={cat.tipo}
                                         onEdit={() => handleOpenModal('edit', cat, item)}
-                                        onDelete={() => onDeleteItem(item.id)}
+                                        // 6. A ação de apagar item chama diretamente a função da store
+                                        onDelete={() => deleteOrcamentoItem(item.id)}
                                     />
                                 ))}
                                 <div className="pt-2 pl-4 pb-2">
@@ -317,12 +370,18 @@ const TelaOrcamento = ({ categorias, onSaveItem, onDeleteItem, orcamentoCalculos
                     </div>
                 ))}
             </Card>
+            
             <OrcamentoResumo 
                 calculos={orcamentoCalculos} 
                 chartData={chartData}
             />
 
-            <ModalItemOrcamento isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} context={modalContext} />
+            <ModalItemOrcamento 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                onSave={handleSave} 
+                context={modalContext}
+            />
         </div>
     );
 };

@@ -1,29 +1,28 @@
 import { useState, useEffect, useContext, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { formatCurrency } from '../../utils/formatters';
 import Card from '../../components/Card/Card';
 import { Coins, CarFront, Building2, Landmark, Gift, Package, DollarSign, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { PIE_COLORS } from '../../components/constants/PieColors';
 import { ThemeContext } from '../../ThemeContext';
+import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
 
-// --- Componente do Modal para Adicionar/Editar Item (Reutilizado e adaptado) ---
+// --- Componente do Modal para Adicionar/Editar Item (sem alterações) ---
 const ModalPatrimonioItem = ({ item, tipo, onClose, onSave }) => {
     const isEdicao = !!item.id;
     const [nome, setNome] = useState(item.nome || '');
     const [valor, setValor] = useState(item.valor || '');
     
-    // O 'tipo' do item (ex: 'Investimento') é definido pela aba, não editável no modal.
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!nome || !valor || parseFloat(valor) <= 0) {
             alert("Por favor, preencha todos os campos com valores válidos.");
             return;
         }
-        // Monta o objeto para salvar, incluindo o 'tipo' que veio da aba ativa.
         onSave({ id: item.id, nome, valor: parseFloat(valor), tipo: item.tipo || tipo });
         onClose();
     };
-
+    
     return (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-[#201b5d] rounded-xl shadow-lg p-8 w-full max-w-md">
@@ -51,15 +50,27 @@ const ModalPatrimonioItem = ({ item, tipo, onClose, onSave }) => {
 
 
 // --- Componente Principal da Tela de Patrimônio ---
-const TelaPatrimonio = ({ patrimonioData, patrimonioTotal, onSaveItem, onDeleteItem }) => {
+// 2. As props foram removidas. O componente agora é autônomo.
+const TelaPatrimonio = () => {
     const { theme } = useContext(ThemeContext);
+    
+    // 3. Aceder ao estado e às ações diretamente da store
+    const { ativos, dividas, isLoading, fetchPatrimonio, savePatrimonioItem, deletePatrimonioItem } = usePatrimonioStore();
+
     const patrimonioCategorias = [ { id: 'investimentos', nome: 'Investimentos', icon: Coins }, { id: 'automoveis', nome: 'Automóveis', icon: CarFront }, { id: 'imoveis', nome: 'Imóveis', icon: Building2 }, { id: 'contaBancaria', nome: 'Conta Bancária', icon: Landmark }, { id: 'beneficios', nome: 'Benefícios', icon: Gift }, { id: 'outros', nome: 'Outros', icon: Package }, { id: 'dividas', nome: 'Dívidas', icon: DollarSign }, ];
     const [abaAtiva, setAbaAtiva] = useState('investimentos');
     const [modalState, setModalState] = useState({ isOpen: false, item: null });
 
+    // 4. Chamar a função para carregar os dados quando o componente montar
+    useEffect(() => {
+        fetchPatrimonio();
+    }, [fetchPatrimonio]);
+
     // --- LÓGICA DE DADOS (MEMOIZED) ---
-    const totalAtivos = useMemo(() => patrimonioData.ativos?.reduce((acc, item) => acc + parseFloat(item.valor), 0) || 0, [patrimonioData.ativos]);
-    const totalDividas = useMemo(() => patrimonioData.dividas?.reduce((acc, item) => acc + parseFloat(item.valor), 0) || 0, [patrimonioData.dividas]);
+    // Os cálculos agora usam os dados diretamente da store
+    const totalAtivos = useMemo(() => ativos.reduce((acc, item) => acc + parseFloat(item.valor), 0), [ativos]);
+    const totalDividas = useMemo(() => dividas.reduce((acc, item) => acc + parseFloat(item.valor), 0), [dividas]);
+    const patrimonioTotal = useMemo(() => totalAtivos - totalDividas, [totalAtivos, totalDividas]);
 
     const compositionBarData = useMemo(() => [
         { name: 'Ativos', value: totalAtivos, fill: '#3b82f6' },
@@ -68,7 +79,7 @@ const TelaPatrimonio = ({ patrimonioData, patrimonioTotal, onSaveItem, onDeleteI
     ], [totalAtivos, totalDividas, patrimonioTotal]);
     
     const assetDonutData = useMemo(() => {
-        const groupedAssets = patrimonioData.ativos?.reduce((acc, item) => {
+        const groupedAssets = ativos.reduce((acc, item) => {
             const tipo = item.tipo || 'Outros';
             if (!acc[tipo]) {
                 acc[tipo] = 0;
@@ -84,8 +95,9 @@ const TelaPatrimonio = ({ patrimonioData, patrimonioTotal, onSaveItem, onDeleteI
                 fill: PIE_COLORS[index % PIE_COLORS.length]
             }))
             .filter(item => item.value > 0);
-    }, [patrimonioData.ativos]);
+    }, [ativos]);
 
+    const RADIAN = Math.PI / 180;
     const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
         if (percent < 0.05) return null;
         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -93,9 +105,8 @@ const TelaPatrimonio = ({ patrimonioData, patrimonioTotal, onSaveItem, onDeleteI
         const y = cy + radius * Math.sin(-midAngle * RADIAN);
         return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize="12px" fontWeight="bold">{`${(percent * 100).toFixed(0)}%`}</text>;
     };
-    const RADIAN = Math.PI / 180;
 
-    // --- HANDLERS CONECTADOS À API ---
+    // --- HANDLERS CONECTADOS À STORE ---
     const handleOpenModal = (item = {}) => {
         setModalState({ isOpen: true, item });
     };
@@ -104,31 +115,39 @@ const TelaPatrimonio = ({ patrimonioData, patrimonioTotal, onSaveItem, onDeleteI
         setModalState({ isOpen: false, item: null });
     };
 
+    // 5. A função de salvar agora chama a ação 'savePatrimonioItem' da store
     const handleSave = (item) => {
-        // Define o tipo do item com base na aba ativa, se for um novo item
         const tipoDoItem = patrimonioCategorias.find(c => c.id === abaAtiva)?.nome || 'Outros';
         const itemParaSalvar = { ...item, tipo: item.tipo || tipoDoItem };
         
         const tipoDaAba = abaAtiva === 'dividas' ? 'dividas' : 'ativos';
-        onSaveItem(itemParaSalvar, tipoDaAba);
+        savePatrimonioItem(itemParaSalvar, tipoDaAba);
     };
     
+    // 6. A função de apagar agora chama a ação 'deletePatrimonioItem' da store
     const handleDelete = (itemId) => {
         const tipoDaAba = abaAtiva === 'dividas' ? 'dividas' : 'ativos';
-        onDeleteItem(itemId, tipoDaAba);
+        deletePatrimonioItem(itemId, tipoDaAba);
     };
 
-    // Filtra os itens a serem exibidos com base na aba ativa
     const itensExibidos = useMemo(() => {
         if (abaAtiva === 'dividas') {
-            return patrimonioData.dividas || [];
+            return dividas;
         }
         const categoriaSelecionada = patrimonioCategorias.find(c => c.id === abaAtiva)?.nome;
-        return patrimonioData.ativos?.filter(item => item.tipo === categoriaSelecionada) || [];
-    }, [abaAtiva, patrimonioData]);
+        return ativos.filter(item => item.tipo === categoriaSelecionada);
+    }, [abaAtiva, ativos, dividas]);
 
+    // O `isLoading` agora vem diretamente da store
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+            </div>
+        );
+    }
 
-    // --- RENDERIZAÇÃO DO COMPONENTE ---
+    // --- RENDERIZAÇÃO DO COMPONENTE (sem alterações na estrutura do JSX) ---
     return (
         <div className="max-w-7xl mx-auto space-y-6">
             {modalState.isOpen && (
@@ -171,7 +190,6 @@ const TelaPatrimonio = ({ patrimonioData, patrimonioTotal, onSaveItem, onDeleteI
 
                 <Card>
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Evolução do Patrimônio</h3>
-                    {/* O gráfico de evolução precisará de uma tabela de histórico no futuro */}
                     <div className="flex items-center justify-center h-[250px] text-gray-500">Gráfico de evolução em breve.</div>
                 </Card>
             </div>

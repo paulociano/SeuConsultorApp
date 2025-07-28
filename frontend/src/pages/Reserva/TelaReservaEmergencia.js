@@ -1,131 +1,151 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { Target } from 'lucide-react';
+// 1. Importar a store do Zustand
+import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
 
 /**
  * Tela para cálculo e composição da Reserva de Emergência.
- * Este componente agora é controlado pelo componente pai (App.js) no que diz respeito
- * aos investimentos selecionados, para que essa informação possa ser compartilhada com outras partes da aplicação.
- * @param {object} props - As propriedades do componente.
- * @param {Array} props.orcamento - Dados do orçamento do usuário para cálculo da base.
- * @param {Array} props.investimentosDisponiveis - Lista de todos os investimentos do tipo "Investimento".
- * @param {object} props.investimentosSelecionados - Um objeto/mapa indicando quais investimentos estão selecionados (ex: {inv_id: true}).
- * @param {Function} props.onSelectionChange - Função para ser chamada quando a seleção de um investimento muda.
+ * Este componente busca os investimentos disponíveis diretamente da store de património.
  */
+// 2. A prop 'investimentosDisponiveis' foi removida
 const TelaReservaEmergencia = ({ 
     orcamento = [], 
-    investimentosDisponiveis = [], 
     investimentosSelecionados = {},
-    onSelectionChange 
+    onSelectionChange,
+    isLoading // isLoading geral do App.js
 }) => {
+    // 3. Aceder ao estado e às ações da store de Património
+    const { ativos, isLoading: isLoadingPatrimonio, fetchPatrimonio } = usePatrimonioStore();
+
     // Estados locais que controlam apenas a UI desta tela
     const [cenario, setCenario] = useState('cenario1');
     const [mesesReservaIdeal, setMesesReservaIdeal] = useState(6);
 
-    // O estado de 'investimentosSelecionados' foi removido daqui e agora é gerenciado pelo App.js
+    // 4. Chamar a função para carregar os dados de património
+    useEffect(() => {
+        fetchPatrimonio();
+    }, [fetchPatrimonio]);
 
-    // Lógica de cálculo da base da reserva, baseada nos dados do orçamento
+    // 5. A lista de investimentos disponíveis agora é calculada localmente
+    const investimentosDisponiveis = useMemo(() => 
+        ativos.filter(ativo => ativo.tipo === 'Investimentos'),
+        [ativos]
+    );
+
     const baseCalculo = useMemo(() => {
-        if (!orcamento || orcamento.length === 0) return 0;
-
-        const totais = orcamento.reduce((acc, categoria) => {
-            const totalCategoria = categoria.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0);
-            const nomeCategoria = categoria.nome.toLowerCase();
-
-            if (nomeCategoria.includes('fixa')) {
-                acc.fixos += totalCategoria;
-            } else if (nomeCategoria.includes('variável')) {
-                acc.variaveis += totalCategoria;
-            } else if (nomeCategoria.includes('investimento')) {
-                acc.investimentos += totalCategoria;
-            } else if (categoria.tipo === 'receita') {
-                acc.renda += totalCategoria;
-            }
-            
-            return acc;
-        }, { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 });
+        const custoDeVida = orcamento
+            .filter(c => c.nome.toLowerCase().includes('fixa') || c.nome.toLowerCase().includes('variável'))
+            .reduce((acc, cat) => acc + cat.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0), 0);
+        
+        const totalReceitas = orcamento
+            .filter(c => c.tipo === 'receita')
+            .reduce((acc, cat) => acc + cat.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0), 0);
 
         switch (cenario) {
-            case 'cenario1': return totais.fixos + (totais.variaveis * 0.7);
-            case 'cenario2': return totais.fixos + totais.variaveis;
-            case 'cenario3': return totais.fixos + totais.variaveis + totais.investimentos;
-            case 'cenario4': return totais.renda;
-            default: return 0;
+            case 'cenario1': return custoDeVida;
+            case 'cenario2': return custoDeVida * 0.7;
+            case 'cenario3': return totalReceitas;
+            default: return custoDeVida;
         }
-    }, [cenario, orcamento]);
+    }, [orcamento, cenario]);
 
-    const reservaMinima = baseCalculo * 3;
-    const reservaIdeal = baseCalculo * mesesReservaIdeal;
+    const reservaIdeal = useMemo(() => {
+        return baseCalculo * mesesReservaIdeal;
+    }, [baseCalculo, mesesReservaIdeal]);
 
-    /**
-     * Manipula o clique no checkbox de um investimento.
-     * Em vez de atualizar um estado local, chama a função 'onSelectionChange'
-     * passada pelo componente pai para "levantar o estado".
-     * @param {string|number} invId - O ID do investimento que foi clicado.
-     */
-    const handleSelectInvestimento = (invId) => {
-        onSelectionChange(prev => ({...prev, [invId]: !prev[invId]}));
+    const totalAcumulado = useMemo(() => {
+        return investimentosDisponiveis
+            .filter(inv => investimentosSelecionados[inv.id])
+            .reduce((acc, inv) => acc + parseFloat(inv.valor), 0);
+    }, [investimentosDisponiveis, investimentosSelecionados]);
+
+    const progresso = useMemo(() => {
+        return reservaIdeal > 0 ? (totalAcumulado / reservaIdeal) * 100 : 0;
+    }, [totalAcumulado, reservaIdeal]);
+
+    const handleCheckboxChange = (investimentoId) => {
+        const newSelection = {
+            ...investimentosSelecionados,
+            [investimentoId]: !investimentosSelecionados[investimentoId]
+        };
+        onSelectionChange(newSelection);
     };
 
-    // Calcula o valor total acumulado com base nos investimentos selecionados (vindos via props)
-    const totalAcumulado = useMemo(() => {
-        return investimentosDisponiveis.reduce((acc, inv) => {
-            if(investimentosSelecionados[inv.id]) {
-                return acc + parseFloat(inv.valor);
-            }
-            return acc;
-        }, 0);
-    }, [investimentosSelecionados, investimentosDisponiveis]);
-
-    // Calcula o progresso percentual para a barra de progresso
-    const progresso = reservaIdeal > 0 ? (totalAcumulado / reservaIdeal) * 100 : 0;
+    // 6. A lógica de carregamento agora considera ambos os estados
+    if (isLoading || isLoadingPatrimonio) {
+        return (
+            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+            </div>
+        );
+    }
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <Card className="mb-4">
-                <div className="flex items-center gap-3 mb-4">
-                    <Target className="text-[#00d971]" size={24} />
-                    <h2 className="text-lg font-bold text-slate-800 dark:text-white">Cálculo da Reserva</h2>
-                </div>
-                <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-800 dark:text-white mb-2">Selecione o cenário para o cálculo base:</label>
-                    <select value={cenario} onChange={(e) => setCenario(e.target.value)} className="w-full bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b] focus:outline-none focus:ring-1 focus:ring-[#00d971]">
-                        <option value="cenario1">Despesas Fixas + 70% das Variáveis</option>
-                        <option value="cenario2">Despesas Fixas + Variáveis</option>
-                        <option value="cenario3">Custo de Vida Total (Fixas + Variáveis + Invest.)</option>
-                        <option value="cenario4">Baseado na Renda Total</option>
-                    </select>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-                    <div className="bg-slate-100 dark:bg-[#201b5d]/50 p-3 rounded-lg">
-                        <p className="text-sm text-slate-600 dark:text-white">Reserva Mínima (3 meses)</p>
-                        <p className="text-xl font-bold text-slate-800 dark:text-white mt-1">{formatCurrency(reservaMinima)}</p>
+        <div className="max-w-4xl mx-auto space-y-6">
+            <Card>
+                <div className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <Target className="text-[#00d971]" size={24} />
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-white">Cálculo da Reserva de Emergência</h2>
                     </div>
-                    <div className="bg-slate-100 dark:bg-[#201b5d]/50 p-3 rounded-lg">
-                        <div className="flex justify-center items-center gap-2">
-                             <p className="text-sm text-slate-600 dark:text-white">Reserva Ideal</p>
-                             <select value={mesesReservaIdeal} onChange={e => setMesesReservaIdeal(parseInt(e.target.value))} className="bg-transparent text-slate-800 dark:text-white border-none focus:ring-0 p-0 text-sm font-medium">
-                                {[...Array(22).keys()].map(i => <option key={i+3} value={i+3} className="bg-white dark:bg-slate-700">{i+3} meses</option>)}
-                             </select>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Coluna de Configuração */}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Cenário para Cálculo</label>
+                                <select value={cenario} onChange={(e) => setCenario(e.target.value)} className="w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]">
+                                    <option value="cenario1">Custo de Vida Essencial</option>
+                                    <option value="cenario2">Custo de Vida Reduzido (70%)</option>
+                                    <option value="cenario3">Renda Total</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Meses de Cobertura ({mesesReservaIdeal})</label>
+                                <input 
+                                    type="range" 
+                                    min="3" 
+                                    max="12" 
+                                    step="1" 
+                                    value={mesesReservaIdeal} 
+                                    onChange={(e) => setMesesReservaIdeal(Number(e.target.value))}
+                                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#00d971]"
+                                />
+                            </div>
                         </div>
-                        <p className="text-2xl font-bold text-[#00d971] mt-1">{formatCurrency(reservaIdeal)}</p>
+
+                        {/* Coluna de Resultados */}
+                        <div className="bg-slate-100 dark:bg-[#201b5d]/80 p-4 rounded-lg space-y-3 text-center">
+                            <div>
+                                <p className="text-sm text-slate-600 dark:text-gray-300">Base de Cálculo Mensal</p>
+                                <p className="text-2xl font-bold text-slate-800 dark:text-white">{formatCurrency(baseCalculo)}</p>
+                            </div>
+                            <div className="border-t border-slate-300 dark:border-[#3e388b] my-2"></div>
+                            <div>
+                                <p className="text-sm text-slate-600 dark:text-gray-300">Reserva de Emergência Ideal</p>
+                                <p className="text-3xl font-bold text-[#00d971]">{formatCurrency(reservaIdeal)}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </Card>
+
             <Card>
-                 <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Composição da Reserva</h2>
-                 <p className="text-sm text-slate-600 dark:text-white mb-2">Selecione os investimentos que compõem sua reserva de emergência:</p>
-                 <div className="space-y-2 text-sm">
+                 <div className="p-6">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Composição da Reserva Atual</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Selecione os investimentos de alta liquidez que compõem sua reserva de emergência.</p>
+                    
                     {investimentosDisponiveis.length > 0 ? (
                         investimentosDisponiveis.map(inv => (
-                            <label key={inv.id} className="flex items-center justify-between p-3 bg-slate-100 dark:bg-[#201b5d]/50 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-[#201b5d]">
+                            <label key={inv.id} className="flex items-center justify-between p-3 hover:bg-slate-100 dark:hover:bg-[#2a246f]/50 rounded-lg cursor-pointer">
                                 <div className="flex items-center gap-3">
                                     <input 
-                                        type="checkbox" 
-                                        checked={!!investimentosSelecionados[inv.id]} 
-                                        onChange={() => handleSelectInvestimento(inv.id)} 
-                                        className="form-checkbox h-4 w-4 text-[#00d971] bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-[#00d971]" 
+                                        type="checkbox"
+                                        checked={!!investimentosSelecionados[inv.id]}
+                                        onChange={() => handleCheckboxChange(inv.id)}
+                                        className="form-checkbox h-5 w-5 text-[#00d971] bg-gray-700 border-gray-600 rounded focus:ring-offset-0 focus:ring-2 focus:ring-[#00d971]"
                                     />
                                     <span className="text-slate-800 dark:text-white">{inv.nome}</span>
                                 </div>
@@ -136,7 +156,7 @@ const TelaReservaEmergencia = ({
                         <p className="text-center text-gray-500 dark:text-gray-400 p-4 text-xs">Nenhum investimento adicionado. Adicione seus investimentos na tela de Patrimônio.</p>
                     )}
                  </div>
-                 <div className="mt-6">
+                 <div className="p-6 border-t border-slate-200 dark:border-slate-700">
                     <div className="flex justify-between items-center mb-1">
                         <p className="text-sm text-slate-600 dark:text-white">Progresso da Reserva Ideal</p>
                         <p className="text-sm font-bold text-[#00d971]">{formatCurrency(totalAcumulado)} / {formatCurrency(reservaIdeal)}</p>

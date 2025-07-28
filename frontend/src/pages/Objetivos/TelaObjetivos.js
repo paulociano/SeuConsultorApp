@@ -1,7 +1,7 @@
-import React, { useState, useContext, useMemo } from 'react';
+import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
-    ArrowLeft, Trash2, PlusCircle, Trophy, Grid2X2, Rotate3D, Pencil, // Ícone de lápis adicionado
+    ArrowLeft, Trash2, PlusCircle, Trophy, Grid2X2, Rotate3D, Pencil,
     Home, Plane, Car, Shield, Briefcase, School, Gift, HeartHandshake 
 } from 'lucide-react';
 import Card from '../../components/Card/Card';
@@ -10,6 +10,9 @@ import { ThemeContext } from '../../ThemeContext';
 import ModalObjetivo from '../../components/Modals/ModalObjetivo';
 import userImage from '../../assets/persona.jpg';
 import { formatCurrency } from '../../utils/formatters';
+// 1. Importar AMBAS as stores necessárias
+import { useObjetivosStore } from '../../stores/useObjetivosStore';
+import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
 
 // Objeto para mapear nomes de ícones (string do backend) para componentes React
 const iconMap = {
@@ -18,19 +21,35 @@ const iconMap = {
 
 /**
  * Tela de visualização e gerenciamento de Objetivos Financeiros.
- * Este componente é "controlado", recebendo seus dados e funções de manipulação via props.
+ * Este componente é autônomo, gerenciando seu próprio estado através do Zustand.
  */
-const TelaObjetivos = ({ objetivos = [], onSave, onDelete, investimentosDisponiveis = [], patrimonio = [] }) => {
+// 2. As props 'patrimonio' e 'investimentosDisponiveis' foram removidas
+const TelaObjetivos = () => {
   const { theme } = useContext(ThemeContext);
   
+  // 3. Aceder ao estado e às ações de AMBAS as stores
+  const { objetivos, isLoading: isLoadingObjetivos, fetchObjetivos, saveObjetivo, deleteObjetivo } = useObjetivosStore();
+  const { ativos, isLoading: isLoadingPatrimonio, fetchPatrimonio } = usePatrimonioStore();
+
   // Estados locais para controle da UI
   const [modoGamificado, setModoGamificado] = useState(false);
   const [objetivoSelecionadoId, setObjetivoSelecionadoId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hoveredObjectiveId, setHoveredObjectiveId] = useState(null);
-  const [objetivoParaEditar, setObjetivoParaEditar] = useState(null); // Estado para guardar o objetivo a ser editado
+  const [objetivoParaEditar, setObjetivoParaEditar] = useState(null);
 
-  // Processa os dados recebidos para garantir que os valores sejam numéricos
+  // 4. Chamar a função para carregar os dados de AMBAS as stores
+  useEffect(() => {
+    fetchObjetivos();
+    fetchPatrimonio();
+  }, [fetchObjetivos, fetchPatrimonio]);
+
+  // 5. A lógica para calcular os investimentos disponíveis agora vive aqui
+  const investimentosDisponiveis = useMemo(() => 
+    ativos.filter(ativo => ativo.tipo === 'Investimentos'), 
+    [ativos]
+  );
+  
   const objetivosCalculados = useMemo(() => objetivos.map(obj => ({
     ...obj,
     valorAtual: parseFloat(obj.valorAtual) || 0,
@@ -48,33 +67,28 @@ const TelaObjetivos = ({ objetivos = [], onSave, onDelete, investimentosDisponiv
       percentual: Math.min(percentual, 100),
       data: [
         { name: 'Alcançado', value: metaSelecionada.valorAtual },
-        // CORREÇÃO: O valor faltante deve ser subtraído do valor ATUAL, não do alvo.
         { name: 'Faltante', value: Math.max(0, metaSelecionada.valorAlvo - metaSelecionada.valorAtual) }
       ]
     };
   }, [metaSelecionada]);
 
-  // Abre o modal. Se um objetivo for passado, ele entra em modo de edição.
   const handleOpenModal = (objetivo = null) => {
     setObjetivoParaEditar(objetivo);
     setIsModalOpen(true);
   };
 
-  // Fecha o modal e limpa o estado de edição
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setObjetivoParaEditar(null);
   };
 
-  // Chama a função onSave do App.js e fecha o modal
   const handleSaveObjetivo = (dadosDoForm) => {
-    onSave(dadosDoForm);
+    saveObjetivo(dadosDoForm);
     handleCloseModal();
   };
 
-  // Chama a função onDelete do App.js
   const handleDeleteObjetivo = (id) => {
-    onDelete(id);
+    deleteObjetivo(id);
     setObjetivoSelecionadoId(null);
   };
   
@@ -210,7 +224,6 @@ const TelaObjetivos = ({ objetivos = [], onSave, onDelete, investimentosDisponiv
           <Card>
             <div className="flex flex-col items-center text-center">
               <div className="flex justify-end w-full gap-4 -mt-2 -mr-2">
-                {/* BOTÃO DE EDITAR ADICIONADO */}
                 <button onClick={() => handleOpenModal(metaSelecionada)} className="text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors">
                   <Pencil size={18} />
                 </button>
@@ -239,7 +252,8 @@ const TelaObjetivos = ({ objetivos = [], onSave, onDelete, investimentosDisponiv
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Investimentos Vinculados</h3>
                 <div className="space-y-2">
                   {metaSelecionada.investimentosLinkados.length > 0 ? metaSelecionada.investimentosLinkados.map(invId => {
-                    const investimento = patrimonio.find(i => i.id === invId);
+                    // A lista de 'ativos' agora vem da usePatrimonioStore
+                    const investimento = ativos.find(i => i.id === invId);
                     return (
                       <div key={invId} className="flex justify-between items-center p-3 bg-slate-100 dark:bg-[#2a246f] rounded-lg">
                         <span className="font-medium text-slate-700 dark:text-gray-300">{investimento?.nome || 'Investimento não encontrado'}</span>
@@ -255,6 +269,15 @@ const TelaObjetivos = ({ objetivos = [], onSave, onDelete, investimentosDisponiv
       </motion.div>
     );
   };
+
+  // O estado de carregamento agora considera ambas as stores
+  if (isLoadingObjetivos || isLoadingPatrimonio) {
+    return (
+        <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+        </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4">
@@ -277,12 +300,10 @@ const TelaObjetivos = ({ objetivos = [], onSave, onDelete, investimentosDisponiv
         )}
       </AnimatePresence>
 
-      {/* O botão de + agora chama handleOpenModal sem argumentos para criar um novo */}
       <button onClick={() => handleOpenModal()} className="fixed bottom-10 right-10 bg-[#00d971] text-black w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-30">
         <PlusCircle size={32} />
       </button>
 
-      {/* O modal agora recebe o objetivo a ser editado */}
       {isModalOpen && (
         <ModalObjetivo 
           isOpen={isModalOpen} 

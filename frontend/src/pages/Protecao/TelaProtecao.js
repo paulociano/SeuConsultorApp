@@ -1,23 +1,35 @@
-import React, { useState, useMemo } from 'react';
-import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { PlusCircle, Edit, Trash2, Users, Stethoscope, HeartHandshake, Car } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+// 1. Importar a store do Zustand
+import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
+import Card from '../../components/Card/Card';
+import { useEffect, useMemo, useState } from 'react';
 
+// 2. A prop 'patrimonioTotal' foi removida
 const TelaProtecao = ({ 
     rendaMensal, 
     custoDeVidaMensal, 
-    patrimonioTotal, 
     protecaoData,
     onSaveItem,
     onDeleteItem,
+    isLoading, // isLoading geral do App.js
     usuario
 }) => {
+    // 3. Aceder ao estado e às ações da store de Património
+    const { ativos, dividas, isLoading: isLoadingPatrimonio, fetchPatrimonio } = usePatrimonioStore();
+
+    // 4. Chamar a função para carregar os dados de património
+    useEffect(() => {
+        fetchPatrimonio();
+    }, [fetchPatrimonio]);
+
     const protecoesTemporarias = protecaoData?.invalidez || [];
     const despesasFuturas = protecaoData?.despesasFuturas || [];
     const protecaoPatrimonial = protecaoData?.patrimonial || [];
 
+    // Estados locais (sem alteração)
     const [rentabilidadeAnual] = useState(10);
     const [editingItemId, setEditingItemId] = useState(null);
     const [editingItemData, setEditingItemData] = useState({ nome: '', cobertura: '', observacoes: '' });
@@ -30,6 +42,13 @@ const TelaProtecao = ({
     const [doencasGravesBase, setDoencasGravesBase] = useState('renda');
     const [editingPatrimonialId, setEditingPatrimonialId] = useState(null);
     const [editingPatrimonialData, setEditingPatrimonialData] = useState({ nome: '', data_vencimento: '', empresa: '', valor: '' });
+
+    // 5. O cálculo do património total agora é feito localmente com dados da store
+    const patrimonioTotal = useMemo(() => {
+        const totalAtivos = ativos.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+        const totalDividas = dividas.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+        return totalAtivos - totalDividas;
+    }, [ativos, dividas]);
 
     const { capitalRenda, capitalCustoVida } = useMemo(() => {
         const taxaIR = 15;
@@ -211,6 +230,15 @@ const TelaProtecao = ({
             alert("Ocorreu um erro ao gerar o PDF. Verifique a consola para mais detalhes.");
         }
     };
+
+    // 6. A lógica de carregamento agora considera o isLoading geral E o isLoading do património
+    if (isLoading || isLoadingPatrimonio) {
+        return (
+            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-6xl mx-auto">

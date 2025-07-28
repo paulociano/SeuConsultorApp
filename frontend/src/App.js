@@ -30,18 +30,19 @@ import ModalNovaTransacao from './components/Modals/ModalNovaTransacao';
 import PageTransition from './utils/PageTransition';
 import { toast } from 'sonner';
 
-
 export default function App() {
     const { theme, toggleTheme } = useContext(ThemeContext);
-    const [currentPage, setCurrentPage] = useState('viagensMilhas'); // Página inicial para teste
+    
+    // State for UI and navigation
+    const [currentPage, setCurrentPage] = useState('agendaReunioes');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [openMenu, setOpenMenu] = useState('viagens'); // Menu inicial para teste
+    const [openMenu, setOpenMenu] = useState('agendaReunioes');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [perfilAberto, setPerfilAberto] = useState(false);
     const [transacaoSelecionada, setTransacaoSelecionada] = useState(null);
     const [isTransacaoModalOpen, setIsTransacaoModalOpen] = useState(false);
     
-    // Estados de dados
+    // Application data states
     const [usuario, setUsuario] = useState({});
     const [transacoes, setTransacoes] = useState([]);
     const [patrimonioData, setPatrimonioData] = useState({ ativos: [], dividas: [] });
@@ -50,711 +51,320 @@ export default function App() {
     const [simuladorPgblData, setSimuladorPgblData] = useState(null);
     const [aquisicaoData, setAquisicaoData] = useState({ imoveis: [], automoveis: [] });
     const [milhasData, setMilhasData] = useState({ carteiras: [], metas: [] });
+    const [atas, setAtas] = useState([]);
+    const [agenda, setAgenda] = useState([]);
 
-
+    // Effect to check for existing token on initial load
     useEffect(() => {
         const token = localStorage.getItem('authToken');
         if (token) {
             setIsAuthenticated(true);
         }
+        // Set a default theme if none is set
         if (theme !== 'dark') {
             toggleTheme();
         }
     }, []);
 
+    // Effect to fetch all initial data when user is authenticated
     useEffect(() => {
         const fetchInitialData = async () => {
-            if (isAuthenticated && !usuario.categorias) {
+            if (isAuthenticated) {
                 const token = localStorage.getItem('authToken');
                 if (!token) {
                     setIsAuthenticated(false);
                     return;
                 }
-
                 try {
                     const headers = { 'Authorization': `Bearer ${token}` };
-                    const [
-                        perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes, 
-                        aposentadoriaRes, simuladorPgblRes, aquisicaoImoveisRes, 
-                        aquisicaoAutomoveisRes, milhasCarteirasRes, milhasMetasRes
-                    ] = await Promise.all([
-                        fetch('http://localhost:3001/api/perfil', { headers }),
-                        fetch('http://localhost:3001/api/transacoes', { headers }),
-                        fetch('http://localhost:3001/api/ativos', { headers }),
-                        fetch('http://localhost:3001/api/dividas', { headers }),
-                        fetch('http://localhost:3001/api/orcamento', { headers }),
-                        fetch('http://localhost:3001/api/aposentadoria', { headers }),
-                        fetch('http://localhost:3001/api/simulador-pgbl', { headers }),
-                        fetch('http://localhost:3001/api/aquisicoes/imoveis', { headers }),
-                        fetch('http://localhost:3001/api/aquisicoes/automoveis', { headers }),
-                        fetch('http://localhost:3001/api/milhas/carteiras', { headers }),
-                        fetch('http://localhost:3001/api/milhas/metas', { headers })
-                    ]);
-
-                    const allResponses = [
-                        perfilRes, transacoesRes, ativosRes, dividasRes, orcamentoRes, 
-                        aposentadoriaRes, simuladorPgblRes, aquisicaoImoveisRes, 
-                        aquisicaoAutomoveisRes, milhasCarteirasRes, milhasMetasRes
+                    const endpoints = [
+                        'perfil', 'transacoes', 'ativos', 'dividas', 'orcamento', 'aposentadoria',
+                        'simulador-pgbl', 'aquisicoes/imoveis', 'aquisicoes/automoveis',
+                        'milhas/carteiras', 'milhas/metas', 'atas', 'agenda'
                     ];
+                    const requests = endpoints.map(endpoint => fetch(`http://localhost:3001/api/${endpoint}`, { headers }));
+                    const responses = await Promise.all(requests);
 
-                    if (allResponses.some(res => !res.ok)) {
-                         throw new Error('Sessão inválida ou falha ao buscar dados');
+                    for (const res of responses) {
+                        if (!res.ok) {
+                            if (res.status === 401 || res.status === 403) throw new Error('Sessão inválida ou expirada');
+                            throw new Error('Falha ao buscar dados do servidor');
+                        }
                     }
-
-                    const perfilData = await perfilRes.json();
-                    const transacoesData = await transacoesRes.json();
-                    const ativosData = await ativosRes.json();
-                    const dividasData = await dividasRes.json();
-                    const orcamentoData = await orcamentoRes.json();
-                    const aposentadoriaResult = await aposentadoriaRes.json();
-                    const simuladorPgblResult = await simuladorPgblRes.json();
-                    const aquisicaoImoveisResult = await aquisicaoImoveisRes.json();
-                    const aquisicaoAutomoveisResult = await aquisicaoAutomoveisRes.json();
-                    const milhasCarteirasData = await milhasCarteirasRes.json();
-                    const milhasMetasData = await milhasMetasRes.json();
                     
+                    const data = await Promise.all(responses.map(res => res.json()));
+                    
+                    const perfilData = data[0];
                     setProtecaoData(perfilData.protecao || { invalidez: [], despesasFuturas: [], patrimonial: [] });
-                    setTransacoes(transacoesData || []);
-                    setPatrimonioData({ ativos: ativosData || [], dividas: dividasData || [] });
-                    setUsuario({ ...perfilData.usuario, categorias: orcamentoData || [] });
-                    setAposentadoriaData(aposentadoriaResult);
-                    setSimuladorPgblData(simuladorPgblResult);
-                    setAquisicaoData({ imoveis: aquisicaoImoveisResult || [], automoveis: aquisicaoAutomoveisResult || [] });
-                    setMilhasData({ carteiras: milhasCarteirasData || [], metas: milhasMetasData || [] });
+                    setUsuario({ ...perfilData.usuario, categorias: data[4] || [] });
+                    setTransacoes(data[1] || []);
+                    setPatrimonioData({ ativos: data[2] || [], dividas: data[3] || [] });
+                    setAposentadoriaData(data[5]);
+                    setSimuladorPgblData(data[6]);
+                    setAquisicaoData({ imoveis: data[7] || [], automoveis: data[8] || [] });
+                    setMilhasData({ carteiras: data[9] || [], metas: data[10] || [] });
+                    setAtas(data[11] || []);
+                    setAgenda(data[12] || []);
 
                 } catch (error) {
                     console.error('Erro ao buscar dados iniciais:', error);
-                    localStorage.removeItem('authToken');
-                    setIsAuthenticated(false);
+                    toast.error(error.message || 'Sua sessão expirou. Faça login novamente.');
+                    handleLogout();
                 }
             }
         };
-        
         fetchInitialData();
-    }, [isAuthenticated, usuario]);
+    }, [isAuthenticated]);
 
-    const handleSaveProtecaoItem = async (item, tipo) => {
+    // --- API Request Helper ---
+    const apiRequest = async (endpoint, method = 'GET', body = null) => {
         const token = localStorage.getItem('authToken');
-        if (!token) return;
-
-        const isEdicao = !!item.id;
-        const method = isEdicao ? 'PUT' : 'POST';
-        const endpoint = isEdicao 
-            ? `http://localhost:3001/api/protecao/${tipo}/${item.id}` 
-            : `http://localhost:3001/api/protecao/${tipo}`;
-
-        try {
-            const response = await fetch(endpoint, {
-                method: method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(item)
-            });
-
-            if (!response.ok) throw new Error(`Falha ao salvar item de proteção.`);
-            
-            const itemSalvo = await response.json();
-
-            setProtecaoData(prev => {
-                const stateKey = tipo === 'despesas' ? 'despesasFuturas' : tipo;
-                const listaAntiga = prev[stateKey] || [];
-                
-                const listaAtualizada = isEdicao
-                    ? listaAntiga.map(i => i.id === itemSalvo.id ? itemSalvo : i)
-                    : [itemSalvo, ...listaAntiga];
-                
-                return { ...prev, [stateKey]: listaAtualizada };
-            });
-            
-            toast.success(`Item de proteção salvo!`);
-
-        } catch (error) {
-            toast.error(`Erro ao salvar item de proteção: ${error.message}`);
+        if (!token) {
+            toast.error("Usuário não autenticado.");
+            return null;
         }
-    };
-
-    const handleDeleteProtecaoItem = async (itemId, tipo) => {
-        const token = localStorage.getItem('authToken');
-        if (!token || !window.confirm("Tem certeza que deseja apagar este item?")) return;
-
         try {
-            const response = await fetch(`http://localhost:3001/api/protecao/${tipo}/${itemId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) throw new Error("Falha ao apagar o item.");
-
-            setProtecaoData(prev => {
-                const stateKey = tipo === 'despesas' ? 'despesasFuturas' : tipo;
-                return {
-                    ...prev,
-                    [stateKey]: prev[stateKey].filter(i => i.id !== itemId)
-                };
-            });
-
-            toast.success("Item apagado com sucesso!");
-
-        } catch (error) {
-            toast.error(`Erro ao apagar o item: ${error.message}`);
-        }
-    };
-    
-    const handleSaveTransacao = async (transacao) => {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-
-        const isEdicao = !!transacao.id;
-        const method = isEdicao ? 'PUT' : 'POST';
-        const endpoint = isEdicao
-            ? `http://localhost:3001/api/transacoes/${transacao.id}`
-            : 'http://localhost:3001/api/transacoes';
-
-        try {
-            const response = await fetch(endpoint, {
+            const options = {
                 method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(transacao)
-            });
-
-            if (!response.ok) throw new Error('Falha ao salvar a transação.');
-
-            const transacaoSalva = await response.json();
-            setTransacoes(prev => 
-                isEdicao 
-                ? prev.map(t => t.id === transacaoSalva.id ? transacaoSalva : t)
-                : [transacaoSalva, ...prev]
-            );
-            toast.success('Transação salva com sucesso!');
+                headers: { 'Authorization': `Bearer ${token}` }
+            };
+            if (body) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(`http://localhost:3001/api${endpoint}`, options);
+            if (response.status === 204) return true; // For DELETE requests
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Falha na requisição ${method} ${endpoint}`);
+            }
+            return response.json();
         } catch (error) {
-            toast.error(`Erro: ${error.message}`);
+            toast.error(error.message);
+            return null;
         }
     };
     
+    // --- CRUD Handlers ---
+    const handleSaveProtecaoItem = async (item, tipo) => {
+        const endpoint = item.id ? `/protecao/${tipo}/${item.id}` : `/protecao/${tipo}`;
+        const method = item.id ? 'PUT' : 'POST';
+        const savedItem = await apiRequest(endpoint, method, item);
+        if (savedItem) {
+            const stateKey = tipo === 'despesas' ? 'despesasFuturas' : tipo;
+            setProtecaoData(prev => ({ ...prev, [stateKey]: item.id ? prev[stateKey].map(i => i.id === savedItem.id ? savedItem : i) : [savedItem, ...prev[stateKey]] }));
+            toast.success("Item de proteção salvo!");
+        }
+    };
+    const handleDeleteProtecaoItem = async (itemId, tipo) => {
+        if (!window.confirm("Tem certeza?")) return;
+        if (await apiRequest(`/protecao/${tipo}/${itemId}`, 'DELETE')) {
+            const stateKey = tipo === 'despesas' ? 'despesasFuturas' : tipo;
+            setProtecaoData(prev => ({ ...prev, [stateKey]: prev[stateKey].filter(i => i.id !== itemId) }));
+            toast.success("Item apagado!");
+        }
+    };
+
+    const handleSaveTransacao = async (transacao) => {
+        const endpoint = transacao.id ? `/transacoes/${transacao.id}` : '/transacoes';
+        const method = transacao.id ? 'PUT' : 'POST';
+        const savedTransacao = await apiRequest(endpoint, method, transacao);
+        if (savedTransacao) {
+            setTransacoes(prev => transacao.id ? prev.map(t => t.id === savedTransacao.id ? savedTransacao : t) : [savedTransacao, ...prev]);
+            toast.success('Transação salva!');
+        }
+    };
     const handleDeleteTransacao = async (transactionId) => {
-        const token = localStorage.getItem('authToken');
-        if (!token || !window.confirm("Tem certeza que deseja apagar esta transação?")) return;
-
-        try {
-            const response = await fetch(`http://localhost:3001/api/transacoes/${transactionId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) throw new Error('Falha ao apagar a transação.');
-
+        if (!window.confirm("Tem certeza?")) return;
+        if (await apiRequest(`/transacoes/${transactionId}`, 'DELETE')) {
             setTransacoes(prev => prev.filter(t => t.id !== transactionId));
-            toast.success('Transação apagada com sucesso!');
-        } catch (error) {
-            toast.error(`Erro: ${error.message}`);
+            toast.success('Transação apagada!');
         }
     };
-
+    
     const handleSavePatrimonioItem = async (item, tipoItem) => {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-
-        const isEdicao = !!item.id;
-        const method = isEdicao ? 'PUT' : 'POST';
-        const endpoint = isEdicao
-            ? `http://localhost:3001/api/${tipoItem}/${item.id}`
-            : `http://localhost:3001/api/${tipoItem}`;
-
-        try {
-            const response = await fetch(endpoint, {
-                method: method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(item)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Falha ao salvar item.`);
-            }
-
-            const itemSalvo = await response.json();
-
-            setPatrimonioData(prev => {
-                const listaAntiga = prev[tipoItem] || [];
-                const listaAtualizada = isEdicao
-                    ? listaAntiga.map(i => i.id === itemSalvo.id ? itemSalvo : i)
-                    : [itemSalvo, ...listaAntiga];
-                
-                return { ...prev, [tipoItem]: listaAtualizada };
-            });
-            
-            toast.success(`Item de patrimônio salvo com sucesso!`);
-
-        } catch (error) {
-            toast.error(`Erro ao salvar item: ${error.message}`);
+        const endpoint = item.id ? `/${tipoItem}/${item.id}` : `/${tipoItem}`;
+        const method = item.id ? 'PUT' : 'POST';
+        const savedItem = await apiRequest(endpoint, method, item);
+        if (savedItem) {
+            setPatrimonioData(prev => ({ ...prev, [tipoItem]: item.id ? prev[tipoItem].map(i => i.id === savedItem.id ? savedItem : i) : [savedItem, ...prev[tipoItem]] }));
+            toast.success("Item de patrimônio salvo!");
         }
     };
-
     const handleDeletePatrimonioItem = async (itemId, tipoItem) => {
-        const token = localStorage.getItem('authToken');
-        if (!token || !window.confirm("Tem certeza que deseja apagar este item?")) return;
-
-        try {
-            const response = await fetch(`http://localhost:3001/api/${tipoItem}/${itemId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Falha ao apagar o item.");
-            }
-
-            setPatrimonioData(prev => ({
-                ...prev,
-                [tipoItem]: prev[tipoItem].filter(i => i.id !== itemId)
-            }));
-
-            toast.success("Item apagado com sucesso!");
-
-        } catch (error) {
-            toast.error(`Erro ao apagar o item: ${error.message}`);
+        if (!window.confirm("Tem certeza?")) return;
+        if (await apiRequest(`/${tipoItem}/${itemId}`, 'DELETE')) {
+            setPatrimonioData(prev => ({ ...prev, [tipoItem]: prev[tipoItem].filter(i => i.id !== itemId) }));
+            toast.success("Item apagado!");
         }
     };
 
     const handleSaveAposentadoria = async (data) => {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-
-        try {
-            const response = await fetch('http://localhost:3001/api/aposentadoria', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(data)
-            });
-
-            if (!response.ok) throw new Error("Falha ao salvar os dados de aposentadoria.");
-            
-            const dadosSalvos = await response.json();
-            setAposentadoriaData(dadosSalvos);
-            toast.success("Plano de aposentadoria salvo com sucesso!");
-
-        } catch (error) {
-            toast.error(`Erro ao salvar: ${error.message}`);
-        }
+        const savedData = await apiRequest('/aposentadoria', 'POST', data);
+        if (savedData) { setAposentadoriaData(savedData); toast.success("Plano de aposentadoria salvo!"); }
     };
     
     const handleSaveSimuladorPgbl = async (data) => {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-
-        try {
-            const response = await fetch('http://localhost:3001/api/simulador-pgbl', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(data)
-            });
-
-            if (!response.ok) throw new Error("Falha ao salvar os dados do simulador.");
-            
-            const dadosSalvos = await response.json();
-            setSimuladorPgblData(dadosSalvos);
-            toast.success("Simulação PGBL/VGBL salva com sucesso!");
-
-        } catch (error) {
-            toast.error(`Erro ao salvar: ${error.message}`);
-        }
+        const savedData = await apiRequest('/simulador-pgbl', 'POST', data);
+        if (savedData) { setSimuladorPgblData(savedData); toast.success("Simulação PGBL/VGBL salva!"); }
     };
 
     const handleSaveAquisicao = async (tipo, casos) => {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-
-        try {
-            const response = await fetch(`http://localhost:3001/api/aquisicoes/${tipo}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(casos)
-            });
-
-            if (!response.ok) throw new Error("Falha ao salvar as simulações.");
-            
-            const casosSalvos = await response.json();
-            
-            setAquisicaoData(prev => ({ ...prev, [tipo]: casosSalvos }));
-            toast.success("Simulações salvas com sucesso!");
-
-        } catch (error) {
-            toast.error(`Erro ao salvar: ${error.message}`);
-        }
+        const savedCasos = await apiRequest(`/aquisicoes/${tipo}`, 'POST', casos);
+        if (savedCasos) { setAquisicaoData(prev => ({ ...prev, [tipo]: savedCasos })); toast.success("Simulações salvas!"); }
     };
 
     const handleSaveOrcamentoItem = async (itemData, categoriaPaiId) => {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-        
-        const isEdicao = !!itemData.id;
-        const method = isEdicao ? 'PUT' : 'POST';
-        const endpoint = isEdicao 
-            ? `http://localhost:3001/api/orcamento/itens/${itemData.id}`
-            : `http://localhost:3001/api/orcamento/itens`;
-
-        const payload = isEdicao ? itemData : { ...itemData, categoria_id: categoriaPaiId };
-
-        try {
-            const response = await fetch(endpoint, {
-                method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(payload)
-            });
-            if (!response.ok) throw new Error('Falha ao salvar item do orçamento.');
-            
-            const itemSalvo = await response.json();
-
-            setUsuario(prevUsuario => {
-                const novasCategorias = prevUsuario.categorias.map(cat => {
-                    if (cat.id === (isEdicao ? itemSalvo.categoria_id : categoriaPaiId)) {
-                        const subItens = isEdicao
-                            ? cat.subItens.map(item => item.id === itemSalvo.id ? itemSalvo : item)
-                            : [...cat.subItens, itemSalvo];
-                        return { ...cat, subItens };
-                    }
-                    return cat;
-                });
-                return { ...prevUsuario, categorias: novasCategorias };
-            });
+        const endpoint = itemData.id ? `/orcamento/itens/${itemData.id}` : '/orcamento/itens';
+        const method = itemData.id ? 'PUT' : 'POST';
+        const payload = itemData.id ? itemData : { ...itemData, categoria_id: categoriaPaiId };
+        const itemSalvo = await apiRequest(endpoint, method, payload);
+        if (itemSalvo) {
+            setUsuario(prev => ({ ...prev, categorias: prev.categorias.map(cat => cat.id === (itemData.id ? itemSalvo.categoria_id : categoriaPaiId) ? { ...cat, subItens: itemData.id ? cat.subItens.map(i => i.id === itemSalvo.id ? itemSalvo : i) : [...cat.subItens, itemSalvo] } : cat) }));
             toast.success('Item do orçamento salvo!');
-
-        } catch(error) {
-            toast.error(`Erro: ${error.message}`);
         }
     };
-
     const handleDeleteOrcamentoItem = async (itemId) => {
-        const token = localStorage.getItem('authToken');
-        if (!token || !window.confirm("Tem certeza que deseja apagar este item do orçamento?")) return;
-
-        try {
-            const response = await fetch(`http://localhost:3001/api/orcamento/itens/${itemId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error('Falha ao apagar o item.');
-
-            setUsuario(prevUsuario => {
-                const novasCategorias = prevUsuario.categorias.map(cat => ({
-                    ...cat,
-                    subItens: cat.subItens.filter(item => item.id !== itemId)
-                }));
-                return { ...prevUsuario, categorias: novasCategorias };
-            });
+        if (!window.confirm("Tem certeza?")) return;
+        if (await apiRequest(`/orcamento/itens/${itemId}`, 'DELETE')) {
+            setUsuario(prev => ({ ...prev, categorias: prev.categorias.map(cat => ({ ...cat, subItens: cat.subItens.filter(i => i.id !== itemId) })) }));
             toast.success('Item do orçamento apagado.');
-        } catch(error) {
-            toast.error(`Erro: ${error.message}`);
         }
     };
 
-    const handleSaveMilhasItem = async (item, tipo) => { // tipo será 'carteiras' ou 'metas'
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-
-        const isEdicao = !!item.id;
-        const method = isEdicao ? 'PUT' : 'POST';
-        const endpoint = isEdicao
-            ? `http://localhost:3001/api/milhas/${tipo}/${item.id}`
-            : `http://localhost:3001/api/milhas/${tipo}`;
-
-        try {
-            const response = await fetch(endpoint, {
-                method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(item)
-            });
-
-            if (!response.ok) throw new Error(`Falha ao salvar item.`);
-            
-            const itemSalvo = await response.json();
-
-            setMilhasData(prev => {
-                const listaAntiga = prev[tipo] || [];
-                const listaAtualizada = isEdicao
-                    ? listaAntiga.map(i => i.id === itemSalvo.id ? itemSalvo : i)
-                    : [itemSalvo, ...listaAntiga];
-                return { ...prev, [tipo]: listaAtualizada };
-            });
-            
+    const handleSaveMilhasItem = async (item, tipo) => {
+        const endpoint = item.id ? `/milhas/${tipo}/${item.id}` : `/milhas/${tipo}`;
+        const method = item.id ? 'PUT' : 'POST';
+        const savedItem = await apiRequest(endpoint, method, item);
+        if (savedItem) {
+            setMilhasData(prev => ({ ...prev, [tipo]: item.id ? prev[tipo].map(i => i.id === savedItem.id ? savedItem : i) : [savedItem, ...prev[tipo]] }));
             toast.success(`Item de ${tipo === 'carteiras' ? 'carteira' : 'meta'} salvo!`);
-
-        } catch (error) {
-            toast.error(`Erro ao salvar: ${error.message}`);
+        }
+    };
+    const handleDeleteMilhasItem = async (itemId, tipo) => {
+        if (!window.confirm("Tem certeza?")) return;
+        if (await apiRequest(`/milhas/${tipo}/${itemId}`, 'DELETE')) {
+            setMilhasData(prev => ({ ...prev, [tipo]: prev[tipo].filter(i => i.id !== itemId) }));
+            toast.success("Item apagado!");
         }
     };
 
-    const handleDeleteMilhasItem = async (itemId, tipo) => {
-        const token = localStorage.getItem('authToken');
-        if (!token || !window.confirm("Tem certeza que deseja apagar este item?")) return;
+    const handleSaveAta = async (ata) => {
+        const endpoint = ata.id ? `/atas/${ata.id}` : '/atas';
+        const method = ata.id ? 'PUT' : 'POST';
+        const savedAta = await apiRequest(endpoint, method, ata);
+        if (savedAta) {
+            setAtas(prev => ata.id ? prev.map(a => a.id === savedAta.id ? savedAta : a) : [savedAta, ...prev]);
+            toast.success(`Ata ${ata.id ? 'atualizada' : 'salva'}!`);
+        }
+        return savedAta;
+    };
+    const handleDeleteAta = async (ataId) => {
+        if (!window.confirm("Tem certeza?")) return;
+        if (await apiRequest(`/atas/${ataId}`, 'DELETE')) {
+            setAtas(prev => prev.filter(a => a.id !== ataId));
+            toast.success('Ata apagada!');
+        }
+    };
 
-        try {
-            const response = await fetch(`http://localhost:3001/api/milhas/${tipo}/${itemId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+    const handleSaveCompromisso = async (compromisso) => {
+        const endpoint = compromisso.id ? `/agenda/${compromisso.id}` : '/agenda';
+        const method = compromisso.id ? 'PUT' : 'POST';
+        const savedCompromisso = await apiRequest(endpoint, method, compromisso);
+        if (savedCompromisso) {
+            setAgenda(prev => {
+                const newList = compromisso.id ? prev.map(c => c.id === savedCompromisso.id ? savedCompromisso : c) : [savedCompromisso, ...prev];
+                return newList.sort((a, b) => new Date(a.data) - new Date(b.data));
             });
-
-            if (!response.ok) throw new Error("Falha ao apagar o item.");
-
-            setMilhasData(prev => ({
-                ...prev,
-                [tipo]: prev[tipo].filter(i => i.id !== itemId)
-            }));
-
-            toast.success("Item apagado com sucesso!");
-
-        } catch (error) {
-            toast.error(`Erro ao apagar: ${error.message}`);
+            toast.success(`Compromisso ${compromisso.id ? 'atualizado' : 'salvo'}!`);
+        }
+        return savedCompromisso;
+    };
+    const handleDeleteCompromisso = async (compromissoId) => {
+        if (!window.confirm("Tem certeza?")) return;
+        if (await apiRequest(`/agenda/${compromissoId}`, 'DELETE')) {
+            setAgenda(prev => prev.filter(c => c.id !== compromissoId));
+            toast.success('Compromisso apagado!');
         }
     };
 
     const handleLogout = () => {
         localStorage.removeItem('authToken');
         setIsAuthenticated(false);
-        setUsuario({});
-        setTransacoes([]);
-        setPatrimonioData({ ativos: [], dividas: [] });
+        setUsuario({}); setTransacoes([]); setPatrimonioData({ ativos: [], dividas: [] });
         setProtecaoData({ invalidez: [], despesasFuturas: [], patrimonial: [] });
-        setAposentadoriaData(null);
-        setSimuladorPgblData(null);
-        setAquisicaoData({ imoveis: [], automoveis: [] });
-        setMilhasData({ carteiras: [], metas: [] });
+        setAposentadoriaData(null); setSimuladorPgblData(null);
+        setAquisicaoData({ imoveis: [], automoveis: [] }); setMilhasData({ carteiras: [], metas: [] });
+        setAtas([]); setAgenda([]);
         setCurrentPage('objetivos');
-        if (theme !== 'dark') {
-            toggleTheme();
-        }
+        if (theme !== 'dark') toggleTheme();
     };
 
-    const handleEditClick = (transacao) => {
-        setTransacaoSelecionada(transacao);
-        setIsTransacaoModalOpen(true);
-    };
-
+    // --- Memos for derived data ---
     const { orcamentoCalculos, pieChartData } = useMemo(() => {
-        const defaultCalculos = {
-            atual: { receitas: 0, despesas: 0 },
-            sugerido: { receitas: 0, despesas: 0 },
-            categorias: { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 }
-        };
-
-        if (!usuario.categorias || usuario.categorias.length === 0) {
-            return { orcamentoCalculos: defaultCalculos, pieChartData: [] };
-        }
-
+        if (!usuario.categorias || usuario.categorias.length === 0) return { orcamentoCalculos: { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 }, categorias: { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 } }, pieChartData: [] };
         const totais = { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 } };
         const totaisCategorias = { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 };
         let pieData = [];
-
         usuario.categorias.forEach(cat => {
             const totalCatAtual = cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
             const totalCatSugerido = cat.subItens.reduce((acc, item) => acc + (item.sugerido || 0), 0);
-            if (cat.tipo === 'receita') {
-                totais.atual.receitas += totalCatAtual;
-                totais.sugerido.receitas += totalCatSugerido;
-                totaisCategorias.renda += totalCatAtual;
-            } else {
-                totais.atual.despesas += totalCatAtual;
-                totais.sugerido.despesas += totalCatSugerido;
-                pieData.push({ name: cat.nome, valueAtual: totalCatAtual, valueSugerido: totalCatSugerido });
-                if (cat.nome.toLowerCase().includes('fixa')) totaisCategorias.fixos += totalCatAtual;
-                if (cat.nome.toLowerCase().includes('variável')) totaisCategorias.variaveis += totalCatAtual;
-                if (cat.nome.toLowerCase().includes('investimento')) totaisCategorias.investimentos += totalCatAtual;
-            }
+            if (cat.tipo === 'receita') { totais.atual.receitas += totalCatAtual; totais.sugerido.receitas += totalCatSugerido; totaisCategorias.renda += totalCatAtual; } 
+            else { totais.atual.despesas += totalCatAtual; totais.sugerido.despesas += totalCatSugerido; pieData.push({ name: cat.nome, valueAtual: totalCatAtual, valueSugerido: totalCatSugerido }); if (cat.nome.toLowerCase().includes('fixa')) totaisCategorias.fixos += totalCatAtual; if (cat.nome.toLowerCase().includes('variável')) totaisCategorias.variaveis += totalCatAtual; if (cat.nome.toLowerCase().includes('investimento')) totaisCategorias.investimentos += totalCatAtual; }
         });
-        
-        const finalPieData = pieData.map(d => ({
-            ...d,
-            percAtual: totais.atual.despesas > 0 ? ((d.valueAtual / totais.atual.despesas) * 100).toFixed(1) : "0.0",
-            percSugerido: totais.sugerido.despesas > 0 ? ((d.valueSugerido / totais.sugerido.despesas) * 100).toFixed(1) : "0.0",
-        }));
-
+        const finalPieData = pieData.map(d => ({ ...d, percAtual: totais.atual.despesas > 0 ? ((d.valueAtual / totais.atual.despesas) * 100).toFixed(1) : "0.0", percSugerido: totais.sugerido.despesas > 0 ? ((d.valueSugerido / totais.sugerido.despesas) * 100).toFixed(1) : "0.0" }));
         return { orcamentoCalculos: { ...totais, categorias: totaisCategorias }, pieChartData: finalPieData };
     }, [usuario.categorias]);
 
     const custoDeVidaMensal = useMemo(() => {
-        if (!usuario.categorias || usuario.categorias.length === 0) return 0;
-        return usuario.categorias
-            .filter(c => c.nome.toLowerCase().includes('fixa') || c.nome.toLowerCase().includes('variável'))
-            .reduce((acc, cat) => acc + cat.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0), 0);
+        if (!usuario.categorias) return 0;
+        return usuario.categorias.filter(c => c.nome.toLowerCase().includes('fixa') || c.nome.toLowerCase().includes('variável')).reduce((acc, cat) => acc + cat.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0), 0);
     }, [usuario.categorias]);
 
     const patrimonioTotal = useMemo(() => {
-        if (!patrimonioData || !patrimonioData.dividas) return 0;
-        const totalAtivos = patrimonioData.ativos.reduce((sum, item) => sum + parseFloat(item.valor), 0);
-        const totalDividas = patrimonioData.dividas.reduce((sum, item) => sum + parseFloat(item.valor), 0);
+        const totalAtivos = patrimonioData.ativos.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+        const totalDividas = patrimonioData.dividas.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
         return totalAtivos - totalDividas;
     }, [patrimonioData]);
 
-    const investimentosDisponiveis = useMemo(() => {
-        if (!patrimonioData.ativos) return [];
-        return patrimonioData.ativos.filter(ativo => ativo.tipo === 'Investimentos');
-    }, [patrimonioData.ativos]);
+    const investimentosDisponiveis = useMemo(() => patrimonioData.ativos.filter(ativo => ativo.tipo === 'Investimentos'), [patrimonioData.ativos]);
 
-    const handleCategoryChange = async (transactionId, newCategory) => {
-        const transacaoOriginal = transacoes.find(t => t.id === transactionId);
-        if (!transacaoOriginal) return;
-        
-        const transacaoAtualizada = { ...transacaoOriginal, categoria: newCategory };
-        await handleSaveTransacao(transacaoAtualizada);
-    };
-
-    const handleIgnoreToggle = async (transactionId) => {
-        const transacaoOriginal = transacoes.find(t => t.id === transactionId);
-        if (!transacaoOriginal) return;
-
-        const transacaoAtualizada = { ...transacaoOriginal, ignorada: !transacaoOriginal.ignorada };
-        await handleSaveTransacao(transacaoAtualizada);
-    };
-
+    // --- Menu and Page Rendering ---
     const menuItems = [
-        { id: 'objetivos', label: 'Objetivos', icon: Target },
-        { id: 'orcamento', label: 'Orçamento', icon: BarChart2 },
-        { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft,
-            subItems: [
-                { id: 'fluxoTransacoes', label: 'Transações', icon: Coins },
-                { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare },
-            ]
-        },
-        { id: 'patrimonio', label: 'Patrimônio', icon: Landmark },
-        { id: 'protecao', label: 'Proteção', icon: Shield },
-        { id: 'reserva', label: 'Reserva', icon: PiggyBank },
-        {
-            id: 'aposentadoria',
-            label: 'Aposentadoria',
-            icon: TreePalm,
-            subItems: [
-                { id:'aposentadoriaAportes', label: 'Aportes', icon: ChartLine},
-                { id:'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins},
-            ]
-        },
-        {
-        id: 'aquisicao',
-        label: 'Aquisição',
-        icon: ShoppingCart,
-        subItems: [
-            { id: 'aquisicaoImoveis', label: 'Imóveis', icon: Building2 },
-            { id: 'aquisicaoAutomoveis', label: 'Automóveis', icon: Car },
-        ]
-        },
-        {
-        id: 'viagens',
-        label: 'Viagens',
-        icon: Plane,
-        subItems: [
-            { id: 'viagensMilhas', label: 'Planejamento de Milhas', icon: PlaneTakeoff },
-            { id: 'viagensCartoes', label: 'Cartões de Crédito', icon: CreditCard },
-        ]
-        },
-        { id: 'EducacaoFinanceira', label: 'Educação Financeira', icon: BookOpen },
-        { id: 'agendaReunioes', label: 'Reuniões e Agenda', icon: CalendarDays }
+        { id: 'objetivos', label: 'Objetivos', icon: Target }, { id: 'orcamento', label: 'Orçamento', icon: BarChart2 },
+        { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft, subItems: [{ id: 'fluxoTransacoes', label: 'Transações', icon: Coins }, { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare }] },
+        { id: 'patrimonio', label: 'Patrimônio', icon: Landmark }, { id: 'protecao', label: 'Proteção', icon: Shield }, { id: 'reserva', label: 'Reserva', icon: PiggyBank },
+        { id: 'aposentadoria', label: 'Aposentadoria', icon: TreePalm, subItems: [{ id:'aposentadoriaAportes', label: 'Aportes', icon: ChartLine}, { id:'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins}] },
+        { id: 'aquisicao', label: 'Aquisição', icon: ShoppingCart, subItems: [{ id: 'aquisicaoImoveis', label: 'Imóveis', icon: Building2 }, { id: 'aquisicaoAutomoveis', label: 'Automóveis', icon: Car }] },
+        { id: 'viagens', label: 'Viagens', icon: Plane, subItems: [{ id: 'viagensMilhas', label: 'Milhas', icon: PlaneTakeoff }, { id: 'viagensCartoes', label: 'Cartões', icon: CreditCard }] },
+        { id: 'EducacaoFinanceira', label: 'Educação Financeira', icon: BookOpen }, { id: 'agendaReunioes', label: 'Reuniões e Agenda', icon: CalendarDays }
     ];
 
     const renderPage = () => {
+        if (!isAuthenticated) return <TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setUsuario={setUsuario} />;
         let content;
-        if (!isAuthenticated) {
-            return <TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setUsuario={setUsuario} />;
-        }
-        
         switch (currentPage) {
-            case 'orcamento':
-                if (!usuario || !usuario.categorias) {
-                    return <div className="flex justify-center items-center h-full text-lg">Carregando...</div>;
-                }
-                content = <TelaOrcamento 
-                    categorias={usuario.categorias} 
-                    onSaveItem={handleSaveOrcamentoItem}
-                    onDeleteItem={handleDeleteOrcamentoItem}
-                    orcamentoCalculos={orcamentoCalculos} 
-                    pieChartData={pieChartData} 
-                />;
-                break;
-            case 'protecao': 
-                content = <TelaProtecao 
-                    rendaMensal={orcamentoCalculos.atual.receitas} 
-                    custoDeVidaMensal={custoDeVidaMensal} 
-                    patrimonioTotal={patrimonioTotal} 
-                    protecaoData={protecaoData}
-                    onSaveItem={handleSaveProtecaoItem}
-                    onDeleteItem={handleDeleteProtecaoItem}
-                />; 
-                break;
-            case 'reserva': 
-                content = <TelaReservaEmergencia 
-                    orcamento={usuario.categorias || []}
-                    investimentosDisponiveis={investimentosDisponiveis} 
-                />; 
-                break;
-            case 'aposentadoriaAportes': 
-                content = <TelaAposentadoria 
-                    dadosIniciais={aposentadoriaData}
-                    onSave={handleSaveAposentadoria}
-                />; 
-                break;
-            case 'patrimonio': 
-                content = <TelaPatrimonio 
-                    patrimonioData={patrimonioData} 
-                    patrimonioTotal={patrimonioTotal}
-                    onSaveItem={handleSavePatrimonioItem}
-                    onDeleteItem={handleDeletePatrimonioItem}
-                />; 
-                break;
-            case 'fluxoTransacoes':
-                content = <TelaFluxoDeCaixa 
-                    transacoes={transacoes} 
-                    handleCategoryChange={handleCategoryChange} 
-                    handleIgnoreToggle={handleIgnoreToggle} 
-                    onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} 
-                    onEditClick={handleEditClick}
-                    onDeleteClick={handleDeleteTransacao}
-                />; 
-                break;
+            case 'orcamento': content = <TelaOrcamento categorias={usuario.categorias} onSaveItem={handleSaveOrcamentoItem} onDeleteItem={handleDeleteOrcamentoItem} orcamentoCalculos={orcamentoCalculos} pieChartData={pieChartData} />; break;
+            case 'protecao': content = <TelaProtecao rendaMensal={orcamentoCalculos.atual.receitas} custoDeVidaMensal={custoDeVidaMensal} patrimonioTotal={patrimonioTotal} protecaoData={protecaoData} onSaveItem={handleSaveProtecaoItem} onDeleteItem={handleDeleteProtecaoItem} />; break;
+            case 'reserva': content = <TelaReservaEmergencia orcamento={usuario.categorias || []} investimentosDisponiveis={investimentosDisponiveis} />; break;
+            case 'aposentadoriaAportes': content = <TelaAposentadoria dadosIniciais={aposentadoriaData} onSave={handleSaveAposentadoria} />; break;
+            case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} patrimonioTotal={patrimonioTotal} onSaveItem={handleSavePatrimonioItem} onDeleteItem={handleDeletePatrimonioItem} />; break;
+            case 'fluxoTransacoes': content = <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={(id, cat) => handleSaveTransacao({...transacoes.find(t=>t.id===id), categoria: cat})} handleIgnoreToggle={(id) => handleSaveTransacao({...transacoes.find(t=>t.id===id), ignorada: !transacoes.find(t=>t.id===id).ignorada})} onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} onEditClick={(t) => {setTransacaoSelecionada(t); setIsTransacaoModalOpen(true);}} onDeleteClick={handleDeleteTransacao} />; break;
             case 'fluxoPlanejamento': content = <TelaPlanejamento orcamento={usuario.categorias} gastosReais={transacoes} />; break;
-            case 'aquisicaoImoveis': 
-                content = <TelaAquisicaoImoveis 
-                    dadosIniciais={aquisicaoData.imoveis}
-                    onSave={handleSaveAquisicao}
-                />; 
-                break;
-            case 'aquisicaoAutomoveis': 
-                content = <TelaAquisicaoAutomoveis 
-                    dadosIniciais={aquisicaoData.automoveis}
-                    onSave={handleSaveAquisicao}
-                />; 
-                break;
-            case 'objetivos': content = <TelaObjetivos />; break;
-            case 'viagensMilhas': 
-                content = <TelaMilhas 
-                    carteiras={milhasData.carteiras}
-                    metas={milhasData.metas}
-                    onSave={handleSaveMilhasItem}
-                    onDelete={handleDeleteMilhasItem}
-                />; 
-                break;
+            case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis dadosIniciais={aquisicaoData.imoveis} onSave={(data) => handleSaveAquisicao('imoveis', data)} />; break;
+            case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis dadosIniciais={aquisicaoData.automoveis} onSave={(data) => handleSaveAquisicao('automoveis', data)} />; break;
+            case 'viagensMilhas': content = <TelaMilhas carteiras={milhasData.carteiras} metas={milhasData.metas} onSave={handleSaveMilhasItem} onDelete={handleDeleteMilhasItem} />; break;
             case 'viagensCartoes': content = <TelaCartoes />; break;
             case 'EducacaoFinanceira': content = <TelaEducacaoFinanceira />; break;
-            case 'aposentadoriaPGBL': 
-                content = <TelaSimuladorPGBL 
-                    dadosIniciais={simuladorPgblData}
-                    onSave={handleSaveSimuladorPgbl}
-                />; 
-                break;
-            case 'configuracoesPerfil': content = <TelaConfiguracoesPerfil usuario={usuario} setUsuario={() => {}} />; break;
-            case 'agendaReunioes': content = <TelaReunioesAgenda />; break;
+            case 'aposentadoriaPGBL': content = <TelaSimuladorPGBL dadosIniciais={simuladorPgblData} onSave={handleSaveSimuladorPgbl} />; break;
+            case 'configuracoesPerfil': content = <TelaConfiguracoesPerfil usuario={usuario} setUsuario={setUsuario} />; break;
+            case 'agendaReunioes': content = <TelaReunioesAgenda atasIniciais={atas} agendaInicial={agenda} onSaveAta={handleSaveAta} onDeleteAta={handleDeleteAta} onSaveCompromisso={handleSaveCompromisso} onDeleteCompromisso={handleDeleteCompromisso} />; break;
             default: content = <TelaObjetivos />; break;
         }
-
         return <PageTransition key={currentPage}>{content}</PageTransition>;
     };
 
-    if (!isAuthenticated) {
-        return renderPage();
-    }
-
-    const ThemeToggleButton = () => (
-        <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-[#3e388b]/50">
-            {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
-        </button>
-    );
+    if (!isAuthenticated) return renderPage();
 
     return (
         <div className="bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-white min-h-screen font-sans">
@@ -764,29 +374,21 @@ export default function App() {
                         <img src={logo} alt="Logo SeuConsultor" className="h-6 w-auto" style={{ filter: 'invert(42%) sepia(93%) saturate(2000%) hue-rotate(133deg) brightness(100%) contrast(107%)' }} />
                         <span className="font-montserrat text-slate-900 dark:text-white text-sm font-extrabold">SeuConsultor</span>
                     </div>
-                    <ThemeToggleButton />
+                    <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-[#3e388b]/50">
+                        {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
+                    </button>
                 </div>
                 <nav className="flex-1 overflow-y-auto p-3 space-y-1">
                     {menuItems.map(item => (
                         <div key={item.id}>
-                            <button
-                                onClick={() => {
-                                    if (item.subItems) {
-                                        setOpenMenu(openMenu === item.id ? null : item.id);
-                                    } else {
-                                        setCurrentPage(item.id);
-                                        setOpenMenu(null);
-                                    }
-                                }}
-                                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-left transition-colors duration-200 ${currentPage.startsWith(item.id) ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}
-                            >
+                            <button onClick={() => { if (item.subItems) { setOpenMenu(openMenu === item.id ? null : item.id); } else { setCurrentPage(item.id); setOpenMenu(item.id); } }} className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-left transition-colors duration-200 ${currentPage.startsWith(item.id) || openMenu === item.id ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
                                 <span className="flex items-center gap-2"><item.icon size={16} />{item.label}</span>
                                 {item.subItems && <ChevronDown size={14} className={`transform transition-transform ${openMenu === item.id ? 'rotate-180' : ''}`} />}
                             </button>
                             {item.subItems && openMenu === item.id && (
                                 <div className="ml-6 mt-1 space-y-1">
                                     {item.subItems.map(sub => (
-                                        <button key={sub.id} onClick={() => { setCurrentPage(sub.id); }} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm w-full text-left ${currentPage === sub.id ? 'bg-slate-100 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-500 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
+                                        <button key={sub.id} onClick={() => setCurrentPage(sub.id)} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm w-full text-left ${currentPage === sub.id ? 'bg-slate-100 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-500 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
                                             <sub.icon size={14} />{sub.label}
                                         </button>
                                     ))}
@@ -798,13 +400,7 @@ export default function App() {
                 <div className="border-t border-slate-200 dark:border-[#3e388b] p-3">
                     <button onClick={() => setPerfilAberto(prev => !prev)} className="w-full flex items-center justify-between hover:bg-slate-100 dark:hover:bg-[#3e388b]/50 px-3 py-2 rounded-md transition">
                         <div className="flex items-center gap-3">
-                            {usuario.imagem_url ? (
-                                <img src={usuario.imagem_url} alt="avatar" className="w-8 h-8 rounded-full object-cover border" />
-                            ) : (
-                                <div className="w-8 h-8 rounded-full bg-[#00d971] text-black font-bold flex items-center justify-center">
-                                    {usuario.nome?.[0]?.toUpperCase() || 'U'}
-                                </div>
-                            )}
+                            <img src={usuario.imagem_url || `https://ui-avatars.com/api/?name=${usuario.nome || 'U'}&background=00d971&color=000`} alt="avatar" className="w-8 h-8 rounded-full object-cover border" />
                             <span className="text-sm font-medium text-slate-800 dark:text-white">{usuario.nome}</span>
                         </div>
                         <ChevronDown size={16} className={`transition-transform duration-300 ${!perfilAberto ? 'rotate-180' : 'rotate-0'}`} />
@@ -821,14 +417,7 @@ export default function App() {
             </aside>
             <main className="ml-64 p-4 md:p-6 transition-all duration-300">{renderPage()}</main>
             {isTransacaoModalOpen && (
-                <ModalNovaTransacao
-                    transacao={transacaoSelecionada}
-                    onSave={handleSaveTransacao}
-                    onClose={() => {
-                        setIsTransacaoModalOpen(false);
-                        setTransacaoSelecionada(null);
-                    }}
-                />
+                <ModalNovaTransacao transacao={transacaoSelecionada} onSave={handleSaveTransacao} onClose={() => { setIsTransacaoModalOpen(false); setTransacaoSelecionada(null); }} />
             )}
         </div>
     );

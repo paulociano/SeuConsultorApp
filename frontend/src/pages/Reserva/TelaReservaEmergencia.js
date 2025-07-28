@@ -2,39 +2,42 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { Target } from 'lucide-react';
-// 1. Importar a store do Zustand
+// 1. Importar todas as stores necessárias
 import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
+import { useReservaStore } from '../../stores/useReservaStore';
+import { useOrcamentoStore } from '../../stores/useOrcamentoStore';
+
 
 /**
  * Tela para cálculo e composição da Reserva de Emergência.
- * Este componente busca os investimentos disponíveis diretamente da store de património.
+ * Este componente agora é totalmente autônomo, buscando todos os dados de suas stores.
  */
-// 2. A prop 'investimentosDisponiveis' foi removida
-const TelaReservaEmergencia = ({ 
-    orcamento = [], 
-    investimentosSelecionados = {},
-    onSelectionChange,
-    isLoading // isLoading geral do App.js
-}) => {
-    // 3. Aceder ao estado e às ações da store de Património
+// 2. O componente não recebe mais props
+const TelaReservaEmergencia = () => {
+    // 3. Aceder ao estado e às ações das stores necessárias
     const { ativos, isLoading: isLoadingPatrimonio, fetchPatrimonio } = usePatrimonioStore();
+    const { investimentosSelecionados, toggleInvestimento } = useReservaStore();
+    const { categorias: orcamento, isLoading: isLoadingOrcamento, fetchOrcamento } = useOrcamentoStore();
 
-    // Estados locais que controlam apenas a UI desta tela
+    // Estados locais que controlam apenas a UI desta tela (sem alteração)
     const [cenario, setCenario] = useState('cenario1');
     const [mesesReservaIdeal, setMesesReservaIdeal] = useState(6);
 
-    // 4. Chamar a função para carregar os dados de património
+    // 4. Chamar as funções para carregar os dados de todas as stores necessárias
     useEffect(() => {
         fetchPatrimonio();
-    }, [fetchPatrimonio]);
+        fetchOrcamento();
+    }, [fetchPatrimonio, fetchOrcamento]);
 
-    // 5. A lista de investimentos disponíveis agora é calculada localmente
     const investimentosDisponiveis = useMemo(() => 
         ativos.filter(ativo => ativo.tipo === 'Investimentos'),
         [ativos]
     );
 
+    // O useMemo agora usa o 'orcamento' vindo da useOrcamentoStore
     const baseCalculo = useMemo(() => {
+        if (!orcamento || orcamento.length === 0) return 0;
+        
         const custoDeVida = orcamento
             .filter(c => c.nome.toLowerCase().includes('fixa') || c.nome.toLowerCase().includes('variável'))
             .reduce((acc, cat) => acc + cat.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0), 0);
@@ -55,6 +58,7 @@ const TelaReservaEmergencia = ({
         return baseCalculo * mesesReservaIdeal;
     }, [baseCalculo, mesesReservaIdeal]);
 
+    // O useMemo agora usa 'investimentosSelecionados' vindo da useReservaStore
     const totalAcumulado = useMemo(() => {
         return investimentosDisponiveis
             .filter(inv => investimentosSelecionados[inv.id])
@@ -65,16 +69,13 @@ const TelaReservaEmergencia = ({
         return reservaIdeal > 0 ? (totalAcumulado / reservaIdeal) * 100 : 0;
     }, [totalAcumulado, reservaIdeal]);
 
+    // 5. O handler agora chama a ação 'toggleInvestimento' da store
     const handleCheckboxChange = (investimentoId) => {
-        const newSelection = {
-            ...investimentosSelecionados,
-            [investimentoId]: !investimentosSelecionados[investimentoId]
-        };
-        onSelectionChange(newSelection);
+        toggleInvestimento(investimentoId);
     };
 
-    // 6. A lógica de carregamento agora considera ambos os estados
-    if (isLoading || isLoadingPatrimonio) {
+    // 6. A lógica de carregamento agora considera os estados de loading do patrimônio e do orçamento
+    if (isLoadingOrcamento || isLoadingPatrimonio) {
         return (
             <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
                 <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>

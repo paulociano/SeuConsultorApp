@@ -4,10 +4,14 @@ import Card from '../../components/Card/Card';
 import { PlusCircle, Save } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 import { v4 as uuidv4 } from 'uuid';
+// 1. Importar a store de aposentadoria
+import { useAposentadoriaStore } from '../../stores/useAposentadoriaStore';
 
-// O componente agora recebe os dados iniciais e uma função para salvar
-const TelaAposentadoria = ({ dadosIniciais, onSave }) => {
-    // Os estados agora são inicializados com os dados do backend ou com valores padrão
+// 2. As props 'dadosIniciais' e 'onSave' foram removidas
+const TelaAposentadoria = () => {
+    // 3. Conectar ao estado e às ações da store
+    const { aposentadoriaData, isLoading, fetchAposentadoria, saveAposentadoria } = useAposentadoriaStore();
+
     const [idadeAtual, setIdadeAtual] = useState(30);
     const [idadeAposentadoria, setIdadeAposentadoria] = useState(65);
     const [patrimonioInicial, setPatrimonioInicial] = useState(50000);
@@ -17,22 +21,26 @@ const TelaAposentadoria = ({ dadosIniciais, onSave }) => {
     const [aportes, setAportes] = useState([{ id: uuidv4(), ano: 1, valor: 1000 }]);
     const [aporteRestante, setAporteRestante] = useState(0);
 
-    // Este useEffect sincroniza o estado do componente com os dados que vêm do backend
+    // 4. Chamar a ação para buscar os dados na montagem do componente
     useEffect(() => {
-        if (dadosIniciais) {
-            setIdadeAtual(dadosIniciais.idadeAtual || 30);
-            setIdadeAposentadoria(dadosIniciais.idadeAposentadoria || 65);
-            setPatrimonioInicial(dadosIniciais.patrimonioInicial || 50000);
-            setRendaDesejada(dadosIniciais.rendaDesejada || 5000);
-            setRentabilidadeAnual(dadosIniciais.rentabilidadeAnual || 8);
-            setTipoPrevidencia(dadosIniciais.tipoPrevidencia || 'VGBL');
-            // Garante que os aportes sejam um array válido com IDs únicos
-            setAportes(dadosIniciais.aportes?.map(a => ({...a, id: a.id || uuidv4()})) || [{ id: uuidv4(), ano: 1, valor: 1000 }]);
-            setAporteRestante(dadosIniciais.aporteRestante || 0);
-        }
-    }, [dadosIniciais]);
+        fetchAposentadoria();
+    }, [fetchAposentadoria]);
 
-    // LÓGICA DE CÁLCULO CORRIGIDA
+    // 5. Este useEffect agora sincroniza o estado com os dados da store
+    useEffect(() => {
+        if (aposentadoriaData) {
+            setIdadeAtual(aposentadoriaData.idadeAtual || 30);
+            setIdadeAposentadoria(aposentadoriaData.idadeAposentadoria || 65);
+            setPatrimonioInicial(aposentadoriaData.patrimonioInicial || 50000);
+            setRendaDesejada(aposentadoriaData.rendaDesejada || 5000);
+            setRentabilidadeAnual(aposentadoriaData.rentabilidadeAnual || 8);
+            setTipoPrevidencia(aposentadoriaData.tipoPrevidencia || 'VGBL');
+            setAportes(aposentadoriaData.aportes?.map(a => ({...a, id: a.id || uuidv4()})) || [{ id: uuidv4(), ano: 1, valor: 1000 }]);
+            setAporteRestante(aposentadoriaData.aporteRestante || 0);
+        }
+    }, [aposentadoriaData]);
+
+    // Lógica de cálculo (sem alterações)
     const { projectionData, capitalNecessario, valorAcumulado } = useMemo(() => {
         const anosContribuicao = Math.max(0, idadeAposentadoria - idadeAtual);
         const taxaRendimentoAnual = rentabilidadeAnual / 100;
@@ -40,40 +48,31 @@ const TelaAposentadoria = ({ dadosIniciais, onSave }) => {
         const data = [];
         let acumulado = patrimonioInicial;
 
-        // --- Fase de Acumulação ---
         data.push({ idade: idadeAtual, valor: acumulado });
         for (let i = 1; i <= anosContribuicao; i++) {
             const anoAtualContribuicao = i;
             const aporteEspecifico = aportes.find(a => a.ano === anoAtualContribuicao);
             const aporteDoAno = (aporteEspecifico ? aporteEspecifico.valor : aporteRestante) * 12;
             
-            // O rendimento é aplicado sobre o saldo do início do ano + os aportes feitos durante o ano
             acumulado = (acumulado + aporteDoAno) * (1 + taxaRendimentoAnual);
             data.push({ idade: idadeAtual + i, valor: Math.max(0, acumulado) });
         }
         const valorFinalAcumulado = acumulado;
 
-        // --- Fase de Retirada (Decumulação) ---
         let saldoRetirada = valorFinalAcumulado;
         const retiradaAnual = rendaDesejada * 12;
-        const idadeMaxima = 100; // Define a idade máxima para a projeção
+        const idadeMaxima = 100;
 
         for (let i = idadeAposentadoria + 1; i <= idadeMaxima; i++) {
             if (saldoRetirada <= 0) {
-                // Se o dinheiro acabou, preenche o resto com 0 para completar o gráfico
                 data.push({ idade: i, valor: 0 });
                 continue;
             }
-            
-            // O saldo remanescente rende no início do ano
             const saldoComRendimento = saldoRetirada * (1 + taxaRendimentoAnual);
-            // A retirada anual é feita do saldo que já rendeu
             saldoRetirada = saldoComRendimento - retiradaAnual;
-
             data.push({ idade: i, valor: Math.max(0, saldoRetirada) });
         }
 
-        // --- Cálculo do Capital Necessário (para referência) ---
         const taxaIR = 0.10;
         let capitalNecessarioCalc = 0;
         if(rentabilidadeAnual > 0) {
@@ -86,7 +85,7 @@ const TelaAposentadoria = ({ dadosIniciais, onSave }) => {
         return { projectionData: data, capitalNecessario: capitalNecessarioCalc, valorAcumulado: valorFinalAcumulado };
     }, [idadeAtual, idadeAposentadoria, patrimonioInicial, aportes, aporteRestante, rendaDesejada, rentabilidadeAnual]);
 
-
+    // Handlers locais (sem alterações na lógica interna)
     const handleAporteChange = (id, novoValor) => {
         setAportes(prev => prev.map(a => a.id === id ? {...a, valor: parseFloat(novoValor) || 0} : a));
     };
@@ -100,6 +99,7 @@ const TelaAposentadoria = ({ dadosIniciais, onSave }) => {
         });
     };
     
+    // 6. O botão de salvar agora chama a ação da store
     const handleSaveClick = () => {
         const dadosParaSalvar = {
             idadeAtual,
@@ -111,10 +111,19 @@ const TelaAposentadoria = ({ dadosIniciais, onSave }) => {
             aportes,
             aporteRestante
         };
-        onSave(dadosParaSalvar);
+        saveAposentadoria(dadosParaSalvar);
     };
 
     const anosRestantes = (idadeAposentadoria - idadeAtual) - aportes.length;
+
+    // 7. Adicionado um estado de carregamento
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-6xl mx-auto">

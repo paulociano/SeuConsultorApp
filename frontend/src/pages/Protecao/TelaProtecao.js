@@ -2,34 +2,41 @@ import { formatCurrency } from '../../utils/formatters';
 import { PlusCircle, Edit, Trash2, Users, Stethoscope, HeartHandshake, Car } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-// 1. Importar a store do Zustand
 import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
+import { useProtecaoStore } from '../../stores/useProtecaoStore';
 import Card from '../../components/Card/Card';
 import { useEffect, useMemo, useState } from 'react';
 
-// 2. A prop 'patrimonioTotal' foi removida
+// Componente refatorado para usar as stores de Proteção e Patrimônio.
+// As props de dados e handlers foram removidas.
 const TelaProtecao = ({ 
     rendaMensal, 
     custoDeVidaMensal, 
-    protecaoData,
-    onSaveItem,
-    onDeleteItem,
-    isLoading, // isLoading geral do App.js
     usuario
 }) => {
-    // 3. Aceder ao estado e às ações da store de Património
+    // Acesso ao estado e às ações das stores
     const { ativos, dividas, isLoading: isLoadingPatrimonio, fetchPatrimonio } = usePatrimonioStore();
+    const { 
+        invalidez, 
+        despesasFuturas, 
+        patrimonial, 
+        isLoading: isLoadingProtecao,
+        fetchProtecao, 
+        saveProtecaoItem, 
+        deleteProtecaoItem 
+    } = useProtecaoStore();
 
-    // 4. Chamar a função para carregar os dados de património
+    // Carrega os dados das stores quando o componente é montado
     useEffect(() => {
         fetchPatrimonio();
-    }, [fetchPatrimonio]);
+        fetchProtecao();
+    }, [fetchPatrimonio, fetchProtecao]);
 
-    const protecoesTemporarias = protecaoData?.invalidez || [];
-    const despesasFuturas = protecaoData?.despesasFuturas || [];
-    const protecaoPatrimonial = protecaoData?.patrimonial || [];
+    // O estado agora vem diretamente da store
+    const protecoesTemporarias = invalidez || [];
+    const protecaoPatrimonial = patrimonial || [];
 
-    // Estados locais (sem alteração)
+    // Estados locais para controle da UI (sem alteração)
     const [rentabilidadeAnual] = useState(10);
     const [editingItemId, setEditingItemId] = useState(null);
     const [editingItemData, setEditingItemData] = useState({ nome: '', cobertura: '', observacoes: '' });
@@ -43,7 +50,7 @@ const TelaProtecao = ({
     const [editingPatrimonialId, setEditingPatrimonialId] = useState(null);
     const [editingPatrimonialData, setEditingPatrimonialData] = useState({ nome: '', data_vencimento: '', empresa: '', valor: '' });
 
-    // 5. O cálculo do património total agora é feito localmente com dados da store
+    // Lógica de cálculo (sem alteração, mas agora usa dados das stores)
     const patrimonioTotal = useMemo(() => {
         const totalAtivos = ativos.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
         const totalDividas = dividas.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
@@ -87,32 +94,33 @@ const TelaProtecao = ({
         return base * doencasGravesTempo;
     }, [doencasGravesBase, doencasGravesTempo, rendaMensal, custoDeVidaMensal]);
 
+    // Handlers que agora chamam as ações da store
     const handleAddProtecaoTemporaria = (tipo) => {
-        onSaveItem({
+        saveProtecaoItem({
             nome: `Proteção Temporária (${tipo === 'renda' ? 'Renda' : 'Custo de Vida'})`,
             cobertura: tipo === 'renda' ? rendaMensal : custoDeVidaMensal,
             observacoes: 'Contratado'
         }, 'invalidez');
     };
-    const handleDeleteProtecao = (id) => onDeleteItem(id, 'invalidez');
+    const handleDeleteProtecao = (id) => deleteProtecaoItem(id, 'invalidez');
     const handleStartEdit = (item) => {
         setEditingItemId(item.id);
         setEditingItemData({ nome: item.nome, cobertura: item.cobertura, observacoes: item.observacoes });
     };
     const handleSaveEdit = (id) => {
-        onSaveItem({ id, ...editingItemData, cobertura: parseFloat(editingItemData.cobertura) || 0 }, 'invalidez');
+        saveProtecaoItem({ id, ...editingItemData, cobertura: parseFloat(editingItemData.cobertura) || 0 }, 'invalidez');
         setEditingItemId(null);
     };
 
     const handleAddDespesaFutura = () => {
-        onSaveItem({
+        saveProtecaoItem({
             nome: 'Nova Despesa',
             ano_inicio: new Date().getFullYear(),
             valor_mensal: 1000,
             prazo_meses: 12
         }, 'despesas');
     };
-    const handleDeleteDespesaFutura = (id) => onDeleteItem(id, 'despesas');
+    const handleDeleteDespesaFutura = (id) => deleteProtecaoItem(id, 'despesas');
     const handleStartEditFutura = (item) => {
         setEditingFuturaId(item.id);
         setEditingFuturaData({ 
@@ -123,7 +131,7 @@ const TelaProtecao = ({
         });
     };
     const handleSaveEditFutura = (id) => {
-        onSaveItem({ 
+        saveProtecaoItem({ 
             id, 
             ...editingFuturaData,
             ano_inicio: parseInt(editingFuturaData.ano_inicio) || 0,
@@ -134,20 +142,20 @@ const TelaProtecao = ({
     };
 
     const handleAddPatrimonial = () => {
-        onSaveItem({
+        saveProtecaoItem({
             nome: 'Seguro Auto',
             data_vencimento: new Date().toISOString().split('T')[0],
             empresa: 'Empresa Exemplo',
             valor: 50000
         }, 'patrimonial');
     };
-    const handleDeletePatrimonial = (id) => onDeleteItem(id, 'patrimonial');
+    const handleDeletePatrimonial = (id) => deleteProtecaoItem(id, 'patrimonial');
     const handleStartEditPatrimonial = (item) => {
         setEditingPatrimonialId(item.id);
         setEditingPatrimonialData({ ...item, data_vencimento: item.data_vencimento ? item.data_vencimento.split('T')[0] : '' });
     };
     const handleSaveEditPatrimonial = (id) => {
-        onSaveItem({ ...editingPatrimonialData, id, valor: parseFloat(editingPatrimonialData.valor) || 0 }, 'patrimonial');
+        saveProtecaoItem({ ...editingPatrimonialData, id, valor: parseFloat(editingPatrimonialData.valor) || 0 }, 'patrimonial');
         setEditingPatrimonialId(null);
     };
     
@@ -231,8 +239,7 @@ const TelaProtecao = ({
         }
     };
 
-    // 6. A lógica de carregamento agora considera o isLoading geral E o isLoading do património
-    if (isLoading || isLoadingPatrimonio) {
+    if (isLoadingPatrimonio || isLoadingProtecao) {
         return (
             <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
                 <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
@@ -358,7 +365,7 @@ const TelaProtecao = ({
                                  <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="doencas-base" value="custo" checked={doencasGravesBase === 'custo'} onChange={() => setDoencasGravesBase('custo')} className="form-radio h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 focus:ring-offset-0 focus:ring-2 focus:ring-[#00d971]" />
                                     <span className="text-slate-800 dark:text-white">Custo de Vida</span>
-                                </label>
+                                 </label>
                             </div>
                              <div className="bg-[#201b5d]/80 dark:bg-[#00d971]/80 p-3 rounded-lg flex justify-between items-center">
                                 <p className="text-base font-semibold text-white">Cobertura Necessária:</p>

@@ -9,10 +9,7 @@ import {
     CalendarDays
 } from 'lucide-react';
 import { Sun, Moon } from 'lucide-react';
-// 1. Importe uma biblioteca de scrollbar moderna e compatível com React 18
-// Lembre-se de instalar a dependência correta: npm install simplebar-react
 import SimpleBar from 'simplebar-react';
-// 2. Importe o CSS da biblioteca
 import 'simplebar-react/dist/simplebar.min.css';
 import TelaObjetivos from './pages/Objetivos/TelaObjetivos';
 import TelaAutenticacao from './pages/auth/TelaAutenticacao';
@@ -60,6 +57,9 @@ export default function App() {
     const [agenda, setAgenda] = useState([]);
     const [objetivos, setObjetivos] = useState([]);
     const [reservaInvestimentos, setReservaInvestimentos] = useState({});
+    const normalizeString = (str) => {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
 
     // Effect to check for existing token on initial load
     useEffect(() => {
@@ -239,16 +239,80 @@ export default function App() {
         const savedCasos = await apiRequest(`/aquisicoes/${tipo}`, 'POST', casos);
         if (savedCasos) { setAquisicaoData(prev => ({ ...prev, [tipo]: savedCasos })); toast.success("Simulações salvas!"); }
     };
+
+    
     const handleSaveOrcamentoItem = async (itemData, categoriaPaiId) => {
-        const endpoint = itemData.id ? `/orcamento/itens/${itemData.id}` : '/orcamento/itens';
-        const method = itemData.id ? 'PUT' : 'POST';
-        const payload = itemData.id ? itemData : { ...itemData, categoria_id: categoriaPaiId };
+        // 1. Determina o endpoint e método (sem mudanças aqui)
+        const isEditing = !!itemData.id;
+        const endpoint = isEditing ? `/orcamento/itens/${itemData.id}` : '/orcamento/itens';
+        const method = isEditing ? 'PUT' : 'POST';
+
+        // 2. Prepara o payload para a API (sem mudanças aqui)
+        // Para edição, o backend espera os campos do item (nome, valor_planejado, valor_atual).
+        // Para adição, o backend espera os mesmos campos + categoria_id.
+        const payload = {
+            nome: itemData.nome,
+            valor_planejado: itemData.sugerido,
+            valor_atual: itemData.atual,
+            categoria_planejamento: itemData.categoria_planejamento
+        };
+        if (!isEditing) {
+            payload.categoria_id = categoriaPaiId;
+        }
+        
+        // 3. Faz a chamada à API
         const itemSalvo = await apiRequest(endpoint, method, payload);
+
+        // 4. Se a chamada for bem-sucedida, atualiza o estado local
         if (itemSalvo) {
-            setUsuario(prev => ({ ...prev, categorias: prev.categorias.map(cat => cat.id === (itemData.id ? itemSalvo.categoria_id : categoriaPaiId) ? { ...cat, subItens: itemData.id ? cat.subItens.map(i => i.id === itemSalvo.id ? itemSalvo : i) : [...cat.subItens, itemSalvo] } : cat) }));
+            setUsuario(currentUser => {
+                // Cria uma cópia profunda das categorias para garantir a imutabilidade
+                const novasCategorias = JSON.parse(JSON.stringify(currentUser.categorias));
+
+                // Encontra a categoria que precisa ser modificada
+                const categoriaAlvo = novasCategorias.find(cat => cat.id === (isEditing ? itemSalvo.categoria_id : categoriaPaiId));
+
+                if (!categoriaAlvo) {
+                    console.error("Lógica de atualização falhou: Categoria não encontrada.");
+                    return currentUser; // Retorna o estado original se algo der errado
+                }
+
+                if (isEditing) {
+                    // MODO EDIÇÃO: Encontra e atualiza o item existente
+                    const itemIndex = categoriaAlvo.subItens.findIndex(i => i.id === itemSalvo.id);
+                    if (itemIndex > -1) {
+                        // Mapeia os dados do backend para o formato do frontend
+                        categoriaAlvo.subItens[itemIndex] = {
+                            ...categoriaAlvo.subItens[itemIndex], // Mantém outras props se houver
+                            id: itemSalvo.id,
+                            nome: itemSalvo.nome,
+                            sugerido: parseFloat(itemSalvo.valor_planejado),
+                            atual: parseFloat(itemSalvo.valor_atual),
+                            categoria_planejamento: itemSalvo.categoria_planejamento
+                        };
+                    }
+                } else {
+                    // MODO ADIÇÃO: Adiciona o novo item
+                    categoriaAlvo.subItens.push({
+                        id: itemSalvo.id,
+                        nome: itemSalvo.nome,
+                        sugerido: parseFloat(itemSalvo.valor_planejado),
+                        atual: parseFloat(itemSalvo.valor_atual), // Backend retorna valor_atual=0 por padrão
+                        categoria_planejamento: itemSalvo.categoria_planejamento
+                    });
+                }
+                
+                // Retorna um novo objeto de usuário com o novo array de categorias
+                return {
+                    ...currentUser,
+                    categorias: novasCategorias,
+                };
+            });
+
             toast.success('Item do orçamento salvo!');
         }
     };
+
     const handleDeleteOrcamentoItem = async (itemId) => {
         if (!window.confirm("Tem certeza?")) return;
         if (await apiRequest(`/orcamento/itens/${itemId}`, 'DELETE')) {
@@ -324,32 +388,85 @@ export default function App() {
         setCurrentPage('objetivos');
     };
 
-    // --- Memos for derived data ---
-    const { orcamentoCalculos, pieChartData } = useMemo(() => {
-        const defaultReturn = { 
-            orcamentoCalculos: { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 }, categorias: { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 } }, 
-            pieChartData: [] 
+    const { orcamentoCalculos, donutChartData } = useMemo(() => {
+    // Função auxiliar para remover acentos (se ainda não a tiver no topo do arquivo)
+    const normalizeString = (str) => {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    const defaultReturn = {
+        orcamentoCalculos: {
+            totalReceitas: { atual: 0, sugerido: 0 },
+            totalDespesas: { atual: 0, sugerido: 0 },
+            saldoAtual: 0,
+            saldoSugerido: 0,
+        },
+        donutChartData: []
+    };
+
+    if (!usuario || !usuario.categorias || usuario.categorias.length === 0) {
+        return defaultReturn;
+    }
+
+    try {
+        let totalReceitasAtual = 0;
+        let totalDespesasAtual = 0;
+
+        const totaisDespesasPorTipo = {
+            'Fixos': 0,
+            'Variáveis': 0,
+            'Investimentos': 0,
+            'Proteção': 0,
+            'Outros': 0 // [NOVO] Categoria de fallback
         };
-        if (!usuario || !usuario.categorias || usuario.categorias.length === 0) {
-            return defaultReturn;
-        }
-        try {
-            const totais = { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 } };
-            const totaisCategorias = { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 };
-            let pieData = [];
-            usuario.categorias.forEach(cat => {
-                const totalCatAtual = cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
-                const totalCatSugerido = cat.subItens.reduce((acc, item) => acc + (item.sugerido || 0), 0);
-                if (cat.tipo === 'receita') { totais.atual.receitas += totalCatAtual; totais.sugerido.receitas += totalCatSugerido; totaisCategorias.renda += totalCatAtual; } 
-                else { totais.atual.despesas += totalCatAtual; totais.sugerido.despesas += totalCatSugerido; pieData.push({ name: cat.nome, valueAtual: totalCatAtual, valueSugerido: totalCatSugerido }); if (cat.nome.toLowerCase().includes('fixa')) totaisCategorias.fixos += totalCatAtual; if (cat.nome.toLowerCase().includes('variável')) totaisCategorias.variaveis += totalCatAtual; if (cat.nome.toLowerCase().includes('investimento')) totaisCategorias.investimentos += totalCatAtual; }
-            });
-            const finalPieData = pieData.map(d => ({ ...d, percAtual: totais.atual.despesas > 0 ? ((d.valueAtual / totais.atual.despesas) * 100).toFixed(1) : "0.0", percSugerido: totais.sugerido.despesas > 0 ? ((d.valueSugerido / totais.sugerido.despesas) * 100).toFixed(1) : "0.0" }));
-            return { orcamentoCalculos: { ...totais, categorias: totaisCategorias }, pieChartData: finalPieData };
-        } catch (e) {
-            console.error("Erro ao calcular orçamento:", e);
-            return defaultReturn;
-        }
-    }, [usuario.categorias]);
+
+        usuario.categorias.forEach(cat => {
+            if (cat.tipo === 'receita') {
+                totalReceitasAtual += cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
+                return; // Pula para a próxima categoria
+            }
+
+            const totalCatAtual = cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
+            totalDespesasAtual += totalCatAtual;
+            
+            // [LÓGICA CORRIGIDA]
+            const nomeNormalizado = normalizeString(cat.nome.toLowerCase());
+            
+            if (cat.tipo === 'protecao' || nomeNormalizado.includes('protecao')) {
+                totaisDespesasPorTipo['Proteção'] += totalCatAtual;
+            } else if (nomeNormalizado.includes('fixa')) {
+                totaisDespesasPorTipo['Fixos'] += totalCatAtual;
+            } else if (nomeNormalizado.includes('variavel')) {
+                totaisDespesasPorTipo['Variáveis'] += totalCatAtual;
+            } else if (nomeNormalizado.includes('investimento')) {
+                totaisDespesasPorTipo['Investimentos'] += totalCatAtual;
+            } else if (totalCatAtual > 0) {
+                // Se não se encaixar em nada acima e tiver valor, vai para "Outros"
+                totaisDespesasPorTipo['Outros'] += totalCatAtual;
+            }
+        });
+        
+        const saldoAtual = totalReceitasAtual - totalDespesasAtual;
+        
+        const newDonutChartData = Object.keys(totaisDespesasPorTipo)
+            .map(key => ({ name: key, value: totaisDespesasPorTipo[key] }))
+            .filter(item => item.value > 0);
+
+        return {
+            orcamentoCalculos: {
+                totalReceitas: { atual: totalReceitasAtual, sugerido: 0 },
+                totalDespesas: { atual: totalDespesasAtual, sugerido: 0 },
+                saldoAtual,
+                saldoSugerido: 0,
+            },
+            donutChartData: newDonutChartData
+        };
+
+    } catch (e) {
+        console.error("Erro ao calcular orçamento:", e);
+        return defaultReturn;
+    }
+}, [usuario.categorias]);
 
     const custoDeVidaMensal = useMemo(() => {
         if (!usuario.categorias) return 0;
@@ -387,8 +504,15 @@ export default function App() {
         if (!isAuthenticated) return <TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setUsuario={setUsuario} />;
         let content;
         switch (currentPage) {
-            case 'orcamento': content = <TelaOrcamento categorias={usuario.categorias} onSaveItem={handleSaveOrcamentoItem} onDeleteItem={handleDeleteOrcamentoItem} orcamentoCalculos={orcamentoCalculos} pieChartData={pieChartData} />; break;
-            case 'protecao': content = <TelaProtecao rendaMensal={orcamentoCalculos.atual.receitas} custoDeVidaMensal={custoDeVidaMensal} patrimonioTotal={patrimonioTotal} protecaoData={protecaoData} onSaveItem={handleSaveProtecaoItem} onDeleteItem={handleDeleteProtecaoItem} />; break;
+            case 'orcamento': 
+            content = <TelaOrcamento 
+                        categorias={usuario.categorias || []} 
+                        onSaveItem={handleSaveOrcamentoItem} 
+                        onDeleteItem={handleDeleteOrcamentoItem}
+                        orcamentoCalculos={orcamentoCalculos} 
+                        chartData={donutChartData} // [ALTERADO] Nome da prop
+                    />; 
+            break;
             case 'reserva': content = <TelaReservaEmergencia orcamento={usuario.categorias || []} investimentosDisponiveis={investimentosDisponiveis} investimentosSelecionados={reservaInvestimentos} onSelectionChange={setReservaInvestimentos} />; break;
             case 'aposentadoriaAportes': content = <TelaAposentadoria dadosIniciais={aposentadoriaData} onSave={handleSaveAposentadoria} />; break;
             case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} patrimonioTotal={patrimonioTotal} onSaveItem={handleSavePatrimonioItem} onDeleteItem={handleDeletePatrimonioItem} />; break;
@@ -428,7 +552,6 @@ export default function App() {
                     </button>
                 </div>
                 
-                {/* 3. A área de navegação agora tem uma altura mínima de 0 para permitir que a scrollbar funcione dentro de um layout flex */}
                 <nav className="flex-1 min-h-0">
                     <SimpleBar style={{ height: '100%' }}>
                         <div className="p-3 space-y-1">
@@ -453,7 +576,6 @@ export default function App() {
                     </SimpleBar>
                 </nav>
 
-                {/* Esta parte inferior permanecerá fixa */}
                 <div className="border-t border-slate-200 dark:border-[#3e388b] p-3">
                     <button onClick={() => setPerfilAberto(prev => !prev)} className="w-full flex items-center justify-between hover:bg-slate-100 dark:hover:bg-[#3e388b]/50 px-3 py-2 rounded-md transition">
                         <div className="flex items-center gap-3">

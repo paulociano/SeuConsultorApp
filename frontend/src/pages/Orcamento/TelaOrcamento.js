@@ -1,26 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { toast } from 'sonner';
-import { Edit, Trash2, PlusCircle, Tag } from 'lucide-react';
-// CORREÇÃO: Importando o nome correto da variável, conforme o arquivo Categorias.js
+import { Edit, Trash2, PlusCircle, Tag, TrendingDown, TrendingUp, CheckCircle2, AlertTriangle, ChevronsUpDown } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { CATEGORIAS_FLUXO } from '../../components/constants/Categorias';
 
-// --- Sub-componente do Modal para Adicionar/Editar Itens ---
+// --- Sub-componente do Modal (sem alterações) ---
 const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
     const { mode, category, item } = context;
     const [nome, setNome] = useState('');
-    const [valorPlanejado, setValorPlanejado] = useState('');
+    const [sugerido, setSugerido] = useState('');
+    const [atual, setAtual] = useState(''); 
     const [categoriaPlanejamento, setCategoriaPlanejamento] = useState('');
 
     useEffect(() => {
         if (isOpen && item) {
             setNome(item.nome || '');
-            setValorPlanejado(item.sugerido?.toString() || '0');
+            setSugerido(item.sugerido?.toString() || '0');
+            setAtual(item.atual?.toString() || '0'); 
             setCategoriaPlanejamento(item.categoria_planejamento || '');
         } else if (isOpen) {
             setNome('');
-            setValorPlanejado('0');
+            setSugerido('0');
+            setAtual('0');
             setCategoriaPlanejamento('');
         }
     }, [isOpen, item]);
@@ -29,21 +32,28 @@ const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const valorFloat = parseFloat(valorPlanejado);
-        if (!nome || isNaN(valorFloat) || !categoriaPlanejamento) {
-            toast.error("Por favor, preencha nome, meta e a categoria para o planejamento.");
+        const valorSugeridoFloat = parseFloat(sugerido);
+        const valorAtualFloat = parseFloat(atual); 
+
+        if (!nome || isNaN(valorSugeridoFloat) || isNaN(valorAtualFloat)) {
+            toast.error("Por favor, preencha todos os campos com valores válidos.");
             return;
         }
-        onSave({ 
-            nome, 
-            valor_planejado: valorFloat, 
-            id: item?.id, 
-            categoria_planejamento: categoriaPlanejamento 
+        if (category.tipo === 'despesa' && !categoriaPlanejamento) {
+            toast.error("Para despesas, a categoria de planejamento é obrigatória.");
+            return;
+        }
+
+        onSave({
+            nome,
+            sugerido: valorSugeridoFloat,
+            atual: valorAtualFloat,
+            id: item?.id,
+            categoria_planejamento: category.tipo === 'despesa' ? categoriaPlanejamento : null
         });
         onClose();
     };
     
-    // CORREÇÃO: Usando a variável correta 'CATEGORIAS_FLUXO'
     const opcoesCategoria = Object.entries(CATEGORIAS_FLUXO).map(([id, { label }]) => ({ id, label }));
 
     return (
@@ -58,23 +68,24 @@ const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
                         <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Meta Planejada</label>
-                        <input type="number" value={valorPlanejado} onChange={(e) => setValorPlanejado(e.target.value)} required step="0.01" className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Meta Planejada (Sugerido)</label>
+                        <input type="number" value={sugerido} onChange={(e) => setSugerido(e.target.value)} required step="0.01" className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Categoria (para Planejamento)</label>
-                        <select
-                            value={categoriaPlanejamento}
-                            onChange={(e) => setCategoriaPlanejamento(e.target.value)}
-                            required
-                            className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"
-                        >
-                            <option value="" disabled>Selecione uma categoria</option>
-                            {opcoesCategoria.map(opt => (
-                                <option key={opt.id} value={opt.id}>{opt.label}</option>
-                            ))}
-                        </select>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Gasto Atual (Realizado)</label>
+                        <input type="number" value={atual} onChange={(e) => setAtual(e.target.value)} required step="0.01" className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]"/>
                     </div>
+                    {category.tipo === 'despesa' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">Categoria (para Planejamento)</label>
+                            <select value={categoriaPlanejamento} onChange={(e) => setCategoriaPlanejamento(e.target.value)} required className="mt-1 w-full bg-slate-100 dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-[#3e388b]">
+                                <option value="" disabled>Selecione uma categoria</option>
+                                {opcoesCategoria.map(opt => (
+                                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     <div className="flex justify-end gap-4 pt-4">
                         <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cancelar</button>
                         <button type="submit" className="px-6 py-2 text-sm font-medium text-black bg-[#00d971] rounded-lg hover:brightness-90">Salvar</button>
@@ -86,8 +97,156 @@ const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
 };
 
 
+// --- Sub-componente para o Resumo do Orçamento com Gráfico de Donut ---
+const OrcamentoResumo = ({ calculos, chartData }) => {
+    const { totalReceitas, totalDespesas, saldoAtual } = calculos;
+    // [CORRIGIDO] Adicionada cor para a categoria "Outros"
+    const COLORS = {
+        'Fixos': '#ef4444',
+        'Variáveis': '#f97316',
+        'Investimentos': '#3b82f6',
+        'Proteção': '#a855f7',
+        'Outros': '#64748b' // Cinza para fallback
+    };
+
+    // Componente customizado para a legenda do gráfico com percentuais
+    const renderLegend = (props) => {
+        const { payload } = props;
+        return (
+            <ul className="flex flex-col gap-2 text-xs text-slate-600 dark:text-slate-400">
+                {payload.map((entry) => {
+                    const percentual = totalDespesas.atual > 0 ? (entry.payload.value / totalDespesas.atual) * 100 : 0;
+                    return (
+                        <li key={`item-${entry.value}`} className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <span className="w-3 h-3 mr-2 rounded-sm" style={{ backgroundColor: entry.color }}></span>
+                                <span>{entry.value}</span>
+                            </div>
+                            <span className="font-semibold">{percentual.toFixed(1)}%</span>
+                        </li>
+                    );
+                })}
+            </ul>
+        );
+    };
+
+    return (
+        <Card>
+            <div className="p-6">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Distribuição das Despesas</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 items-center">
+                    {/* Gráfico de Donut */}
+                    <div className="w-full h-48">
+                         <ResponsiveContainer width="100%" height="100%">
+                             <PieChart>
+                                <Pie 
+                                    data={chartData} 
+                                    dataKey="value" 
+                                    nameKey="name" 
+                                    cx="50%" 
+                                    cy="50%" 
+                                    innerRadius={50} 
+                                    outerRadius={70} 
+                                    fill="#8884d8" 
+                                    paddingAngle={5}
+                                >
+                                    {chartData.map((entry) => (
+                                        <Cell key={`cell-${entry.name}`} fill={COLORS[entry.name] || '#8884d8'} />
+                                    ))}
+                                </Pie>
+                                <RechartsTooltip formatter={(value) => formatCurrency(value)} />
+                                <Legend content={renderLegend} wrapperStyle={{ right: -20, top: 20, lineHeight: '24px' }} layout="vertical" align="right" verticalAlign="middle" />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    {/* Cards de Métricas */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg">
+                            <div className="flex items-center gap-2 text-green-500"><TrendingUp size={18}/> <h3 className="font-semibold">Receitas</h3></div>
+                            <p className="text-2xl font-bold text-slate-800 dark:text-white">{formatCurrency(totalReceitas.atual)}</p>
+                        </div>
+                         <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg">
+                            <div className="flex items-center gap-2 text-red-500"><TrendingDown size={18}/> <h3 className="font-semibold">Despesas</h3></div>
+                            <p className="text-2xl font-bold text-slate-800 dark:text-white">{formatCurrency(totalDespesas.atual)}</p>
+                        </div>
+                        <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg col-span-2">
+                             <div className="flex items-center gap-2 text-blue-500"><CheckCircle2 size={18}/> <h3 className="font-semibold">Sobra/Déficit do Mês</h3></div>
+                             <p className={`text-2xl font-bold ${saldoAtual >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(saldoAtual)}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+
+// --- Sub-componente para a linha de um item do orçamento ---
+const ItemLinha = ({ item, catTipo, onEdit, onDelete }) => {
+    const diferenca = item.sugerido - item.atual;
+    const categoriaNome = CATEGORIAS_FLUXO[item.categoria_planejamento]?.label || 'Sem categoria';
+
+    return (
+        <div className="grid grid-cols-12 items-center py-2 px-4 gap-4 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700/50">
+            <div className="col-span-4 flex flex-col">
+                <span className="font-medium text-slate-800 dark:text-slate-200">{item.nome}</span>
+                {catTipo === 'despesa' && item.categoria_planejamento && (
+                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-gray-400">
+                        <Tag size={12}/> <span>{categoriaNome}</span>
+                    </div>
+                )}
+            </div>
+            <div className="col-span-2 text-right font-mono">{formatCurrency(item.atual)}</div>
+            <div className="col-span-2 text-right font-mono">{formatCurrency(item.sugerido)}</div>
+            <div className={`col-span-2 text-right font-mono font-semibold flex items-center justify-end gap-1 ${diferenca >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {diferenca >= 0 ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                {formatCurrency(Math.abs(diferenca))}
+            </div>
+            <div className="col-span-2 flex items-center justify-end gap-3">
+                <button onClick={onEdit} className="text-blue-400 hover:text-blue-600 transition-colors"><Edit size={16}/></button>
+                <button onClick={onDelete} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 size={16}/></button>
+            </div>
+        </div>
+    );
+}
+
+
+// --- Sub-componente para a linha da Categoria ---
+const CategoriaLinha = ({ cat, onToggle, isExpanded }) => {
+    const corTexto = cat.tipo === 'receita' ? 'text-green-500' : (cat.tipo === 'protecao' ? 'text-purple-400' : 'text-red-500');
+    const progresso = cat.totalSugerido > 0 ? (cat.totalAtual / cat.totalSugerido) * 100 : 0;
+    const corProgresso = progresso > 100 ? 'bg-red-500' : 'bg-blue-500';
+
+    return (
+        <div className="border-t border-slate-200 dark:border-slate-700">
+            <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 hover:bg-slate-100/50 dark:hover:bg-[#3e388b]/20 cursor-pointer" onClick={onToggle}>
+                <div className="col-span-4 font-bold text-slate-700 dark:text-white flex items-center gap-2">
+                   <ChevronsUpDown size={16} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                   {cat.nome}
+                </div>
+                <div className={`col-span-2 text-right font-semibold ${corTexto}`}>{formatCurrency(cat.totalAtual)}</div>
+                <div className="col-span-4 text-right font-semibold text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-2 justify-end">
+                       <span>{formatCurrency(cat.totalSugerido)}</span>
+                       {cat.tipo !== 'receita' && cat.totalSugerido > 0 && (
+                            <div className="w-24 bg-gray-200 dark:bg-gray-600 rounded-full h-2.5">
+                               <div className={`${corProgresso} h-2.5 rounded-full`} style={{ width: `${Math.min(progresso, 100)}%` }}></div>
+                            </div>
+                       )}
+                    </div>
+                </div>
+                <div className={`col-span-2 text-right font-bold ${cat.diferenca >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {formatCurrency(cat.diferenca)}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 // --- Componente Principal da Tela de Orçamento ---
-const TelaOrcamento = ({ categorias, onSaveItem, onDeleteItem, orcamentoCalculos }) => {
+const TelaOrcamento = ({ categorias, onSaveItem, onDeleteItem, orcamentoCalculos, chartData }) => {
     const [expandedCategories, setExpandedCategories] = useState({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalContext, setModalContext] = useState({ mode: 'add', category: null, item: null });
@@ -105,72 +264,64 @@ const TelaOrcamento = ({ categorias, onSaveItem, onDeleteItem, orcamentoCalculos
         onSaveItem(itemData, modalContext.category.id);
     };
 
+    const categoriasFormatadas = useMemo(() => {
+        return categorias.map(cat => {
+            const totalAtual = cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
+            const totalSugerido = cat.subItens.reduce((acc, item) => acc + (item.sugerido || 0), 0);
+            return {
+                ...cat,
+                totalAtual,
+                totalSugerido,
+                diferenca: totalSugerido - totalAtual,
+            };
+        }).sort((a,b) => (a.tipo === 'receita' ? -1 : 1));
+    }, [categorias]);
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <Card>
-                <div className="px-4 py-2">
-                    <h2 className="text-lg font-bold text-slate-800 dark:text-white">Orçamento</h2>
+                 <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">Detalhamento do Orçamento</h2>
                 </div>
-                <div className="grid grid-cols-3 items-center gap-4 px-4 pb-2 text-sm">
-                    <span className="font-semibold text-slate-800 dark:text-white">Categoria / Item</span>
-                    <span className="font-semibold text-slate-800 dark:text-white text-right">Gasto Atual</span>
-                    <span className="font-semibold text-slate-800 dark:text-white text-right">Meta Planejada</span>
+                <div className="grid grid-cols-12 items-center gap-4 px-4 py-2 text-sm font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50">
+                    <span className="col-span-4">Categoria / Item</span>
+                    <span className="col-span-2 text-right">Gasto Atual</span>
+                    <span className="col-span-2 text-right">Meta Planejada</span>
+                    <span className="col-span-2 text-right">Diferença</span>
+                    <span className="col-span-2 text-right">Ações</span>
                 </div>
-                {categorias.map(cat => {
-                    if (cat.tipo === 'protecao') return null;
-                    const isExpanded = !!expandedCategories[cat.id];
-                    const totalAtual = cat.subItens.reduce((acc, item) => acc + item.atual, 0);
-                    const totalSugerido = cat.subItens.reduce((acc, item) => acc + item.sugerido, 0);
-                    const corTexto = cat.tipo === 'receita' ? 'text-[#00d971]' : 'text-red-400';
-                    
-                    return (
-                        <div key={cat.id} className="border-t border-[#3e388b]">
-                            <div
-                                className="grid grid-cols-3 items-center gap-4 px-4 py-3 hover:bg-[#3e388b]/30 cursor-pointer"
-                                onClick={() => toggleCategory(cat.id)}
-                            >
-                                <span className="font-bold text-slate-600 dark:text-white text-base">{cat.nome}</span>
-                                <div className={`text-right font-semibold ${corTexto}`}>{formatCurrency(totalAtual)}</div>
-                                <div className="text-right font-semibold text-[#a39ee8]">{formatCurrency(totalSugerido)}</div>
-                            </div>
-                            {isExpanded && (
-                                <div className="pl-10 pr-4 pb-2 space-y-3 text-sm bg-slate-100 dark:bg-slate-800/50">
-                                    {cat.subItens.map(item => {
-                                        // CORREÇÃO: Usando a variável correta 'CATEGORIAS_FLUXO'
-                                        const categoriaNome = CATEGORIAS_FLUXO[item.categoria_planejamento]?.label || 'Sem categoria';
-                                        return (
-                                            <div key={item.id} className="grid grid-cols-3 items-center py-1">
-                                                <div className="col-span-2 flex flex-col">
-                                                    <span>{item.nome}</span>
-                                                    {cat.tipo === 'despesa' && (
-                                                        <div className="flex items-center gap-1 text-xs text-slate-500">
-                                                            <Tag size={12}/>
-                                                            <span>{categoriaNome}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center justify-end gap-4">
-                                                    <span>{formatCurrency(item.atual)}</span>
-                                                    <span>{formatCurrency(item.sugerido)}</span>
-                                                    <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', cat, item); }} className="text-blue-400"><Edit size={14}/></button>
-                                                    <button onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }} className="text-red-500"><Trash2 size={14}/></button>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                    {cat.tipo === 'despesa' && (
-                                        <div className="pt-2">
-                                            <button onClick={(e) => { e.stopPropagation(); handleOpenModal('add', cat); }} className="text-xs text-[#00d971] hover:underline font-semibold flex items-center gap-1">
-                                                <PlusCircle size={14} /> Adicionar item de despesa
-                                            </button>
-                                        </div>
-                                    )}
+
+                {categoriasFormatadas.map(cat => (
+                    <div key={cat.id}>
+                       <CategoriaLinha cat={cat} onToggle={() => toggleCategory(cat.id)} isExpanded={!!expandedCategories[cat.id]} />
+
+                        {!!expandedCategories[cat.id] && (
+                            <div className="bg-slate-100 dark:bg-slate-800/30">
+                                {cat.subItens.map(item => (
+                                    <ItemLinha
+                                        key={item.id}
+                                        item={item}
+                                        catTipo={cat.tipo}
+                                        onEdit={() => handleOpenModal('edit', cat, item)}
+                                        onDelete={() => onDeleteItem(item.id)}
+                                    />
+                                ))}
+                                <div className="pt-2 pl-4 pb-2">
+                                    <button onClick={() => handleOpenModal('add', cat)} className="text-xs text-[#00d971] hover:underline font-semibold flex items-center gap-1">
+                                        <PlusCircle size={14} /> 
+                                        Adicionar item
+                                    </button>
                                 </div>
-                            )}
-                        </div>
-                    );
-                })}
+                            </div>
+                        )}
+                    </div>
+                ))}
             </Card>
+            <OrcamentoResumo 
+                calculos={orcamentoCalculos} 
+                chartData={chartData}
+            />
+
             <ModalItemOrcamento isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} context={modalContext} />
         </div>
     );

@@ -52,20 +52,70 @@ const TelaFluxoDeCaixa = ({
     }, [transacoes, filtros]);
 
     const sumarioPorCategoria = useMemo(() => {
-        const gastos = transacoesFiltradas.filter(t => t.tipo === 'debit' && !t.ignorada && t.categoria !== 'receita');
-        const totais = gastos.reduce((acc, t) => {
+        // 1. Calcula os totais do período atual com base nas transações já filtradas
+        const gastosAtuais = transacoesFiltradas.filter(t => t.tipo === 'debit' && !t.ignorada && t.categoria !== 'receita');
+        const totaisAtuais = gastosAtuais.reduce((acc, t) => {
             if (t.categoria) {
                 if (!acc[t.categoria]) acc[t.categoria] = 0;
                 acc[t.categoria] += parseFloat(t.valor);
             }
             return acc;
         }, {});
-        return Object.entries(totais).map(([key, value]) => ({
-            id: key,
-            ...CATEGORIAS_FLUXO[key],
-            total: value
-        })).sort((a, b) => b.total - a.total);
-    }, [transacoesFiltradas]);
+
+        // 2. Calcula os totais do mês anterior, se um mês/ano específico for selecionado
+        let totaisAnteriores = {};
+        if (filtros.ano !== 'todos' && filtros.mes !== 'todos') {
+            const anoAtualNum = parseInt(filtros.ano);
+            const mesAtualNum = parseInt(filtros.mes);
+            
+            let anoAnterior = anoAtualNum;
+            let mesAnterior = mesAtualNum - 1;
+            if (mesAnterior === 0) {
+                mesAnterior = 12;
+                anoAnterior = anoAtualNum - 1;
+            }
+
+            const gastosMesAnterior = transacoes.filter(t => {
+                const dataTransacao = new Date(t.data);
+                if (isNaN(dataTransacao.getTime())) return false;
+                
+                return dataTransacao.getFullYear() === anoAnterior &&
+                       dataTransacao.getMonth() + 1 === mesAnterior &&
+                       t.tipo === 'debit' && !t.ignorada && t.categoria !== 'receita';
+            });
+            
+            totaisAnteriores = gastosMesAnterior.reduce((acc, t) => {
+                if (t.categoria) {
+                    if (!acc[t.categoria]) acc[t.categoria] = 0;
+                    acc[t.categoria] += parseFloat(t.valor);
+                }
+                return acc;
+            }, {});
+        }
+
+        // 3. Mapeia os totais atuais, calcula a diferença e cria o texto para o verso do card
+        return Object.entries(totaisAtuais).map(([key, totalAtual]) => {
+            const totalAnterior = totaisAnteriores[key] || 0;
+            let textoVerso = "Selecione um mês e ano para ver a comparação.";
+
+            if (filtros.mes !== 'todos' && filtros.ano !== 'todos') {
+                if (totalAnterior > 0) {
+                    const diferenca = ((totalAtual - totalAnterior) / totalAnterior) * 100;
+                    textoVerso = `Variação de ${diferenca >= 0 ? '+' : ''}${diferenca.toFixed(1)}% em relação ao mês anterior.`;
+                } else if (totalAtual > 0) {
+                    textoVerso = "Gasto novo este mês. Sem registro no mês anterior.";
+                }
+            }
+            
+            return {
+                id: key,
+                ...CATEGORIAS_FLUXO[key],
+                total: totalAtual,
+                verso: textoVerso, // Nova propriedade para o verso do card
+            };
+        }).sort((a, b) => b.total - a.total);
+    }, [transacoes, filtros, transacoesFiltradas]);
+
 
     const handleFiltroChange = (e) => {
         const { name, value } = e.target;
@@ -96,7 +146,7 @@ const TelaFluxoDeCaixa = ({
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Resumo por Categoria (Gastos)</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {sumarioPorCategoria.map(cat => (
-                        <FlipCardCategoria key={cat.id} icon={cat.icon} label={cat.label} total={cat.total} color={cat.color} />
+                        <FlipCardCategoria key={cat.id} icon={cat.icon} label={cat.label} total={cat.total} color={cat.color} verso={cat.verso} />
                     ))}
                 </div>
             </Card>

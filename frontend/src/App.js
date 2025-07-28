@@ -9,6 +9,11 @@ import {
     CalendarDays
 } from 'lucide-react';
 import { Sun, Moon } from 'lucide-react';
+// 1. Importe uma biblioteca de scrollbar moderna e compatível com React 18
+// Lembre-se de instalar a dependência correta: npm install simplebar-react
+import SimpleBar from 'simplebar-react';
+// 2. Importe o CSS da biblioteca
+import 'simplebar-react/dist/simplebar.min.css';
 import TelaObjetivos from './pages/Objetivos/TelaObjetivos';
 import TelaAutenticacao from './pages/auth/TelaAutenticacao';
 import TelaReservaEmergencia from './pages/Reserva/TelaReservaEmergencia';
@@ -320,7 +325,6 @@ export default function App() {
     };
 
     // --- Memos for derived data ---
-    // CORREÇÃO: useMemo agora é mais robusto para evitar crashes se os dados não carregarem.
     const { orcamentoCalculos, pieChartData } = useMemo(() => {
         const defaultReturn = { 
             orcamentoCalculos: { atual: { receitas: 0, despesas: 0 }, sugerido: { receitas: 0, despesas: 0 }, categorias: { fixos: 0, variaveis: 0, investimentos: 0, renda: 0 } }, 
@@ -423,25 +427,33 @@ export default function App() {
                         {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
                     </button>
                 </div>
-                <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-                    {menuItems.map(item => (
-                        <div key={item.id}>
-                            <button onClick={() => { if (item.subItems) { setOpenMenu(openMenu === item.id ? null : item.id); } else { setCurrentPage(item.id); setOpenMenu(item.id); } }} className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-left transition-colors duration-200 ${currentPage.startsWith(item.id) || openMenu === item.id ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
-                                <span className="flex items-center gap-2"><item.icon size={16} />{item.label}</span>
-                                {item.subItems && <ChevronDown size={14} className={`transform transition-transform ${openMenu === item.id ? 'rotate-180' : ''}`} />}
-                            </button>
-                            {item.subItems && openMenu === item.id && (
-                                <div className="ml-6 mt-1 space-y-1">
-                                    {item.subItems.map(sub => (
-                                        <button key={sub.id} onClick={() => setCurrentPage(sub.id)} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm w-full text-left ${currentPage === sub.id ? 'bg-slate-100 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-500 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
-                                            <sub.icon size={14} />{sub.label}
-                                        </button>
-                                    ))}
+                
+                {/* 3. A área de navegação agora tem uma altura mínima de 0 para permitir que a scrollbar funcione dentro de um layout flex */}
+                <nav className="flex-1 min-h-0">
+                    <SimpleBar style={{ height: '100%' }}>
+                        <div className="p-3 space-y-1">
+                            {menuItems.map(item => (
+                                <div key={item.id}>
+                                    <button onClick={() => { if (item.subItems) { setOpenMenu(openMenu === item.id ? null : item.id); } else { setCurrentPage(item.id); setOpenMenu(item.id); } }} className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-left transition-colors duration-200 ${currentPage.startsWith(item.id) || openMenu === item.id ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
+                                        <span className="flex items-center gap-2"><item.icon size={16} />{item.label}</span>
+                                        {item.subItems && <ChevronDown size={14} className={`transform transition-transform ${openMenu === item.id ? 'rotate-180' : ''}`} />}
+                                    </button>
+                                    {item.subItems && openMenu === item.id && (
+                                        <div className="ml-6 mt-1 space-y-1">
+                                            {item.subItems.map(sub => (
+                                                <button key={sub.id} onClick={() => setCurrentPage(sub.id)} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm w-full text-left ${currentPage === sub.id ? 'bg-slate-100 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-500 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
+                                                    <sub.icon size={14} />{sub.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            ))}
                         </div>
-                    ))}
+                    </SimpleBar>
                 </nav>
+
+                {/* Esta parte inferior permanecerá fixa */}
                 <div className="border-t border-slate-200 dark:border-[#3e388b] p-3">
                     <button onClick={() => setPerfilAberto(prev => !prev)} className="w-full flex items-center justify-between hover:bg-slate-100 dark:hover:bg-[#3e388b]/50 px-3 py-2 rounded-md transition">
                         <div className="flex items-center gap-3">

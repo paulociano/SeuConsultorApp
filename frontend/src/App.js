@@ -1,4 +1,5 @@
 import { useState, useMemo, useContext, useEffect } from 'react';
+import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from './assets/logo.svg';
 import { ThemeContext } from './ThemeContext';
 import {
@@ -32,14 +33,15 @@ import ModalNovaTransacao from './components/Modals/ModalNovaTransacao';
 import PageTransition from './utils/PageTransition';
 import { toast } from 'sonner';
 
-export default function App() {
+// Componente interno para conter a lógica principal e poder usar os hooks do Router
+const AppContent = () => {
     const { theme, toggleTheme } = useContext(ThemeContext);
+    const navigate = useNavigate();
+    const location = useLocation();
     
     // State for UI and navigation
-    const [currentPage, setCurrentPage] = useState('objetivos');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [openMenu, setOpenMenu] = useState('objetivos');
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [perfilAberto, setPerfilAberto] = useState(false);
     const [transacaoSelecionada, setTransacaoSelecionada] = useState(null);
     const [isTransacaoModalOpen, setIsTransacaoModalOpen] = useState(false);
@@ -57,17 +59,16 @@ export default function App() {
     const [agenda, setAgenda] = useState([]);
     const [objetivos, setObjetivos] = useState([]);
     const [reservaInvestimentos, setReservaInvestimentos] = useState({});
-    const normalizeString = (str) => {
-        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    }
 
     // Effect to check for existing token on initial load
     useEffect(() => {
         const token = localStorage.getItem('authToken');
         if (token) {
             setIsAuthenticated(true);
+        } else {
+            navigate('/login');
         }
-    }, []);
+    }, [navigate]);
 
     // Effect to fetch all initial data when user is authenticated
     useEffect(() => {
@@ -242,14 +243,10 @@ export default function App() {
 
     
     const handleSaveOrcamentoItem = async (itemData, categoriaPaiId) => {
-        // 1. Determina o endpoint e método (sem mudanças aqui)
         const isEditing = !!itemData.id;
         const endpoint = isEditing ? `/orcamento/itens/${itemData.id}` : '/orcamento/itens';
         const method = isEditing ? 'PUT' : 'POST';
 
-        // 2. Prepara o payload para a API (sem mudanças aqui)
-        // Para edição, o backend espera os campos do item (nome, valor_planejado, valor_atual).
-        // Para adição, o backend espera os mesmos campos + categoria_id.
         const payload = {
             nome: itemData.nome,
             valor_planejado: itemData.sugerido,
@@ -260,30 +257,23 @@ export default function App() {
             payload.categoria_id = categoriaPaiId;
         }
         
-        // 3. Faz a chamada à API
         const itemSalvo = await apiRequest(endpoint, method, payload);
 
-        // 4. Se a chamada for bem-sucedida, atualiza o estado local
         if (itemSalvo) {
             setUsuario(currentUser => {
-                // Cria uma cópia profunda das categorias para garantir a imutabilidade
                 const novasCategorias = JSON.parse(JSON.stringify(currentUser.categorias));
-
-                // Encontra a categoria que precisa ser modificada
                 const categoriaAlvo = novasCategorias.find(cat => cat.id === (isEditing ? itemSalvo.categoria_id : categoriaPaiId));
 
                 if (!categoriaAlvo) {
                     console.error("Lógica de atualização falhou: Categoria não encontrada.");
-                    return currentUser; // Retorna o estado original se algo der errado
+                    return currentUser;
                 }
 
                 if (isEditing) {
-                    // MODO EDIÇÃO: Encontra e atualiza o item existente
                     const itemIndex = categoriaAlvo.subItens.findIndex(i => i.id === itemSalvo.id);
                     if (itemIndex > -1) {
-                        // Mapeia os dados do backend para o formato do frontend
                         categoriaAlvo.subItens[itemIndex] = {
-                            ...categoriaAlvo.subItens[itemIndex], // Mantém outras props se houver
+                            ...categoriaAlvo.subItens[itemIndex],
                             id: itemSalvo.id,
                             nome: itemSalvo.nome,
                             sugerido: parseFloat(itemSalvo.valor_planejado),
@@ -292,17 +282,15 @@ export default function App() {
                         };
                     }
                 } else {
-                    // MODO ADIÇÃO: Adiciona o novo item
                     categoriaAlvo.subItens.push({
                         id: itemSalvo.id,
                         nome: itemSalvo.nome,
                         sugerido: parseFloat(itemSalvo.valor_planejado),
-                        atual: parseFloat(itemSalvo.valor_atual), // Backend retorna valor_atual=0 por padrão
+                        atual: parseFloat(itemSalvo.valor_atual),
                         categoria_planejamento: itemSalvo.categoria_planejamento
                     });
                 }
                 
-                // Retorna um novo objeto de usuário com o novo array de categorias
                 return {
                     ...currentUser,
                     categorias: novasCategorias,
@@ -385,89 +373,53 @@ export default function App() {
         setAtas([]); setAgenda([]);
         setObjetivos([]);
         setReservaInvestimentos({});
-        setCurrentPage('objetivos');
+        navigate('/login');
     };
 
     const { orcamentoCalculos, donutChartData } = useMemo(() => {
-    // Função auxiliar para remover acentos (se ainda não a tiver no topo do arquivo)
-    const normalizeString = (str) => {
-      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    }
-
-    const defaultReturn = {
-        orcamentoCalculos: {
-            totalReceitas: { atual: 0, sugerido: 0 },
-            totalDespesas: { atual: 0, sugerido: 0 },
-            saldoAtual: 0,
-            saldoSugerido: 0,
-        },
-        donutChartData: []
-    };
-
-    if (!usuario || !usuario.categorias || usuario.categorias.length === 0) {
-        return defaultReturn;
-    }
-
-    try {
-        let totalReceitasAtual = 0;
-        let totalDespesasAtual = 0;
-
-        const totaisDespesasPorTipo = {
-            'Fixos': 0,
-            'Variáveis': 0,
-            'Investimentos': 0,
-            'Proteção': 0,
-            'Outros': 0 // [NOVO] Categoria de fallback
+        const normalizeString = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const defaultReturn = {
+            orcamentoCalculos: { totalReceitas: { atual: 0, sugerido: 0 }, totalDespesas: { atual: 0, sugerido: 0 }, saldoAtual: 0, saldoSugerido: 0 },
+            donutChartData: []
         };
+        if (!usuario || !usuario.categorias || usuario.categorias.length === 0) return defaultReturn;
+        try {
+            let totalReceitasAtual = 0;
+            let totalDespesasAtual = 0;
+            const totaisDespesasPorTipo = { 'Fixos': 0, 'Variáveis': 0, 'Investimentos': 0, 'Proteção': 0, 'Outros': 0 };
+            usuario.categorias.forEach(cat => {
+                if (cat.tipo === 'receita') {
+                    totalReceitasAtual += cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
+                    return;
+                }
+                const totalCatAtual = cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
+                totalDespesasAtual += totalCatAtual;
+                const nomeNormalizado = normalizeString(cat.nome.toLowerCase());
+                if (cat.tipo === 'protecao' || nomeNormalizado.includes('protecao')) totaisDespesasPorTipo['Proteção'] += totalCatAtual;
+                else if (nomeNormalizado.includes('fixa')) totaisDespesasPorTipo['Fixos'] += totalCatAtual;
+                else if (nomeNormalizado.includes('variavel')) totaisDespesasPorTipo['Variáveis'] += totalCatAtual;
+                else if (nomeNormalizado.includes('investimento')) totaisDespesasPorTipo['Investimentos'] += totalCatAtual;
+                else if (totalCatAtual > 0) totaisDespesasPorTipo['Outros'] += totalCatAtual;
+            });
+            const saldoAtual = totalReceitasAtual - totalDespesasAtual;
+            const newDonutChartData = Object.keys(totaisDespesasPorTipo).map(key => ({ name: key, value: totaisDespesasPorTipo[key] })).filter(item => item.value > 0);
+            return {
+                orcamentoCalculos: { totalReceitas: { atual: totalReceitasAtual, sugerido: 0 }, totalDespesas: { atual: totalDespesasAtual, sugerido: 0 }, saldoAtual, saldoSugerido: 0 },
+                donutChartData: newDonutChartData
+            };
+        } catch (e) {
+            console.error("Erro ao calcular orçamento:", e);
+            return defaultReturn;
+        }
+    }, [usuario.categorias]);
 
-        usuario.categorias.forEach(cat => {
-            if (cat.tipo === 'receita') {
-                totalReceitasAtual += cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
-                return; // Pula para a próxima categoria
-            }
-
-            const totalCatAtual = cat.subItens.reduce((acc, item) => acc + (item.atual || 0), 0);
-            totalDespesasAtual += totalCatAtual;
-            
-            // [LÓGICA CORRIGIDA]
-            const nomeNormalizado = normalizeString(cat.nome.toLowerCase());
-            
-            if (cat.tipo === 'protecao' || nomeNormalizado.includes('protecao')) {
-                totaisDespesasPorTipo['Proteção'] += totalCatAtual;
-            } else if (nomeNormalizado.includes('fixa')) {
-                totaisDespesasPorTipo['Fixos'] += totalCatAtual;
-            } else if (nomeNormalizado.includes('variavel')) {
-                totaisDespesasPorTipo['Variáveis'] += totalCatAtual;
-            } else if (nomeNormalizado.includes('investimento')) {
-                totaisDespesasPorTipo['Investimentos'] += totalCatAtual;
-            } else if (totalCatAtual > 0) {
-                // Se não se encaixar em nada acima e tiver valor, vai para "Outros"
-                totaisDespesasPorTipo['Outros'] += totalCatAtual;
-            }
-        });
-        
-        const saldoAtual = totalReceitasAtual - totalDespesasAtual;
-        
-        const newDonutChartData = Object.keys(totaisDespesasPorTipo)
-            .map(key => ({ name: key, value: totaisDespesasPorTipo[key] }))
-            .filter(item => item.value > 0);
-
-        return {
-            orcamentoCalculos: {
-                totalReceitas: { atual: totalReceitasAtual, sugerido: 0 },
-                totalDespesas: { atual: totalDespesasAtual, sugerido: 0 },
-                saldoAtual,
-                saldoSugerido: 0,
-            },
-            donutChartData: newDonutChartData
-        };
-
-    } catch (e) {
-        console.error("Erro ao calcular orçamento:", e);
-        return defaultReturn;
-    }
-}, [usuario.categorias]);
-
+    const rendaMensal = useMemo(() => {
+        if (!usuario.categorias) return 0;
+        return usuario.categorias
+            .filter(c => c.tipo === 'receita')
+            .reduce((acc, cat) => acc + cat.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0), 0);
+    }, [usuario.categorias]);
+    
     const custoDeVidaMensal = useMemo(() => {
         if (!usuario.categorias) return 0;
         return usuario.categorias.filter(c => c.nome.toLowerCase().includes('fixa') || c.nome.toLowerCase().includes('variável')).reduce((acc, cat) => acc + cat.subItens.reduce((subAcc, item) => subAcc + (item.atual || 0), 0), 0);
@@ -491,113 +443,166 @@ export default function App() {
 
     // --- Menu and Page Rendering ---
     const menuItems = [
-        { id: 'objetivos', label: 'Objetivos', icon: Target }, { id: 'orcamento', label: 'Orçamento', icon: BarChart2 },
-        { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft, subItems: [{ id: 'fluxoTransacoes', label: 'Transações', icon: Coins }, { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare }] },
-        { id: 'patrimonio', label: 'Patrimônio', icon: Landmark }, { id: 'protecao', label: 'Proteção', icon: Shield }, { id: 'reserva', label: 'Reserva', icon: PiggyBank },
-        { id: 'aposentadoria', label: 'Aposentadoria', icon: TreePalm, subItems: [{ id:'aposentadoriaAportes', label: 'Aportes', icon: ChartLine}, { id:'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins}] },
-        { id: 'aquisicao', label: 'Aquisição', icon: ShoppingCart, subItems: [{ id: 'aquisicaoImoveis', label: 'Imóveis', icon: Building2 }, { id: 'aquisicaoAutomoveis', label: 'Automóveis', icon: Car }] },
-        { id: 'viagens', label: 'Viagens', icon: Plane, subItems: [{ id: 'viagensMilhas', label: 'Milhas', icon: PlaneTakeoff }, { id: 'viagensCartoes', label: 'Cartões', icon: CreditCard }] },
-        { id: 'EducacaoFinanceira', label: 'Educação Financeira', icon: BookOpen }, { id: 'agendaReunioes', label: 'Reuniões e Agenda', icon: CalendarDays }
+        { id: 'objetivos', label: 'Objetivos', icon: Target, path: '/objetivos' },
+        { id: 'orcamento', label: 'Orçamento', icon: BarChart2, path: '/orcamento' },
+        { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft, subItems: [
+            { id: 'fluxoTransacoes', label: 'Transações', icon: Coins, path: '/fluxo/transacoes' },
+            { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare, path: '/fluxo/planejamento' }
+        ]},
+        { id: 'patrimonio', label: 'Patrimônio', icon: Landmark, path: '/patrimonio' },
+        { id: 'protecao', label: 'Proteção', icon: Shield, path: '/protecao' },
+        { id: 'reserva', label: 'Reserva', icon: PiggyBank, path: '/reserva' },
+        { id: 'aposentadoria', label: 'Aposentadoria', icon: TreePalm, subItems: [
+            { id: 'aposentadoriaAportes', label: 'Aportes', icon: ChartLine, path: '/aposentadoria/aportes' },
+            { id: 'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins, path: '/aposentadoria/pgbl' }
+        ]},
+        { id: 'aquisicao', label: 'Aquisição', icon: ShoppingCart, subItems: [
+            { id: 'aquisicaoImoveis', label: 'Imóveis', icon: Building2, path: '/aquisicao/imoveis' },
+            { id: 'aquisicaoAutomoveis', label: 'Automóveis', icon: Car, path: '/aquisicao/automoveis' }
+        ]},
+        { id: 'viagens', label: 'Viagens', icon: Plane, subItems: [
+            { id: 'viagensMilhas', label: 'Milhas', icon: PlaneTakeoff, path: '/viagens/milhas' },
+            { id: 'viagensCartoes', label: 'Cartões', icon: CreditCard, path: '/viagens/cartoes' }
+        ]},
+        { id: 'EducacaoFinanceira', label: 'Educação Financeira', icon: BookOpen, path: '/educacao' },
+        { id: 'agendaReunioes', label: 'Reuniões e Agenda', icon: CalendarDays, path: '/agenda' }
     ];
-
-    const renderPage = () => {
-        if (!isAuthenticated) return <TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setUsuario={setUsuario} />;
-        let content;
-        switch (currentPage) {
-            case 'orcamento': 
-            content = <TelaOrcamento 
-                        categorias={usuario.categorias || []} 
-                        onSaveItem={handleSaveOrcamentoItem} 
-                        onDeleteItem={handleDeleteOrcamentoItem}
-                        orcamentoCalculos={orcamentoCalculos} 
-                        chartData={donutChartData} // [ALTERADO] Nome da prop
-                    />; 
-            break;
-            case 'reserva': content = <TelaReservaEmergencia orcamento={usuario.categorias || []} investimentosDisponiveis={investimentosDisponiveis} investimentosSelecionados={reservaInvestimentos} onSelectionChange={setReservaInvestimentos} />; break;
-            case 'aposentadoriaAportes': content = <TelaAposentadoria dadosIniciais={aposentadoriaData} onSave={handleSaveAposentadoria} />; break;
-            case 'patrimonio': content = <TelaPatrimonio patrimonioData={patrimonioData} patrimonioTotal={patrimonioTotal} onSaveItem={handleSavePatrimonioItem} onDeleteItem={handleDeletePatrimonioItem} />; break;
-            case 'fluxoTransacoes': content = <TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={(id, cat) => handleSaveTransacao({...transacoes.find(t=>t.id===id), categoria: cat})} handleIgnoreToggle={(id) => handleSaveTransacao({...transacoes.find(t=>t.id===id), ignorada: !transacoes.find(t=>t.id===id).ignorada})} onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} onEditClick={(t) => {setTransacaoSelecionada(t); setIsTransacaoModalOpen(true);}} onDeleteClick={handleDeleteTransacao} />; break;
-            case 'fluxoPlanejamento': content = <TelaPlanejamento orcamento={usuario.categorias} gastosReais={transacoes} />; break;
-            case 'aquisicaoImoveis': content = <TelaAquisicaoImoveis dadosIniciais={aquisicaoData.imoveis} onSave={(data) => handleSaveAquisicao('imoveis', data)} />; break;
-            case 'aquisicaoAutomoveis': content = <TelaAquisicaoAutomoveis dadosIniciais={aquisicaoData.automoveis} onSave={(data) => handleSaveAquisicao('automoveis', data)} />; break;
-            case 'viagensMilhas': content = <TelaMilhas carteiras={milhasData.carteiras} metas={milhasData.metas} onSave={handleSaveMilhasItem} onDelete={handleDeleteMilhasItem} />; break;
-            case 'viagensCartoes': content = <TelaCartoes />; break;
-            case 'EducacaoFinanceira': content = <TelaEducacaoFinanceira />; break;
-            case 'aposentadoriaPGBL': content = <TelaSimuladorPGBL dadosIniciais={simuladorPgblData} onSave={handleSaveSimuladorPgbl} />; break;
-            case 'configuracoesPerfil': content = <TelaConfiguracoesPerfil usuario={usuario} setUsuario={setUsuario} />; break;
-            case 'agendaReunioes': content = <TelaReunioesAgenda atasIniciais={atas} agendaInicial={agenda} onSaveAta={handleSaveAta} onDeleteAta={handleDeleteAta} onSaveCompromisso={handleSaveCompromisso} onDeleteCompromisso={handleDeleteCompromisso} />; break;
-            default: content = <TelaObjetivos 
-                                    objetivos={objetivos} 
-                                    onSave={handleSaveObjetivo} 
-                                    onDelete={handleDeleteObjetivo} 
-                                    investimentosDisponiveis={investimentosDisponiveisParaObjetivos}
-                                    patrimonio={patrimonioData.ativos}
-                                />; break;
+    
+    // Função para lidar com o clique no menu, usando o navigate do React Router
+    const handleMenuClick = (id, path, hasSubItems) => {
+        if (hasSubItems) {
+            // Se tem sub-itens, apenas abre/fecha o menu
+            setOpenMenu(prevOpenMenu => (prevOpenMenu === id ? null : id));
         }
-        return <PageTransition key={currentPage}>{content}</PageTransition>;
+        if (path) {
+            // Se tem um caminho, navega para ele
+            navigate(path);
+        }
     };
 
-    if (!isAuthenticated) return renderPage();
+
+    if (!isAuthenticated && location.pathname !== '/login') {
+        return <TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setUsuario={setUsuario} />;
+    }
+
+    if (isAuthenticated && location.pathname === '/login') {
+        navigate('/objetivos');
+        return null; 
+    }
 
     return (
         <div className="bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-white min-h-screen font-sans">
-            <aside className="fixed top-0 left-0 h-full w-64 bg-white dark:bg-[#201b5d] shadow-md z-20 flex flex-col">
-                <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-[#3e388b]">
-                    <div className="flex items-center gap-2">
-                        <img src={logo} alt="Logo SeuConsultor" className="h-6 w-auto" style={{ filter: 'invert(42%) sepia(93%) saturate(2000%) hue-rotate(133deg) brightness(100%) contrast(107%)' }} />
-                        <span className="font-montserrat text-slate-900 dark:text-white text-sm font-extrabold">SeuConsultor</span>
+            {isAuthenticated && (
+                <aside className="fixed top-0 left-0 h-full w-64 bg-white dark:bg-[#201b5d] shadow-md z-20 flex flex-col">
+                    <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-[#3e388b]">
+                        <div className="flex items-center gap-2">
+                            <img src={logo} alt="Logo SeuConsultor" className="h-6 w-auto" style={{ filter: 'invert(42%) sepia(93%) saturate(2000%) hue-rotate(133deg) brightness(100%) contrast(107%)' }} />
+                            <span className="font-montserrat text-slate-900 dark:text-white text-sm font-extrabold">SeuConsultor</span>
+                        </div>
+                        <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-[#3e388b]/50">
+                            {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
+                        </button>
                     </div>
-                    <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-[#3e388b]/50">
-                        {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
-                    </button>
-                </div>
-                
-                <nav className="flex-1 min-h-0">
-                    <SimpleBar style={{ height: '100%' }}>
-                        <div className="p-3 space-y-1">
-                            {menuItems.map(item => (
-                                <div key={item.id}>
-                                    <button onClick={() => { if (item.subItems) { setOpenMenu(openMenu === item.id ? null : item.id); } else { setCurrentPage(item.id); setOpenMenu(item.id); } }} className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-left transition-colors duration-200 ${currentPage.startsWith(item.id) || openMenu === item.id ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
-                                        <span className="flex items-center gap-2"><item.icon size={16} />{item.label}</span>
-                                        {item.subItems && <ChevronDown size={14} className={`transform transition-transform ${openMenu === item.id ? 'rotate-180' : ''}`} />}
-                                    </button>
-                                    {item.subItems && openMenu === item.id && (
-                                        <div className="ml-6 mt-1 space-y-1">
-                                            {item.subItems.map(sub => (
-                                                <button key={sub.id} onClick={() => setCurrentPage(sub.id)} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm w-full text-left ${currentPage === sub.id ? 'bg-slate-100 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-500 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}>
-                                                    <sub.icon size={14} />{sub.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </SimpleBar>
-                </nav>
+                    
+                    <nav className="flex-1 min-h-0">
+                        <SimpleBar style={{ height: '100%' }}>
+                            <div className="p-3 space-y-1">
+                                {menuItems.map(item => (
+                                    <div key={item.id}>
+                                        <button 
+                                            onClick={() => handleMenuClick(item.id, item.path, !!item.subItems)} 
+                                            className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-left transition-colors duration-200 ${location.pathname.startsWith(item.path || `/` + item.id) || openMenu === item.id ? 'bg-slate-200 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-600 dark:text-white hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}
+                                        >
+                                            <span className="flex items-center gap-2"><item.icon size={16} />{item.label}</span>
+                                            {item.subItems && <ChevronDown size={14} className={`transform transition-transform ${openMenu === item.id ? 'rotate-180' : ''}`} />}
+                                        </button>
+                                        {item.subItems && openMenu === item.id && (
+                                            <div className="ml-6 mt-1 space-y-1">
+                                                {item.subItems.map(sub => (
+                                                    <Link 
+                                                        key={sub.id} 
+                                                        to={sub.path} 
+                                                        className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm w-full text-left ${location.pathname === sub.path ? 'bg-slate-100 dark:bg-[#00d971] text-slate-900 dark:text-black' : 'text-gray-500 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-[#3e388b]/50'}`}
+                                                    >
+                                                        <sub.icon size={14} />{sub.label}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </SimpleBar>
+                    </nav>
 
-                <div className="border-t border-slate-200 dark:border-[#3e388b] p-3">
-                    <button onClick={() => setPerfilAberto(prev => !prev)} className="w-full flex items-center justify-between hover:bg-slate-100 dark:hover:bg-[#3e388b]/50 px-3 py-2 rounded-md transition">
-                        <div className="flex items-center gap-3">
-                            <img src={usuario.imagem_url || `https://ui-avatars.com/api/?name=${usuario.nome || 'U'}&background=00d971&color=000`} alt="avatar" className="w-8 h-8 rounded-full object-cover border" />
-                            <span className="text-sm font-medium text-slate-800 dark:text-white">{usuario.nome}</span>
-                        </div>
-                        <ChevronDown size={16} className={`transition-transform duration-300 ${!perfilAberto ? 'rotate-180' : 'rotate-0'}`} />
-                    </button>
-                    <div className={`grid transition-all duration-300 ease-in-out ${perfilAberto ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0 mt-0'} overflow-hidden`}>
-                        <div className="min-h-0">
-                            <div className="space-y-2 pl-11">
-                                <button onClick={() => { setCurrentPage('configuracoesPerfil'); setPerfilAberto(false); }} className="w-full text-left text-sm text-gray-600 dark:text-gray-300 hover:underline">⚙️ Configurações</button>
-                                <button onClick={handleLogout} className="w-full text-left text-sm text-red-500 hover:underline">⏻ Sair</button>
+                    <div className="border-t border-slate-200 dark:border-[#3e388b] p-3">
+                        <button onClick={() => setPerfilAberto(prev => !prev)} className="w-full flex items-center justify-between hover:bg-slate-100 dark:hover:bg-[#3e388b]/50 px-3 py-2 rounded-md transition">
+                            <div className="flex items-center gap-3">
+                                <img src={usuario.imagem_url || `https://ui-avatars.com/api/?name=${usuario.nome || 'U'}&background=00d971&color=000`} alt="avatar" className="w-8 h-8 rounded-full object-cover border" />
+                                <span className="text-sm font-medium text-slate-800 dark:text-white">{usuario.nome}</span>
+                            </div>
+                            <ChevronDown size={16} className={`transition-transform duration-300 ${!perfilAberto ? 'rotate-180' : 'rotate-0'}`} />
+                        </button>
+                        <div className={`grid transition-all duration-300 ease-in-out ${perfilAberto ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0 mt-0'} overflow-hidden`}>
+                            <div className="min-h-0">
+                                <div className="space-y-2 pl-11">
+                                    <button onClick={() => { navigate('/configuracoes'); setPerfilAberto(false); }} className="w-full text-left text-sm text-gray-600 dark:text-gray-300 hover:underline">⚙️ Configurações</button>
+                                    <button onClick={handleLogout} className="w-full text-left text-sm text-red-500 hover:underline">⏻ Sair</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </aside>
-            <main className="ml-64 p-4 md:p-6 transition-all duration-300">{renderPage()}</main>
+                </aside>
+            )}
+            <main className={isAuthenticated ? "ml-64 p-4 md:p-6 transition-all duration-300" : ""}>
+                <PageTransition key={location.pathname}>
+                    <Routes>
+                        <Route path="/login" element={<TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setUsuario={setUsuario} />} />
+                        <Route path="/objetivos" element={<TelaObjetivos objetivos={objetivos} onSave={handleSaveObjetivo} onDelete={handleDeleteObjetivo} investimentosDisponiveis={investimentosDisponiveisParaObjetivos} patrimonio={patrimonioData.ativos} />} />
+                        <Route path="/orcamento" element={<TelaOrcamento categorias={usuario.categorias || []} onSaveItem={handleSaveOrcamentoItem} onDeleteItem={handleDeleteOrcamentoItem} orcamentoCalculos={orcamentoCalculos} chartData={donutChartData} />} />
+                        <Route path="/reserva" element={<TelaReservaEmergencia orcamento={usuario.categorias || []} investimentosDisponiveis={investimentosDisponiveis} investimentosSelecionados={reservaInvestimentos} onSelectionChange={setReservaInvestimentos} />} />
+                        <Route path="/aposentadoria/aportes" element={<TelaAposentadoria dadosIniciais={aposentadoriaData} onSave={handleSaveAposentadoria} />} />
+                        <Route path="/patrimonio" element={<TelaPatrimonio patrimonioData={patrimonioData} patrimonioTotal={patrimonioTotal} onSaveItem={handleSavePatrimonioItem} onDeleteItem={handleDeletePatrimonioItem} />} />
+                        <Route 
+                            path="/protecao" 
+                            element={<TelaProtecao 
+                                        rendaMensal={rendaMensal}
+                                        custoDeVidaMensal={custoDeVidaMensal}
+                                        patrimonioTotal={patrimonioTotal}
+                                        protecaoData={protecaoData}
+                                        onSaveItem={handleSaveProtecaoItem}
+                                        onDeleteItem={handleDeleteProtecaoItem}
+                                        usuario={usuario} 
+                                    />} 
+                        />
+                        <Route path="/fluxo/transacoes" element={<TelaFluxoDeCaixa transacoes={transacoes} handleCategoryChange={(id, cat) => handleSaveTransacao({...transacoes.find(t=>t.id===id), categoria: cat})} handleIgnoreToggle={(id) => handleSaveTransacao({...transacoes.find(t=>t.id===id), ignorada: !transacoes.find(t=>t.id===id).ignorada})} onAdicionarClick={() => {setTransacaoSelecionada(null); setIsTransacaoModalOpen(true);}} onEditClick={(t) => {setTransacaoSelecionada(t); setIsTransacaoModalOpen(true);}} onDeleteClick={handleDeleteTransacao} />} />
+                        <Route path="/fluxo/planejamento" element={<TelaPlanejamento orcamento={usuario.categorias} gastosReais={transacoes} />} />
+                        <Route path="/aquisicao/imoveis" element={<TelaAquisicaoImoveis dadosIniciais={aquisicaoData.imoveis} onSave={(data) => handleSaveAquisicao('imoveis', data)} />} />
+                        <Route path="/aquisicao/automoveis" element={<TelaAquisicaoAutomoveis dadosIniciais={aquisicaoData.automoveis} onSave={(data) => handleSaveAquisicao('automoveis', data)} />} />
+                        <Route path="/viagens/milhas" element={<TelaMilhas carteiras={milhasData.carteiras} metas={milhasData.metas} onSave={handleSaveMilhasItem} onDelete={handleDeleteMilhasItem} />} />
+                        <Route path="/viagens/cartoes" element={<TelaCartoes />} />
+                        <Route path="/educacao" element={<TelaEducacaoFinanceira />} />
+                        <Route path="/aposentadoria/pgbl" element={<TelaSimuladorPGBL dadosIniciais={simuladorPgblData} onSave={handleSaveSimuladorPgbl} />} />
+                        <Route path="/configuracoes" element={<TelaConfiguracoesPerfil usuario={usuario} setUsuario={setUsuario} />} />
+                        <Route path="/agenda" element={<TelaReunioesAgenda atasIniciais={atas} agendaInicial={agenda} onSaveAta={handleSaveAta} onDeleteAta={handleDeleteAta} onSaveCompromisso={handleSaveCompromisso} onDeleteCompromisso={handleDeleteCompromisso} />} />
+                        
+                        {/* Rota padrão para usuários autenticados */}
+                        <Route path="*" element={isAuthenticated ? <TelaObjetivos objetivos={objetivos} onSave={handleSaveObjetivo} onDelete={handleDeleteObjetivo} investimentosDisponiveis={investimentosDisponiveisParaObjetivos} patrimonio={patrimonioData.ativos} /> : <TelaAutenticacao setIsAuthenticated={setIsAuthenticated} setUsuario={setUsuario} />} />
+                    </Routes>
+                </PageTransition>
+            </main>
             {isTransacaoModalOpen && (
                 <ModalNovaTransacao transacao={transacaoSelecionada} onSave={handleSaveTransacao} onClose={() => { setIsTransacaoModalOpen(false); setTransacaoSelecionada(null); }} />
             )}
         </div>
     );
+};
+
+// Componente principal que exportamos
+export default function App() {
+  // A única responsabilidade dele é renderizar o AppContent
+  // que agora está dentro do contexto do Router (definido em index.js)
+  return (
+      <AppContent />
+  );
 }

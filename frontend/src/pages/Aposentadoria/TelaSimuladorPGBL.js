@@ -4,6 +4,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { Save } from 'lucide-react';
 // 1. Importar a store de aposentadoria
 import { useAposentadoriaStore } from '../../stores/useAposentadoriaStore';
+import LoaderLogo from '../../components/Loader/loaderlogo';
 
 // --- Constantes e Funções de Cálculo (sem alterações) ---
 const TETO_SIMPLIFICADO = 16754.34;
@@ -124,9 +125,7 @@ const TelaSimuladorPGBL = () => {
   // 7. Adicionado um estado de carregamento
   if (isLoading) {
     return (
-        <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
-        </div>
+        <LoaderLogo />
     );
   }
 

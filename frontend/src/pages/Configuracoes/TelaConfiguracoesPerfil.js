@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 // 1. Importar a store do usuário e o toast para notificações
 import { useUserStore } from "../../stores/useUserStore";
+import LoaderLogo from "../../components/Loader/loaderlogo";
 
 // 2. Remover as props da assinatura do componente
 export default function TelaConfiguracoesPerfil() {
@@ -63,13 +64,11 @@ export default function TelaConfiguracoesPerfil() {
   };
   
   // Adiciona um estado de carregamento para evitar o erro inicial
-  if (!usuario) {
-    return (
-        <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
-        </div>
-    );
-  }
+  if (isLoading) {
+        return (
+            <LoaderLogo />
+        )
+    }
 
   return (
     <div className="max-w-xl mx-auto mt-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg">

@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Card from '../../components/Card/Card';
-import { PlusCircle, Save } from 'lucide-react';
+import { Loader, PlusCircle, Save } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 import { v4 as uuidv4 } from 'uuid';
+import LoaderLogo from '../../components/Loader/loaderlogo';
 // 1. Importar a store de aposentadoria
 import { useAposentadoriaStore } from '../../stores/useAposentadoriaStore';
 
@@ -119,9 +120,7 @@ const TelaAposentadoria = () => {
     // 7. Adicionado um estado de carregamento
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
-            </div>
+            <LoaderLogo />
         );
     }
 

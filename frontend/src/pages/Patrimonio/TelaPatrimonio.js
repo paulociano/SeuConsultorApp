@@ -6,6 +6,7 @@ import { Coins, CarFront, Building2, Landmark, Gift, Package, DollarSign, PlusCi
 import { PIE_COLORS } from '../../components/constants/PieColors';
 import { ThemeContext } from '../../ThemeContext';
 import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
+import LoaderLogo from '../../components/Loader/loaderlogo';
 
 // --- Componente do Modal para Adicionar/Editar Item (sem alterações) ---
 const ModalPatrimonioItem = ({ item, tipo, onClose, onSave }) => {
@@ -141,9 +142,7 @@ const TelaPatrimonio = () => {
     // O `isLoading` agora vem diretamente da store
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
-            </div>
+            <LoaderLogo />
         );
     }
 

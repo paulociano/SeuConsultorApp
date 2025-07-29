@@ -1,5 +1,5 @@
 import { formatCurrency } from '../../utils/formatters';
-import { PlusCircle, Edit, Trash2, Users, Stethoscope, HeartHandshake, Car } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Users, Stethoscope, HeartHandshake, Car, Loader } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
@@ -9,6 +9,7 @@ import { useUserStore } from '../../stores/useUserStore';
 import Card from '../../components/Card/Card';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import LoaderLogo from '../../components/Loader/loaderlogo';
 
 // 1. O componente agora não recebe mais props. Ele busca tudo das stores.
 const TelaProtecao = () => {
@@ -217,9 +218,7 @@ const TelaProtecao = () => {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
-            </div>
+            <LoaderLogo />
         );
     }
 

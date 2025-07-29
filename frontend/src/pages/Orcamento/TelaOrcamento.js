@@ -6,6 +6,7 @@ import { Edit, Trash2, PlusCircle, Tag, TrendingDown, TrendingUp, CheckCircle2, 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { CATEGORIAS_FLUXO } from '../../components/constants/Categorias';
 import { useOrcamentoStore } from '../../stores/useOrcamentoStore'; // 1. Importar a store
+import LoaderLogo from '../../components/Loader/loaderlogo';
 
 // --- Sub-componente do Modal (sem alterações) ---
 const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
@@ -323,9 +324,7 @@ const TelaOrcamento = () => {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
-            </div>
+            <LoaderLogo />
         );
     }
 

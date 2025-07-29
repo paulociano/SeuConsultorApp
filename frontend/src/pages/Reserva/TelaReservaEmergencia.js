@@ -6,6 +6,7 @@ import { Target } from 'lucide-react';
 import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
 import { useReservaStore } from '../../stores/useReservaStore';
 import { useOrcamentoStore } from '../../stores/useOrcamentoStore';
+import LoaderLogo from '../../components/Loader/loaderlogo';
 
 
 /**
@@ -77,9 +78,7 @@ const TelaReservaEmergencia = () => {
     // 6. A lógica de carregamento agora considera os estados de loading do patrimônio e do orçamento
     if (isLoadingOrcamento || isLoadingPatrimonio) {
         return (
-            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
-            </div>
+            <LoaderLogo />
         );
     }
 

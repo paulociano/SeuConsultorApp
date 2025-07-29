@@ -2,7 +2,8 @@ import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
     ArrowLeft, Trash2, PlusCircle, Trophy, Grid2X2, Rotate3D, Pencil,
-    Home, Plane, Car, Shield, Briefcase, School, Gift, HeartHandshake 
+    Home, Plane, Car, Shield, Briefcase, School, Gift, HeartHandshake, 
+    Loader
 } from 'lucide-react';
 import Card from '../../components/Card/Card';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -10,6 +11,7 @@ import { ThemeContext } from '../../ThemeContext';
 import ModalObjetivo from '../../components/Modals/ModalObjetivo';
 import userImage from '../../assets/persona.jpg';
 import { formatCurrency } from '../../utils/formatters';
+import LoaderLogo from '../../components/Loader/loaderlogo';
 // 1. Importar AMBAS as stores necessárias
 import { useObjetivosStore } from '../../stores/useObjetivosStore';
 import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
@@ -273,9 +275,7 @@ const TelaObjetivos = () => {
   // O estado de carregamento agora considera ambas as stores
   if (isLoadingObjetivos || isLoadingPatrimonio) {
     return (
-        <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
-        </div>
+        <LoaderLogo />
     );
   }
 

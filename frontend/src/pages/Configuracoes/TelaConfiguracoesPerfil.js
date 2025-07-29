@@ -1,95 +1,136 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+// 1. Importar a store do usuário e o toast para notificações
+import { useUserStore } from "../../stores/useUserStore";
 
-export default function TelaConfiguracoesPerfil({ usuario, setUsuario }) {
-  const [nome, setNome] = useState(usuario.nome);
-  const [email, setEmail] = useState(usuario.email);
+// 2. Remover as props da assinatura do componente
+export default function TelaConfiguracoesPerfil() {
+  // 3. Obter o usuário e a função de atualização da store
+  const { usuario, updateUser, isLoading } = useUserStore();
+
+  // 4. Inicializar os estados locais com valores padrão ou vazios
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [imagem, setImagem] = useState(null);
-  const [imagemPreview, setImagemPreview] = useState(usuario.imagem || null);
+  const [imagem, setImagem] = useState(null); // Para o arquivo da nova imagem
+  const [imagemPreview, setImagemPreview] = useState(null); // Para a pré-visualização
 
-  const [original, setOriginal] = useState({
-    nome: usuario.nome,
-    email: usuario.email
-  });
+  // 5. Usar useEffect para popular os estados quando o 'usuario' da store estiver disponível
+  useEffect(() => {
+    if (usuario) {
+      setNome(usuario.nome || '');
+      setEmail(usuario.email || '');
+      setImagemPreview(usuario.imagem_url || null);
+    }
+  }, [usuario]);
+
 
   const handleImagemChange = (e) => {
     const file = e.target.files[0];
-    setImagem(file);
-    setImagemPreview(URL.createObjectURL(file));
+    if (file) {
+      setImagem(file);
+      setImagemPreview(URL.createObjectURL(file));
+    }
   };
 
-  const houveMudancas = () =>
-    (nome !== original.nome || email !== original.email || imagem) && senha.length > 0;
+  // A lógica de 'houveMudancas' compara os estados locais com o 'usuario' da store
+  const houveMudancas = () => {
+    if (!usuario) return false;
+    return (nome !== usuario.nome || email !== usuario.email || !!imagem);
+  };
 
-  const handleSalvar = () => {
+  const handleSalvar = async () => {
     if (!houveMudancas()) return;
 
-    const novaImagem = imagemPreview; // imagem convertida em URL local (poderia ser base64 ou upload futuro)
-    setUsuario({
-      nome,
-      email,
-      imagem: novaImagem
-    });
+    // TODO: Adicionar validação de senha se for um requisito para salvar.
+    // Ex: Se o usuário digitou algo no campo senha, exigir confirmação.
 
-    setOriginal({ nome, email });
-    setSenha('');
-    alert('Dados atualizados!');
+    const dadosAtualizados = {
+        id: usuario.id,
+        nome,
+        email,
+        // A senha só deve ser enviada se for alterada
+        ...(senha && { senha }),
+    };
+
+    // 6. Chamar a ação da store para atualizar o perfil, passando o arquivo de imagem separadamente
+    // A sua store precisará saber como lidar com o upload da imagem.
+    const success = await updateUser(dadosAtualizados, imagem); 
+    
+    if (success) {
+        setSenha(''); // Limpa o campo de senha após o sucesso
+        setImagem(null); // Limpa o estado do arquivo de imagem para indicar que não há mais mudança pendente
+    }
   };
+  
+  // Adiciona um estado de carregamento para evitar o erro inicial
+  if (!usuario) {
+    return (
+        <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+        </div>
+    );
+  }
 
   return (
-    <div className="max-w-auto mx-auto mt-8 bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
-      <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-white">Configurações de Perfil</h2>
+    <div className="max-w-xl mx-auto mt-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Configurações de Perfil</h2>
 
-      <div className="mb-4">
-        <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Imagem de Perfil</label>
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Imagem de Perfil</label>
         <div className="flex items-center gap-4">
           <img
-            src={imagemPreview || '/default-avatar.png'}
+            src={imagemPreview || `https://ui-avatars.com/api/?name=${nome}&background=00d971&color=000`}
             alt="avatar"
-            className="w-16 h-16 rounded-full object-cover border"
+            className="w-16 h-16 rounded-full object-cover border-2 border-slate-300"
           />
-          <input type="file" accept="image/*" onChange={handleImagemChange} />
+          <label className="cursor-pointer bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold py-2 px-4 rounded-lg">
+            Trocar Imagem
+            <input type="file" accept="image/*" onChange={handleImagemChange} className="hidden"/>
+          </label>
         </div>
       </div>
 
-      <div className="mb-4">
-        <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Nome</label>
-        <input
-          type="text"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          className="w-full p-2 border rounded-md dark:bg-gray-700 dark:text-white"
-        />
-      </div>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Nome</label>
+          <input
+            type="text"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-white dark:border-slate-600 focus:ring-2 focus:ring-[#00d971] focus:border-transparent"
+          />
+        </div>
 
-      <div className="mb-4">
-        <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">E-mail</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 border rounded-md dark:bg-gray-700 dark:text-white"
-        />
-      </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">E-mail</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-white dark:border-slate-600 focus:ring-2 focus:ring-[#00d971] focus:border-transparent"
+          />
+        </div>
 
-      <div className="mb-6">
-        <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Confirme sua senha</label>
-        <input
-          type="password"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          className="w-full p-2 border rounded-md dark:bg-gray-700 dark:text-white"
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Alterar Senha (deixe em branco para não mudar)</label>
+          <input
+            type="password"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            placeholder="Nova senha"
+            className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-white dark:border-slate-600 focus:ring-2 focus:ring-[#00d971] focus:border-transparent"
+          />
+        </div>
       </div>
 
       <button
         onClick={handleSalvar}
-        disabled={!houveMudancas()}
-        className={`w-full py-2 px-4 rounded-md font-bold text-white ${
-          houveMudancas() ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
-        }`}
+        disabled={!houveMudancas() || isLoading}
+        className={`w-full mt-8 py-3 px-4 rounded-lg font-bold text-black transition-all duration-300 ${
+          houveMudancas() ? 'bg-[#00d971] hover:brightness-90' : 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
+        } ${isLoading ? 'opacity-50' : ''}`}
       >
-        Salvar Alterações
+        {isLoading ? 'Salvando...' : 'Salvar Alterações'}
       </button>
     </div>
   );

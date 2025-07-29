@@ -47,13 +47,13 @@ const ProtectedRoutes = () => {
         { id: 'objetivos', label: 'Objetivos', icon: Target, path: '/objetivos' },
         { id: 'orcamento', label: 'Orçamento', icon: BarChart2, path: '/orcamento' },
         { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft, subItems: [
-            { id: 'fluxoTransacoes', label: 'Transações', icon: Coins, path: '/fluxo/transacoes' },
-            { id: 'fluxoPlanejamento', label: 'Planeamento', icon: CheckSquare, path: '/fluxo/planejamento' }
+            { id: 'fluxoTransacoes', label: 'Extrato', icon: Coins, path: '/fluxo/transacoes' },
+            { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare, path: '/fluxo/planejamento' }
         ]},
         { id: 'patrimonio', label: 'Património', icon: Landmark, path: '/patrimonio' },
         { id: 'protecao', label: 'Proteção', icon: Shield, path: '/protecao' },
         { id: 'reserva', label: 'Reserva', icon: PiggyBank, path: '/reserva' },
-        { id: 'aposentadoria', label: 'Aposentação', icon: TreePalm, subItems: [
+        { id: 'aposentadoria', label: 'Aposentadoria', icon: TreePalm, subItems: [
             { id: 'aposentadoriaAportes', label: 'Aportes', icon: ChartLine, path: '/aposentadoria/aportes' },
             { id: 'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins, path: '/aposentadoria/pgbl' }
         ]},

@@ -1,23 +1,27 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useTransacoesStore } from '../../stores/useTransacoesStore'; // 1. Importa a store
+import { useTransacoesStore } from '../../stores/useTransacoesStore';
 import Card from '../../components/Card/Card';
 import { CATEGORIAS_FLUXO } from '../../components/constants/Categorias';
 import { formatCurrency } from '../../utils/formatters';
-import { PlusCircle, Eye, EyeOff } from 'lucide-react';
+import { PlusCircle, Eye, EyeOff, Edit, Trash2 } from 'lucide-react';
 import FlipCardCategoria from '../../components/Card/FlipCardCategoria';
 import { toast } from 'sonner';
+import ModalNovaTransacao from '../../components/Modals/ModalNovaTransacao';
 
-// O componente agora não precisa mais receber props para gerenciar transações
 const TelaFluxoDeCaixa = () => {
-    // 2. Conecta-se à store para obter o estado e as ações
+    // Conecta-se à store para obter o estado e as ações
     const { transacoes, isLoading, fetchTransacoes, saveTransacao, deleteTransacao } = useTransacoesStore();
 
-    // 3. O useEffect agora busca as transações na montagem do componente
+    // --- NOVOS ESTADOS PARA O MODAL ---
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingTransacao, setEditingTransacao] = useState(null); // Guarda a transação em edição
+
+    // Busca as transações na montagem do componente
     useEffect(() => {
         fetchTransacoes();
     }, [fetchTransacoes]);
 
-    // O estado local para filtros e itens selecionados é mantido no componente
+    // Estado local para filtros e itens selecionados
     const [filtros, setFiltros] = useState(() => {
         const saved = localStorage.getItem('filtros_fluxo');
         return saved ? JSON.parse(saved) : { mes: 'todos', ano: 'todos', categoria: 'todas', busca: '' };
@@ -28,7 +32,7 @@ const TelaFluxoDeCaixa = () => {
         localStorage.setItem('filtros_fluxo', JSON.stringify(filtros));
     }, [filtros]);
 
-    // Os cálculos de `useMemo` continuam os mesmos, pois dependem de `transacoes`
+    // Cálculos de useMemo para filtros e sumários (mantidos como estavam)
     const opcoesFiltro = useMemo(() => {
         const datas = transacoes.map(t => new Date(t.data));
         const anos = [...new Set(datas.map(d => d.getFullYear()))].filter(ano => !isNaN(ano)).sort((a, b) => b - a);
@@ -57,7 +61,7 @@ const TelaFluxoDeCaixa = () => {
     }, [transacoes, filtros]);
 
     const sumarioPorCategoria = useMemo(() => {
-        const gastosAtuais = transacoesFiltradas.filter(t => t.tipo === 'debit' && !t.ignorada && t.categoria !== 'receita');
+        const gastosAtuais = transacoesFiltradas.filter(t => t.tipo === 'despesa' && !t.ignorada);
         const totaisAtuais = gastosAtuais.reduce((acc, t) => {
             if (t.categoria) {
                 if (!acc[t.categoria]) acc[t.categoria] = 0;
@@ -80,11 +84,7 @@ const TelaFluxoDeCaixa = () => {
 
             const gastosMesAnterior = transacoes.filter(t => {
                 const dataTransacao = new Date(t.data);
-                if (isNaN(dataTransacao.getTime())) return false;
-                
-                return dataTransacao.getFullYear() === anoAnterior &&
-                       dataTransacao.getMonth() + 1 === mesAnterior &&
-                       t.tipo === 'debit' && !t.ignorada && t.categoria !== 'receita';
+                return !isNaN(dataTransacao.getTime()) && dataTransacao.getFullYear() === anoAnterior && dataTransacao.getMonth() + 1 === mesAnterior && t.tipo === 'despesa' && !t.ignorada;
             });
             
             totaisAnteriores = gastosMesAnterior.reduce((acc, t) => {
@@ -118,11 +118,45 @@ const TelaFluxoDeCaixa = () => {
         }).sort((a, b) => b.total - a.total);
     }, [transacoes, filtros, transacoesFiltradas]);
 
-    // 4. Funções que antes eram props, agora são definidas localmente e usam a store
+    // --- FUNÇÕES DE MANIPULAÇÃO DO MODAL ---
+    const handleAdicionarClick = () => {
+        setEditingTransacao(null); // Garante que é um formulário de adição
+        setIsModalOpen(true);
+    };
+
+    const handleEditClick = (transacao) => {
+        // Traduz o tipo do backend para o que o modal espera ('debit'/'credit')
+        const transacaoParaModal = {
+            ...transacao,
+            tipo: transacao.tipo === 'receita' ? 'credit' : 'debit'
+        };
+        setEditingTransacao(transacaoParaModal); // Define a transação a ser editada
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setEditingTransacao(null); // Limpa o estado de edição ao fechar
+    };
+
+    const handleSaveModal = async (dadosDoModal) => {
+        // **CORREÇÃO APLICADA AQUI**
+        // Traduz o 'tipo' do frontend ('credit'/'debit') para o que o backend espera ('receita'/'despesa')
+        const dadosParaBackend = {
+            ...dadosDoModal,
+            tipo: dadosDoModal.tipo === 'credit' ? 'receita' : 'despesa'
+        };
+
+        const success = await saveTransacao(dadosParaBackend);
+        if (success) {
+            handleCloseModal(); // Fecha o modal se o salvamento for bem-sucedido
+        }
+    };
+
+    // Funções de manipulação da tabela (ignorar, deletar)
     const handleIgnoreToggle = async (transacaoId) => {
         const transacao = transacoes.find(t => t.id === transacaoId);
         if (transacao) {
-            // Usa a ação `saveTransacao` da store para atualizar a transação
             const success = await saveTransacao({ ...transacao, ignorada: !transacao.ignorada });
             if (success) {
                 toast.info(`Transação ${!transacao.ignorada ? 'ignorada' : 'restaurada'} com sucesso.`);
@@ -131,36 +165,18 @@ const TelaFluxoDeCaixa = () => {
     };
 
     const handleDeleteClick = (transacaoId) => {
-        // A confirmação já está dentro da ação `deleteTransacao` na store
         deleteTransacao(transacaoId);
     };
 
     const deletarSelecionadas = async () => {
         if (selecionadas.length === 0) return;
-        
-        // A ação `deleteTransacao` da store já possui uma confirmação.
-        // Ao apagar em lote, a confirmação será exibida para cada item individualmente.
         if (window.confirm(`Você está prestes a apagar ${selecionadas.length} transações. A confirmação será pedida para cada uma. Deseja continuar?`)) {
-            // Espera todas as promessas de deleção serem resolvidas
             await Promise.all(selecionadas.map(id => deleteTransacao(id)));
-            setSelecionadas([]); // Limpa a seleção após todas serem apagadas
+            setSelecionadas([]);
         }
     };
     
-    // Funções placeholder para adicionar/editar, que normalmente abririam um modal/formulário
-    const handleAdicionarClick = () => {
-        // Esta função normalmente abriria um modal de criação.
-        // O modal, ao salvar, chamaria a ação `saveTransacao` da store.
-        toast.info("Funcionalidade para adicionar nova transação a ser implementada.");
-    };
-
-    const handleEditClick = (transacao) => {
-        // Esta função normalmente abriria um modal de edição com os dados da transação.
-        // O modal, ao salvar, chamaria `saveTransacao(dadosAtualizados)`.
-        toast.info(`Editando transação: ${transacao.descricao}`);
-    };
-
-    // Funções de manipulação de filtros permanecem as mesmas
+    // Funções de manipulação de filtros
     const handleFiltroChange = (e) => {
         const { name, value } = e.target;
         setFiltros(prev => ({ ...prev, [name]: value }));
@@ -177,10 +193,17 @@ const TelaFluxoDeCaixa = () => {
 
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+            {isModalOpen && (
+                <ModalNovaTransacao
+                    transacao={editingTransacao}
+                    onClose={handleCloseModal}
+                    onSave={handleSaveModal}
+                />
+            )}
             <Card>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Resumo por Categoria (Gastos)</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {sumarioPorCategoria.map(cat => (
                         <FlipCardCategoria key={cat.id} icon={cat.icon} label={cat.label} total={cat.total} color={cat.color} verso={cat.verso} />
                     ))}
@@ -207,13 +230,13 @@ const TelaFluxoDeCaixa = () => {
                     </div>
                     <div className="flex gap-2">
                         <button onClick={limparFiltros} className="text-xs text-yellow-400 hover:underline">Limpar Filtros</button>
-                        <button onClick={deletarSelecionadas} className="text-xs text-red-400 hover:underline">Apagar Selecionadas</button>
+                        <button onClick={deletarSelecionadas} disabled={selecionadas.length === 0} className="text-xs text-red-400 hover:underline disabled:opacity-50">Apagar Selecionadas</button>
                     </div>
                 </div>
             </Card>
 
             <Card>
-                <div className="flex justify-between items-center border-b pb-4 mb-4">
+                <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-4 mb-4">
                     <h2 className="text-lg font-bold text-slate-800 dark:text-white">Transações ({transacoesFiltradas.length})</h2>
                     <button onClick={handleAdicionarClick} className="text-xs flex items-center gap-1 text-[#00d971] hover:brightness-90 font-semibold">
                         <PlusCircle size={14} /> Adicionar Transação
@@ -223,35 +246,39 @@ const TelaFluxoDeCaixa = () => {
                     <p className="text-center text-slate-500 dark:text-gray-400">Carregando transações...</p>
                 ) : (
                     <div className="space-y-2">
-                        <div className="hidden md:grid grid-cols-12 gap-4 text-xs font-bold text-slate-800 dark:text-white px-4 py-2">
-                            <div className="col-span-1">#</div><div className="col-span-1">Data</div><div className="col-span-4">Descrição</div><div className="col-span-2">Categoria</div><div className="col-span-2 text-right">Valor</div><div className="col-span-2 text-center">Ações</div>
+                        <div className="hidden md:grid grid-cols-12 gap-4 text-xs font-bold text-slate-500 dark:text-slate-400 px-4 py-2">
+                            <div className="col-span-1"></div>
+                            <div className="col-span-1">Data</div>
+                            <div className="col-span-4">Descrição</div>
+                            <div className="col-span-2">Categoria</div>
+                            <div className="col-span-2 text-right">Valor</div>
+                            <div className="col-span-2 text-center">Ações</div>
                         </div>
                         {transacoesFiltradas.map((t) => {
-                            const isCredit = t.tipo === 'credit';
+                            const isCredit = t.tipo === 'receita';
                             const selecionada = selecionadas.includes(t.id);
                             return (
-                                <div key={t.id} className={`grid grid-cols-12 gap-4 items-center p-3 rounded-lg transition-colors ${selecionada ? 'bg-yellow-100 dark:bg-yellow-900' : t.ignorada ? 'bg-gray-800/50 opacity-60' : 'bg-white dark:bg-[#201b5d]'}`}>
-                                    <div className="col-span-1 text-center">
-                                        <input type="checkbox" checked={selecionada} onChange={() => toggleSelecionada(t.id)} />
+                                <div key={t.id} className={`grid grid-cols-12 gap-4 items-center p-3 rounded-lg transition-colors text-sm text-slate-700 dark:text-slate-300 ${selecionada ? 'bg-yellow-400/20 dark:bg-yellow-600/20' : t.ignorada ? 'bg-slate-200/50 dark:bg-slate-800/50 opacity-60' : 'bg-white dark:bg-[#201b5d]'}`}>
+                                    <div className="col-span-1 flex justify-center items-center">
+                                        <input type="checkbox" checked={selecionada} onChange={() => toggleSelecionada(t.id)} className="rounded text-[#00d971] focus:ring-0" />
                                     </div>
-                                    <div className="col-span-1 text-sm">{new Date(t.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
-                                    <div className="col-span-4 font-medium">{t.descricao}</div>
+                                    <div className="col-span-1">{new Date(t.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
+                                    <div className="col-span-4 font-medium text-slate-800 dark:text-white">{t.descricao}</div>
                                     <div className="col-span-2">
                                         {isCredit ? (
                                             <span className="text-xs font-bold bg-green-500/20 text-green-400 px-2 py-1 rounded-full">Receita</span>
                                         ) : (
-                                            <span>{t.categoria ? CATEGORIAS_FLUXO[t.categoria]?.label || '—' : 'Não categorizada'}</span>
+                                            <span>{t.categoria ? CATEGORIAS_FLUXO[t.categoria]?.label || t.categoria : '—'}</span>
                                         )}
                                     </div>
                                     <div className={`col-span-2 text-right font-semibold ${isCredit ? 'text-green-400' : 'text-red-400'}`}>
                                         {isCredit ? '+' : '-'} {formatCurrency(t.valor)}
                                     </div>
-                                    <div className="col-span-2 flex justify-center gap-2">
-                                        {/* 5. Os botões agora chamam as funções locais que interagem com a store */}
-                                        <button onClick={() => handleEditClick(t)} title="Editar" className="text-blue-500 hover:text-white">✏️</button>
-                                        <button onClick={() => handleDeleteClick(t.id)} title="Apagar" className="text-red-500 hover:text-white">🗑️</button>
-                                        <button onClick={() => handleIgnoreToggle(t.id)} title={t.ignorada ? 'Restaurar' : 'Ignorar'} className="text-slate-800 dark:text-white hover:text-white">
-                                            {t.ignorada ? <Eye size={18} /> : <EyeOff size={18} />}
+                                    <div className="col-span-2 flex justify-center gap-3">
+                                        <button onClick={() => handleEditClick(t)} title="Editar" className="text-blue-500 hover:text-blue-400"><Edit size={16} /></button>
+                                        <button onClick={() => handleDeleteClick(t.id)} title="Apagar" className="text-red-500 hover:text-red-400"><Trash2 size={16} /></button>
+                                        <button onClick={() => handleIgnoreToggle(t.id)} title={t.ignorada ? 'Restaurar' : 'Ignorar'} className="text-slate-500 hover:text-slate-400">
+                                            {t.ignorada ? <Eye size={16} /> : <EyeOff size={16} />}
                                         </button>
                                     </div>
                                 </div>

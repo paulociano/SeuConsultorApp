@@ -1,5 +1,5 @@
-import { useContext, useEffect, useState } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { useContext, useState } from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
 import logo from './assets/logo.svg';
 import { ThemeContext } from './ThemeContext';
 import {
@@ -28,18 +28,18 @@ import TelaSimuladorPGBL from './pages/Aposentadoria/TelaSimuladorPGBL';
 import TelaConfiguracoesPerfil from './pages/Configuracoes/TelaConfiguracoesPerfil';
 import TelaReunioesAgenda from './pages/Agenda/TelaReunioesAgenda';
 import PageTransition from './utils/PageTransition';
-// 1. Importar a store do utilizador
 import { useUserStore } from './stores/useUserStore';
+// 1. IMPORTAR O TOASTER
+import { Toaster } from 'sonner';
 
-// Componente que renderiza as rotas protegidas
+
+// O componente que renderiza as rotas protegidas (sem alterações)
 const ProtectedRoutes = () => {
-    // 2. Obter os dados do utilizador e a função de logout da store
     const { usuario, logout } = useUserStore();
     const { theme, toggleTheme } = useContext(ThemeContext);
     const navigate = useNavigate();
     const location = useLocation();
     
-    // Estados locais apenas para controlo da UI do menu
     const [openMenu, setOpenMenu] = useState('objetivos');
     const [perfilAberto, setPerfilAberto] = useState(false);
 
@@ -47,13 +47,13 @@ const ProtectedRoutes = () => {
         { id: 'objetivos', label: 'Objetivos', icon: Target, path: '/objetivos' },
         { id: 'orcamento', label: 'Orçamento', icon: BarChart2, path: '/orcamento' },
         { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft, subItems: [
-            { id: 'fluxoTransacoes', label: 'Extrato', icon: Coins, path: '/fluxo/transacoes' },
+            { id: 'fluxoTransacoes', label: 'Transações', icon: Coins, path: '/fluxo/transacoes' },
             { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare, path: '/fluxo/planejamento' }
         ]},
         { id: 'patrimonio', label: 'Património', icon: Landmark, path: '/patrimonio' },
         { id: 'protecao', label: 'Proteção', icon: Shield, path: '/protecao' },
         { id: 'reserva', label: 'Reserva', icon: PiggyBank, path: '/reserva' },
-        { id: 'aposentadoria', label: 'Aposentadoria', icon: TreePalm, subItems: [
+        { id: 'aposentadoria', label: 'Aposentação', icon: TreePalm, subItems: [
             { id: 'aposentadoriaAportes', label: 'Aportes', icon: ChartLine, path: '/aposentadoria/aportes' },
             { id: 'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins, path: '/aposentadoria/pgbl' }
         ]},
@@ -137,7 +137,6 @@ const ProtectedRoutes = () => {
             <main className="ml-64 p-4 md:p-6 transition-all duration-300">
                 <PageTransition key={location.pathname}>
                     <Routes>
-                        {/* 3. Todas as rotas agora renderizam componentes autónomos, sem props de dados */}
                         <Route path="/objetivos" element={<TelaObjetivos />} />
                         <Route path="/orcamento" element={<TelaOrcamento />} />
                         <Route path="/reserva" element={<TelaReservaEmergencia />} />
@@ -155,7 +154,6 @@ const ProtectedRoutes = () => {
                         <Route path="/configuracoes" element={<TelaConfiguracoesPerfil />} />
                         <Route path="/agenda" element={<TelaReunioesAgenda />} />
                         
-                        {/* Rota padrão para utilizadores autenticados */}
                         <Route path="*" element={<Navigate to="/objetivos" replace />} />
                     </Routes>
                 </PageTransition>
@@ -166,18 +164,21 @@ const ProtectedRoutes = () => {
 
 // Componente principal que gere a lógica de autenticação
 export default function App() {
-    // 4. A lógica de autenticação é lida diretamente da store.
     const isAuthenticated = useUserStore((state) => state.isAuthenticated);
-    const location = useLocation();
-
-    // 5. Renderiza as rotas protegidas ou a tela de autenticação
+    
     return (
-        <Routes>
-            {isAuthenticated ? (
-                <Route path="/*" element={<ProtectedRoutes />} />
-            ) : (
-                <Route path="*" element={<TelaAutenticacao />} />
-            )}
-        </Routes>
+        // 2. ENVOLVER O RETORNO EM UM FRAGMENT <>...</>
+        <>
+            {/* 3. ADICIONAR O COMPONENTE TOASTER AQUI */}
+            <Toaster position="top-right" richColors closeButton />
+
+            <Routes>
+                {isAuthenticated ? (
+                    <Route path="/*" element={<ProtectedRoutes />} />
+                ) : (
+                    <Route path="*" element={<TelaAutenticacao />} />
+                )}
+            </Routes>
+        </>
     );
 }

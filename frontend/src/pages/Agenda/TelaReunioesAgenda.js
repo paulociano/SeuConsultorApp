@@ -5,7 +5,6 @@ import { Calendar, FileText, PlusCircle, Search, Trash2, Edit, Save, XCircle, Al
 import clsx from "clsx";
 import { ThemeContext } from "../../ThemeContext"; 
 import { toast } from 'sonner';
-// 1. Importar a store da Agenda
 import { useAgendaStore } from "../../stores/useAgendaStore";
 
 // Componente de Calendário Semanal (sem alterações)
@@ -16,10 +15,10 @@ function CalendarioSemanal({ compromissos }) {
   const compromissosPorDia = {};
   diasSemana.forEach(dia => compromissosPorDia[dia] = []);
 
-  compromissos.forEach(evento => {
+  (compromissos || []).forEach(evento => {
     const data = new Date(evento.data);
-    const dia = data.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
-    const hora = data.getHours();
+    const dia = data.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
+    const hora = data.getUTCHours();
 
     const diaMap = {
       "seg": "Seg", "ter": "Ter", "qua": "Qua", "qui": "Qui",
@@ -69,11 +68,9 @@ function CalendarioSemanal({ compromissos }) {
   );
 }
 
-// 2. O componente agora não recebe mais nenhuma prop
 export default function TelaReunioesAgenda() {
   const { theme } = useContext(ThemeContext);
 
-  // 3. Conectar ao estado e às ações da store
   const {
     atas,
     agenda,
@@ -85,12 +82,10 @@ export default function TelaReunioesAgenda() {
     deleteCompromisso,
   } = useAgendaStore();
 
-  // 4. Chamar a ação para buscar os dados na montagem do componente
   useEffect(() => {
     fetchAgenda();
   }, [fetchAgenda]);
 
-  // Estados dos formulários (permanecem locais)
   const [novaAta, setNovaAta] = useState({
     titulo: "", resumo: "", participantesPresentes: "", deliberacoes: "",
     categoriaFinanceira: "", tipoDecisaoFinanceira: "", valorEnvolvido: "",
@@ -102,24 +97,39 @@ export default function TelaReunioesAgenda() {
     linkReuniao: "", descricaoDetalhada: "", status: "Marcado",
   });
 
-  // Estados de controle da UI (permanecem locais)
   const [editingAtaId, setEditingAtaId] = useState(null);
   const [editingEventoId, setEditingEventoId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDate, setFilterDate] = useState("");
 
-  // 5. Funções de manipulação agora chamam as ações da store
   const handleSaveAta = async () => {
     if (!novaAta.titulo || !novaAta.resumo) {
       toast.error("Título e Resumo são obrigatórios para a Ata.");
       return;
     }
-    const ataToSave = { ...novaAta };
-    if (editingAtaId) {
-      ataToSave.id = editingAtaId;
-    }
+
+    // *** CORREÇÃO APLICADA AQUI ***
+    // Garante que o objeto enviado para a API tenha todos os campos esperados,
+    // mesmo que vazios, para passar na validação do backend.
+    const ataToSave = {
+        id: editingAtaId, // Será null se for uma nova ata
+        titulo: novaAta.titulo || "",
+        resumo: novaAta.resumo || "",
+        // Converte a string de participantes de volta para um array
+        participantesPresentes: typeof novaAta.participantesPresentes === 'string' 
+            ? novaAta.participantesPresentes.split(',').map(s => s.trim()).filter(Boolean) 
+            : (novaAta.participantesPresentes || []),
+        deliberacoes: novaAta.deliberacoes || "",
+        categoriaFinanceira: novaAta.categoriaFinanceira || "",
+        tipoDecisaoFinanceira: novaAta.tipoDecisaoFinanceira || "",
+        valorEnvolvido: parseFloat(novaAta.valorEnvolvido) || null,
+        impactoEsperado: novaAta.impactoEsperado || "",
+        actionItems: novaAta.actionItems || [],
+    };
+    
     const savedAta = await saveAta(ataToSave);
+
     if (savedAta) {
       setEditingAtaId(null);
       setNovaAta({
@@ -135,7 +145,8 @@ export default function TelaReunioesAgenda() {
     setNovaAta({
       titulo: ata.titulo || "",
       resumo: ata.resumo || "",
-      participantesPresentes: ata.participantes_presentes || "",
+      // Converte o array de participantes para uma string para o input
+      participantesPresentes: Array.isArray(ata.participantes_presentes) ? ata.participantes_presentes.join(', ') : "",
       deliberacoes: ata.deliberacoes || "",
       categoriaFinanceira: ata.categoria_financeira || "",
       tipoDecisaoFinanceira: ata.tipo_decisao_financeira || "",
@@ -147,7 +158,6 @@ export default function TelaReunioesAgenda() {
     window.scrollTo(0, 0);
   };
 
-  // O confirm agora está dentro da action da store, mas pode ser mantido aqui se preferir.
   const handleDeleteAta = (id) => {
     deleteAta(id);
   };
@@ -176,7 +186,13 @@ export default function TelaReunioesAgenda() {
       toast.error("Título e Data são obrigatórios para o Compromisso.");
       return;
     }
-    const eventoToSave = { ...novoEvento };
+    const eventoToSave = { 
+        ...novoEvento,
+        // Converte a string de participantes de volta para um array
+        participantes: typeof novoEvento.participantes === 'string'
+            ? novoEvento.participantes.split(',').map(s => s.trim()).filter(Boolean)
+            : (novoEvento.participantes || [])
+    };
     if (editingEventoId) {
       eventoToSave.id = editingEventoId;
     }
@@ -194,6 +210,8 @@ export default function TelaReunioesAgenda() {
     setNovoEvento({
       ...evento,
       data: evento.data ? new Date(evento.data).toISOString().substring(0, 16) : "",
+      // Converte o array de participantes para uma string para o input
+      participantes: Array.isArray(evento.participantes) ? evento.participantes.join(', ') : "",
     });
     setEditingEventoId(evento.id);
     window.scrollTo(0, 0);
@@ -221,23 +239,21 @@ export default function TelaReunioesAgenda() {
 
   const financialCategories = ["Orçamento", "Investimentos", "Auditoria", "Planejamento Tributário", "Revisão de Dívidas", "Relatórios Financeiros", "Outros"];
 
-  // Filtros agora usam 'atas' e 'agenda' diretamente da store
-  const filteredAtas = useMemo(() => atas.filter(ata => 
+  const filteredAtas = useMemo(() => (atas || []).filter(ata => 
         (searchTerm ? (ata.titulo.toLowerCase().includes(searchTerm.toLowerCase()) || 
                       (ata.resumo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (ata.participantes_presentes || '').toLowerCase().includes(searchTerm.toLowerCase())) : true) &&
+                      (Array.isArray(ata.participantes_presentes) ? ata.participantes_presentes.join(', ').toLowerCase().includes(searchTerm.toLowerCase()) : false)) : true) &&
         (filterStatus !== 'all' && financialCategories.includes(filterStatus) ? ata.categoria_financeira === filterStatus : true)
     ), [atas, searchTerm, filterStatus]);
 
-  const filteredAgenda = useMemo(() => agenda.filter(evento =>
+  const filteredAgenda = useMemo(() => (agenda || []).filter(evento =>
         (searchTerm ? (evento.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
                       (evento.local || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (evento.participantes || '').toLowerCase().includes(searchTerm.toLowerCase())) : true) &&
+                      (Array.isArray(evento.participantes) ? evento.participantes.join(', ').toLowerCase().includes(searchTerm.toLowerCase()) : false)) : true) &&
         (filterStatus !== 'all' && !financialCategories.includes(filterStatus) ? evento.status === filterStatus : true) &&
         (filterDate ? new Date(evento.data).toISOString().split('T')[0] === filterDate : true)
     ).sort((a, b) => new Date(a.data) - new Date(b.data)), [agenda, searchTerm, filterStatus, filterDate]);
 
-  // 6. Adicionado um indicador de carregamento
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
@@ -280,7 +296,7 @@ export default function TelaReunioesAgenda() {
               {/* Formulário de Ata */}
               <input type="text" placeholder="Título da Ata" value={novaAta.titulo} onChange={(e) => setNovaAta({ ...novaAta, titulo: e.target.value })} className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
               <textarea placeholder="Resumo da Ata" value={novaAta.resumo} onChange={(e) => setNovaAta({ ...novaAta, resumo: e.target.value })} rows="4" className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
-              <input type="text" placeholder="Participantes Presentes" value={novaAta.participantesPresentes} onChange={(e) => setNovaAta({ ...novaAta, participantesPresentes: e.target.value })} className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
+              <input type="text" placeholder="Participantes Presentes (separados por vírgula)" value={novaAta.participantesPresentes} onChange={(e) => setNovaAta({ ...novaAta, participantesPresentes: e.target.value })} className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
               <textarea placeholder="Deliberações e Pontos Chave" value={novaAta.deliberacoes} onChange={(e) => setNovaAta({ ...novaAta, deliberacoes: e.target.value })} rows="3" className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
 
               {/* Seção Financeira */}
@@ -333,7 +349,7 @@ export default function TelaReunioesAgenda() {
                     {filteredAtas.map((ata) => (
                       <motion.div key={ata.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className={`p-5 border rounded-lg ${theme === 'dark' ? 'border-[#3e388b] bg-gray-800' : 'border-gray-200 bg-white'} shadow-sm flex flex-col`}>
                         <h3 className="font-bold text-xl mb-2">{ata.titulo}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Data: {new Date(ata.data_criacao).toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Data: {new Date(ata.data_criacao).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>
                         <p className="text-sm flex-grow mb-3">{ata.resumo}</p>
                         {ata.categoria_financeira && (<p className="text-sm font-medium flex items-center gap-1 mb-1"><Tag size={16} /> Categoria: {ata.categoria_financeira}</p>)}
                         {ata.valor_envolvido > 0 && (<p className="text-sm font-medium flex items-center gap-1 mb-1"><DollarSign size={16} /> Valor: R$ {parseFloat(ata.valor_envolvido).toFixed(2)}</p>)}
@@ -359,7 +375,7 @@ export default function TelaReunioesAgenda() {
               <input type="text" placeholder="Título do Compromisso" value={novoEvento.titulo} onChange={(e) => setNovoEvento({ ...novoEvento, titulo: e.target.value })} className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
               <input type="datetime-local" value={novoEvento.data} onChange={(e) => setNovoEvento({ ...novoEvento, data: e.target.value })} className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
               <input type="text" placeholder="Local" value={novoEvento.local} onChange={(e) => setNovoEvento({ ...novoEvento, local: e.target.value })} className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
-              <input type="text" placeholder="Participantes" value={novoEvento.participantes} onChange={(e) => setNovoEvento({ ...novoEvento, participantes: e.target.value })} className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
+              <input type="text" placeholder="Participantes (separados por vírgula)" value={novoEvento.participantes} onChange={(e) => setNovoEvento({ ...novoEvento, participantes: e.target.value })} className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
               <input type="url" placeholder="Link da Reunião" value={novoEvento.linkReuniao} onChange={(e) => setNovoEvento({ ...novoEvento, linkReuniao: e.target.value })} className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
               <textarea placeholder="Descrição Detalhada / Pauta" value={novoEvento.descricaoDetalhada} onChange={(e) => setNovoEvento({ ...novoEvento, descricaoDetalhada: e.target.value })} rows="3" className={`w-full p-3 rounded-md border ${theme === 'dark' ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-[#00d971]`} />
 
@@ -369,6 +385,8 @@ export default function TelaReunioesAgenda() {
               </div>
 
               {/* Lista de Compromissos */}
+              <CalendarioSemanal compromissos={filteredAgenda} />
+              
               {filteredAgenda.length === 0 ? (
                 <div className={`p-10 rounded-xl text-center ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} shadow-inner mt-8`}><Calendar size={64} className="mx-auto mb-4 text-gray-400" /><h3 className="text-xl font-semibold">Nenhum Compromisso agendado.</h3></div>
               ) : (
@@ -382,9 +400,9 @@ export default function TelaReunioesAgenda() {
                             {["Marcado", "Realizado", "Cancelado"].map((status) => (<button key={status} onClick={() => atualizarStatusEvento(item.id, status)} className={clsx("px-3 py-1 text-xs rounded-full font-semibold", item.status === status ? statusStyles[status] : "bg-gray-300 dark:bg-gray-600 hover:opacity-80")}>{status}</button>))}
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-1"><Calendar size={14} className="inline mr-1" />{new Date(item.data).toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-1"><Calendar size={14} className="inline mr-1" />{new Date(item.data).toLocaleString('pt-BR', { timeZone: 'UTC' })}</p>
                         {item.local && <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Local: {item.local}</p>}
-                        {item.participantes && <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Participantes: {item.participantes}</p>}
+                        {item.participantes && Array.isArray(item.participantes) && <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Participantes: {item.participantes.join(', ')}</p>}
                         {item.link_reuniao && <p className="text-sm text-blue-500 hover:underline mb-1"><a href={item.link_reuniao} target="_blank" rel="noopener noreferrer">Link da Reunião</a></p>}
                         {item.descricao_detalhada && <p className="text-sm flex-grow mt-2">{item.descricao_detalhada}</p>}
                         <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">

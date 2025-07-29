@@ -5,6 +5,8 @@ import { Calendar, FileText, PlusCircle, Search, Trash2, Edit, Save, XCircle, Al
 import clsx from "clsx";
 import { ThemeContext } from "../../ThemeContext"; 
 import { toast } from 'sonner';
+// 1. Importar a store da Agenda
+import { useAgendaStore } from "../../stores/useAgendaStore";
 
 // Componente de Calendário Semanal (sem alterações)
 function CalendarioSemanal({ compromissos }) {
@@ -67,30 +69,28 @@ function CalendarioSemanal({ compromissos }) {
   );
 }
 
-
-export default function TelaReunioesAgenda({
-  atasIniciais,
-  agendaInicial,
-  onSaveAta,
-  onDeleteAta,
-  onSaveCompromisso,
-  onDeleteCompromisso,
-}) {
+// 2. O componente agora não recebe mais nenhuma prop
+export default function TelaReunioesAgenda() {
   const { theme } = useContext(ThemeContext);
 
-  const [atas, setAtas] = useState(atasIniciais || []);
-  const [agenda, setAgenda] = useState(agendaInicial || []);
+  // 3. Conectar ao estado e às ações da store
+  const {
+    atas,
+    agenda,
+    isLoading,
+    fetchAgenda,
+    saveAta,
+    deleteAta,
+    saveCompromisso,
+    deleteCompromisso,
+  } = useAgendaStore();
 
-  // Sincronizar estado com props quando elas mudarem
+  // 4. Chamar a ação para buscar os dados na montagem do componente
   useEffect(() => {
-    setAtas(atasIniciais || []);
-  }, [atasIniciais]);
+    fetchAgenda();
+  }, [fetchAgenda]);
 
-  useEffect(() => {
-    setAgenda(agendaInicial || []);
-  }, [agendaInicial]);
-
-  // Estados dos formulários
+  // Estados dos formulários (permanecem locais)
   const [novaAta, setNovaAta] = useState({
     titulo: "", resumo: "", participantesPresentes: "", deliberacoes: "",
     categoriaFinanceira: "", tipoDecisaoFinanceira: "", valorEnvolvido: "",
@@ -102,14 +102,14 @@ export default function TelaReunioesAgenda({
     linkReuniao: "", descricaoDetalhada: "", status: "Marcado",
   });
 
-  // Estados de controle da UI
+  // Estados de controle da UI (permanecem locais)
   const [editingAtaId, setEditingAtaId] = useState(null);
   const [editingEventoId, setEditingEventoId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDate, setFilterDate] = useState("");
 
-  // Funções de manipulação de Atas
+  // 5. Funções de manipulação agora chamam as ações da store
   const handleSaveAta = async () => {
     if (!novaAta.titulo || !novaAta.resumo) {
       toast.error("Título e Resumo são obrigatórios para a Ata.");
@@ -119,7 +119,7 @@ export default function TelaReunioesAgenda({
     if (editingAtaId) {
       ataToSave.id = editingAtaId;
     }
-    const savedAta = await onSaveAta(ataToSave);
+    const savedAta = await saveAta(ataToSave);
     if (savedAta) {
       setEditingAtaId(null);
       setNovaAta({
@@ -147,13 +147,11 @@ export default function TelaReunioesAgenda({
     window.scrollTo(0, 0);
   };
 
+  // O confirm agora está dentro da action da store, mas pode ser mantido aqui se preferir.
   const handleDeleteAta = (id) => {
-    if (window.confirm("Tem certeza que deseja excluir esta Ata?")) {
-      onDeleteAta(id);
-    }
+    deleteAta(id);
   };
 
-  // Funções de manipulação de Action Items (manipulam estado local do formulário)
   const addActionItemToAta = () => {
     if (!newActionItem.description) {
       toast.error("Descrição do item de ação é obrigatória.");
@@ -173,7 +171,6 @@ export default function TelaReunioesAgenda({
     }));
   };
 
-  // Funções de manipulação de Eventos da Agenda
   const handleSaveEvento = async () => {
     if (!novoEvento.titulo || !novoEvento.data) {
       toast.error("Título e Data são obrigatórios para o Compromisso.");
@@ -183,7 +180,7 @@ export default function TelaReunioesAgenda({
     if (editingEventoId) {
       eventoToSave.id = editingEventoId;
     }
-    const savedEvento = await onSaveCompromisso(eventoToSave);
+    const savedEvento = await saveCompromisso(eventoToSave);
     if (savedEvento) {
       setEditingEventoId(null);
       setNovoEvento({
@@ -203,19 +200,16 @@ export default function TelaReunioesAgenda({
   };
 
   const handleDeleteEvento = (id) => {
-    if (window.confirm("Tem certeza que deseja excluir este Compromisso?")) {
-      onDeleteCompromisso(id);
-    }
+    deleteCompromisso(id);
   };
 
   const atualizarStatusEvento = async (id, newStatus) => {
     const eventoOriginal = agenda.find(item => item.id === id);
     if (eventoOriginal) {
-      await onSaveCompromisso({ ...eventoOriginal, status: newStatus });
+      await saveCompromisso({ ...eventoOriginal, status: newStatus });
     }
   };
 
-  // Estilos para os status
   const statusStyles = {
     Marcado: "bg-[#00d971] text-black",
     Realizado: "bg-[#201b5d] text-white",
@@ -225,7 +219,9 @@ export default function TelaReunioesAgenda({
     Concluído: "bg-green-600 text-white",
   };
 
-  // Filtros com useMemo
+  const financialCategories = ["Orçamento", "Investimentos", "Auditoria", "Planejamento Tributário", "Revisão de Dívidas", "Relatórios Financeiros", "Outros"];
+
+  // Filtros agora usam 'atas' e 'agenda' diretamente da store
   const filteredAtas = useMemo(() => atas.filter(ata => 
         (searchTerm ? (ata.titulo.toLowerCase().includes(searchTerm.toLowerCase()) || 
                       (ata.resumo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -241,7 +237,14 @@ export default function TelaReunioesAgenda({
         (filterDate ? new Date(evento.data).toISOString().split('T')[0] === filterDate : true)
     ).sort((a, b) => new Date(a.data) - new Date(b.data)), [agenda, searchTerm, filterStatus, filterDate]);
 
-  const financialCategories = ["Orçamento", "Investimentos", "Auditoria", "Planejamento Tributário", "Revisão de Dívidas", "Relatórios Financeiros", "Outros"];
+  // 6. Adicionado um indicador de carregamento
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+        </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} p-6 transition-colors duration-300`}>

@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useContext } from "react";
+import React, { useState, useMemo, useContext, useEffect } from "react";
 import { PlusCircle, Edit, Trash2, TrendingUp, DollarSign, AlertCircle, Sparkles, Gift, Wallet, Home, Target, Calculator } from "lucide-react";
 import { ThemeContext } from "../../ThemeContext";
 import ModalNovaViagem from "../../components/Modals/ModalNovaViagem";
 import ModalWallet from "../../components/Modals/ModalWallet";
+// 1. Importar a store de Viagens
+import { useViagensStore } from "../../stores/useViagensStore";
 
-// Componente para exibir um "ticket" de viagem com o progresso
+// Componente para exibir um "ticket" de viagem com o progresso (sem alterações)
 const TicketDeViagem = ({ viagem, onEdit, onDelete }) => (
     <div className={`p-4 rounded-lg shadow-md ${viagem.theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
         <div className="flex justify-between items-start">
@@ -30,18 +32,17 @@ const TicketDeViagem = ({ viagem, onEdit, onDelete }) => (
     </div>
 );
 
-// O componente agora recebe dados e funções via props
-const TelaMilhas = ({ carteiras = [], metas = [], onSave, onDelete }) => {
+// 2. O componente agora não recebe mais props de dados ou handlers
+const TelaMilhas = () => {
     const { theme } = useContext(ThemeContext);
+    // 3. Conectar ao estado e às ações da store
+    const { carteiras, metas, isLoading, fetchViagens, saveViagensItem, deleteViagensItem } = useViagensStore();
+    
     const [activeTab, setActiveTab] = useState('dashboard');
-
-    // Estados para controle dos modais
     const [isWalletModalOpen, setWalletModalOpen] = useState(false);
     const [walletToEdit, setWalletToEdit] = useState(null);
     const [isTripModalOpen, setTripModalOpen] = useState(false);
     const [tripToEdit, setTripToEdit] = useState(null);
-
-    // Estado para as calculadoras
     const [calculatorState, setCalculatorState] = useState({
         pointsToConvert: 10000,
         bonusPercentage: 100,
@@ -49,7 +50,12 @@ const TelaMilhas = ({ carteiras = [], metas = [], onSave, onDelete }) => {
         saleValuePerThousand: 21,
     });
 
-    // Derivação de estado a partir das props
+    // 4. Chamar a ação para buscar os dados na montagem do componente
+    useEffect(() => {
+        fetchViagens();
+    }, [fetchViagens]);
+
+    // Derivação de estado agora usa os dados da store (sem alteração na lógica)
     const pointPrograms = useMemo(() => carteiras.filter(w => w.type === 'ponto'), [carteiras]);
     const milePrograms = useMemo(() => carteiras.filter(w => w.type === 'milha'), [carteiras]);
     const totalMilesValueBRL = useMemo(() => carteiras.reduce((total, wallet) => total + (wallet.balance / 1000) * wallet.avgCpm, 0), [carteiras]);
@@ -65,7 +71,6 @@ const TelaMilhas = ({ carteiras = [], metas = [], onSave, onDelete }) => {
     const bonusConversionResult = useMemo(() => calculatorState.pointsToConvert * (1 + calculatorState.bonusPercentage / 100), [calculatorState.pointsToConvert, calculatorState.bonusPercentage]);
     const mileSaleResult = useMemo(() => (calculatorState.milesToSell / 1000) * calculatorState.saleValuePerThousand, [calculatorState.milesToSell, calculatorState.saleValuePerThousand]);
 
-    // Handlers para os modais e calculadoras
     const handleCalculatorChange = (e) => {
         const { name, value } = e.target;
         setCalculatorState(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
@@ -75,19 +80,19 @@ const TelaMilhas = ({ carteiras = [], metas = [], onSave, onDelete }) => {
         setWalletToEdit(wallet);
         setWalletModalOpen(true);
     };
-
     const handleCloseWalletModal = () => {
         setWalletToEdit(null);
         setWalletModalOpen(false);
     };
-
+    
+    // 5. Handlers de salvar e apagar agora chamam as ações da store
     const handleSaveWallet = (walletData) => {
-        onSave(walletData, 'carteiras'); // Chama a função do App.js
+        saveViagensItem(walletData, 'carteiras');
         handleCloseWalletModal();
     };
 
     const handleDeleteWallet = (walletId) => {
-        onDelete(walletId, 'carteiras'); // Chama a função do App.js
+        deleteViagensItem(walletId, 'carteiras');
     };
 
     const handleOpenTripModal = (trip = null) => {
@@ -101,15 +106,14 @@ const TelaMilhas = ({ carteiras = [], metas = [], onSave, onDelete }) => {
     };
 
     const handleSaveTrip = (tripData) => {
-        onSave(tripData, 'metas'); // Chama a função do App.js
+        saveViagensItem(tripData, 'metas');
         handleCloseTripModal();
     };
 
     const handleDeleteTrip = (tripId) => {
-        onDelete(tripId, 'metas'); // Chama a função do App.js
+        deleteViagensItem(tripId, 'metas');
     };
 
-    // Componentes de UI internos
     const TabButton = ({ tabId, label, icon: Icon }) => (
         <button onClick={() => setActiveTab(tabId)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${activeTab === tabId ? 'bg-[#00d971] text-slate-800 font-semibold' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
             <Icon size={18} />
@@ -131,6 +135,15 @@ const TelaMilhas = ({ carteiras = [], metas = [], onSave, onDelete }) => {
             </div>
         </div>
     );
+    
+    // 6. Adicionado um indicador de carregamento
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+            </div>
+        );
+    }
 
     return (
         <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} p-4 sm:p-6 transition-colors duration-300`}>

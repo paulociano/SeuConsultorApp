@@ -5,9 +5,13 @@ import { Edit, PlusCircle, Trash2 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import { ThemeContext } from '../../ThemeContext';
 import { v4 as uuidv4 } from 'uuid';
+import { useAquisicaoStore } from '../../stores/useAquisicaoStore';
 
-const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dadosIniciais, onSave }) => {
+// O componente agora recebe apenas props de configuração, não mais de dados ou handlers.
+const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => {
     const { theme } = useContext(ThemeContext);
+    // Conecta-se à store para obter estados e ações
+    const { imoveis, automoveis, isLoading, fetchAquisicoes, saveAquisicao } = useAquisicaoStore();
 
     const initialFormState = useMemo(() => ({
         descricao: descricaoBem,
@@ -35,44 +39,61 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dados
     const [casoSelecionado, setCasoSelecionado] = useState(null);
     const [activeChart, setActiveChart] = useState('acumulo');
 
-    // Estados para o novo comparativo de consórcio
     const [percentualReducao, setPercentualReducao] = useState(0);
     const [percentualEmbutido, setPercentualEmbutido] = useState(0);
 
+    // Efeito para buscar os dados da store na montagem do componente
     useEffect(() => {
-        if (dadosIniciais && dadosIniciais.length > 0) {
-            setCasos(dadosIniciais);
-            handleSelectCaso(dadosIniciais[0]);
+        fetchAquisicoes();
+    }, [fetchAquisicoes]);
+
+    // Efeito que sincroniza o estado local com os dados vindos da store
+    useEffect(() => {
+        const dadosDaStore = tipo === 'imoveis' ? imoveis : automoveis;
+        if (dadosDaStore && dadosDaStore.length > 0) {
+            setCasos(dadosDaStore);
+            handleSelectCaso(dadosDaStore[0]);
         } else {
             setCasos([]);
             setCasoSelecionado(null);
             setNovoCaso(initialFormState);
         }
-    }, [dadosIniciais, initialFormState]);
+    }, [imoveis, automoveis, tipo, initialFormState]);
 
     const handleSelectCaso = (caso) => {
         setNovoCaso(caso);
         setCasoSelecionado(caso);
     };
 
+    // Handlers que agora chamam a ação 'saveAquisicao' da store
     const handleUpdateCaso = () => {
         if (!casoSelecionado) return;
         const casoAtualizado = { ...novoCaso, id: casoSelecionado.id };
         const novosCasos = casos.map(c => c.id === casoSelecionado.id ? casoAtualizado : c);
         setCasos(novosCasos);
         setCasoSelecionado(casoAtualizado);
-        onSave(tipo, novosCasos);
+        saveAquisicao(tipo, novosCasos);
     };
 
     const handleDeleteCaso = (idToDelete) => {
         const novosCasos = casos.filter(c => c.id !== idToDelete);
         setCasos(novosCasos);
-        onSave(tipo, novosCasos);
+        saveAquisicao(tipo, novosCasos);
 
         if (casoSelecionado?.id === idToDelete) {
             setCasoSelecionado(null);
             setNovoCaso(initialFormState);
         }
+    };
+
+    const handleAddCaso = (e) => {
+        e.preventDefault();
+        if (!novoCaso.descricao || !novoCaso.valorTotal) return;
+        const casoAdicionado = { ...novoCaso, id: uuidv4() };
+        const novosCasos = [...casos, casoAdicionado];
+        setCasos(novosCasos);
+        setCasoSelecionado(casoAdicionado);
+        saveAquisicao(tipo, novosCasos);
     };
 
     const handleInputChange = (e) => {
@@ -83,16 +104,6 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dados
             [name]: val,
             ...(name === 'possuiFGTS' && !checked && { valorFGTS: 0 })
         }));
-    };
-
-    const handleAddCaso = (e) => {
-        e.preventDefault();
-        if (!novoCaso.descricao || !novoCaso.valorTotal) return;
-        const casoAdicionado = { ...novoCaso, id: uuidv4() };
-        const novosCasos = [...casos, casoAdicionado];
-        setCasos(novosCasos);
-        setCasoSelecionado(casoAdicionado);
-        onSave(tipo, novosCasos);
     };
 
     const calcularPrevisaoComJuros = (valorAlvo, valorDisponivel, aporteMensal, rentabilidade) => {
@@ -210,7 +221,6 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dados
     };
     }, [projecaoData, activeChart, theme]);
 
-    // LÓGICA PARA OS NOVOS GRÁFICOS DE COMPARAÇÃO DE CONSÓRCIO (VERSÃO COM LANCE EMBUTIDO CORRIGIDO)
     const projecaoConsorcioComparativo = useMemo(() => {
         if (!casoSelecionado) return { cenarioPadrao: [], cenarioReduzido: null, cenarioEmbutido: null };
 
@@ -221,42 +231,24 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dados
             } = casoSelecionado;
             
             const { reducao, embutido } = params;
-
             const taxaJurosMensal = rentabilidadeMensal / 100;
             const maxPrazo = prazoConsorcio;
             const data = [];
-            
             let capitalLiquido = valorDisponivel;
             let foiContemplado = false;
-            
             const creditoContratado = embutido > 0 ? valorTotal / (1 - embutido / 100) : valorTotal;
             let saldoDevedor = creditoContratado * (1 + taxaAdmTotal / 100);
             let parcelaCheia = prazoConsorcio > 0 ? saldoDevedor / prazoConsorcio : 0;
-            
-            // --- LÓGICA DE CÁLCULO DO LANCE CORRIGIDA PARA ANTECIPAÇÃO DA CONTEMPLAÇÃO ---
-
-            // 1. Valor total do lance (em R$) necessário para a contemplação.
             const lanceTotalNecessario = valorTotal * (lancePercentual / 100);
-
-            // 2. Valor (em R$) que virá do próprio crédito na estratégia de lance embutido.
             const valorDoLanceEmbutido = embutido > 0 ? creditoContratado * (embutido / 100) : 0;
-            
-            // 3. Valor (em R$) que o usuário realmente precisa juntar do próprio bolso.
-            //    É a diferença entre o lance total e a parte embutida.
             const lanceDeRecursoProprio = Math.max(0, lanceTotalNecessario - valorDoLanceEmbutido);
-            
-            // 4. Calcula o tempo para juntar APENAS o 'lanceDeRecursoProprio'.
-            //    Isto fará com que a contemplação no cenário embutido seja antecipada.
             const parcelaConsideradaParaPrevisao = reducao > 0 ? parcelaCheia * (1 - reducao / 100) : parcelaCheia;
             const aporteLiquidoParaLance = aporteMensal - parcelaConsideradaParaPrevisao;
             const capitalInicialTotal = valorDisponivel + (permitirFGTS && possuiFGTS ? valorFGTS : 0);
             const { meses: mesesParaLance } = calcularPrevisaoComJuros(lanceDeRecursoProprio, capitalInicialTotal, aporteLiquidoParaLance, rentabilidadeMensal);
             
-            // --- FIM DA CORREÇÃO ---
-            
             for (let i = 1; i <= maxPrazo; i++) {
                 let parcelaDoMes = parcelaCheia;
-
                 if ((i - 1) > 0 && (i - 1) % 12 === 0) {
                     const reajuste = (1 + reajusteAnualConsorcio / 100);
                     if (foiContemplado) {
@@ -270,33 +262,25 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dados
                         parcelaCheia = (valorCartaAtual * (1+taxaAdmTotal/100))/prazoConsorcio;
                     }
                 }
-
                 if (i === mesesParaLance && !foiContemplado) {
-                    const lanceEfetivo = lanceTotalNecessario; // O lance total ofertado é o mesmo
+                    const lanceEfetivo = lanceTotalNecessario;
                     saldoDevedor -= lanceEfetivo;
                     foiContemplado = true;
-                    
                     const prazoRestante = prazoConsorcio - (i - 1);
                     parcelaCheia = prazoRestante > 0 ? saldoDevedor / prazoRestante : 0;
-                    
-                    // Apenas o 'lanceDeRecursoProprio' (e FGTS) sai do capital líquido do usuário.
                     const fgtsDisponivel = permitirFGTS && possuiFGTS ? valorFGTS : 0;
                     capitalLiquido -= Math.max(0, lanceDeRecursoProprio - fgtsDisponivel);
                 }
-
                 if (!foiContemplado && reducao > 0) {
                     parcelaDoMes = parcelaCheia * (1 - reducao / 100);
                 } else {
                     parcelaDoMes = parcelaCheia;
                 }
-                
                 const capacidadePoupanca = aporteMensal - parcelaDoMes;
                 capitalLiquido = capitalLiquido * (1 + taxaJurosMensal) + capacidadePoupanca;
-                
                 if (saldoDevedor > 0) {
                     saldoDevedor -= parcelaDoMes;
                 }
-
                 if (i % 12 === 0) {
                     data.push({
                         ano: i / 12,
@@ -312,19 +296,15 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dados
         const cenarioPadrao = calcularCenario({ reducao: 0, embutido: 0 });
         const cenarioReduzido = percentualReducao > 0 ? calcularCenario({ reducao: percentualReducao, embutido: 0 }) : null;
         const cenarioEmbutido = percentualEmbutido > 0 ? calcularCenario({ reducao: 0, embutido: percentualEmbutido }) : null;
-
         return { cenarioPadrao, cenarioReduzido, cenarioEmbutido };
-
     }, [casoSelecionado, percentualReducao, percentualEmbutido, permitirFGTS]);
 
     const getConsorcioChartOptions = (tipoGrafico) => {
         const { cenarioPadrao, cenarioReduzido, cenarioEmbutido } = projecaoConsorcioComparativo;
         if (!cenarioPadrao || cenarioPadrao.length === 0) return {};
-
         const anos = cenarioPadrao.map(p => p.ano);
         const series = [];
         const legend = [];
-        
         const seriesMapping = {
             acumulo: {
                 padrao: cenarioPadrao.map(p => p.acumuloCapital),
@@ -345,7 +325,6 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dados
 
         legend.push('Padrão');
         series.push({ name: 'Padrão', type: 'line', symbol: 'none', data: seriesMapping[tipoGrafico].padrao, color: '#c084fc' });
-
         if (cenarioReduzido) {
             legend.push(`Redução ${percentualReducao}%`);
             series.push({ name: `Redução ${percentualReducao}%`, type: 'line', symbol: 'none', data: seriesMapping[tipoGrafico].reduzido, color: '#ffc658' });
@@ -366,6 +345,14 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo, dados
             dataZoom: [ { type: 'inside', start: 0, end: 100 }, { type: 'slider', start: 0, end: 100, handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z', handleSize: '80%', handleStyle: { color: '#fff', shadowBlur: 3, shadowColor: 'rgba(0, 0, 0, 0.6)', shadowOffsetX: 2, shadowOffsetY: 2 } } ]
         };
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-[calc(100vh-8rem)]">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#00d971]"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-7xl mx-auto space-y-6">

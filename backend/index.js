@@ -10,7 +10,6 @@ const bcrypt = require('bcrypt');
 const { body, param, validationResult } = require('express-validator');
 
 // --- CONFIGURAÇÃO SEGURA DO BANCO DE DADOS ---
-// As credenciais agora são lidas do arquivo .env
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
@@ -540,6 +539,7 @@ app.get('/api/aquisicoes/:tipo', verificarToken, [param('tipo').isIn(['imoveis',
         res.status(500).json({ message: `Erro ao buscar dados de aquisição (${tipo}).` });
     }
 });
+// AQUI ESTÁ A CORREÇÃO DO ERRO DE JSON
 app.post('/api/aquisicoes/:tipo', verificarToken, [param('tipo').isIn(['imoveis', 'automoveis'])], jsonArrayValidation, checkValidation, async (req, res) => {
     const { tipo } = req.params;
     const simulacoes = req.body;
@@ -551,7 +551,8 @@ app.post('/api/aquisicoes/:tipo', verificarToken, [param('tipo').isIn(['imoveis'
         DO UPDATE SET simulacoes = EXCLUDED.simulacoes, atualizado_em = CURRENT_TIMESTAMP
         RETURNING simulacoes;`;
     try {
-        const result = await pool.query(sql, [userId, tipo, JSON.stringify(simulacoes)]);
+        // CORREÇÃO: Removido o JSON.stringify(). O driver 'pg' lida com a conversão.
+        const result = await pool.query(sql, [userId, tipo, simulacoes]);
         res.status(200).json(result.rows[0].simulacoes);
     } catch (error) {
         console.error(`Erro ao salvar dados de aquisição (${tipo}):`, error);

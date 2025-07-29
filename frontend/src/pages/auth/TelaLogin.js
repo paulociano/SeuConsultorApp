@@ -1,50 +1,33 @@
-// src/pages/auth/TelaLogin.js
-
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
-import { LogIn, LoaderCircle } from 'lucide-react'; // Importe o ícone de carregamento
+import { LogIn, LoaderCircle } from 'lucide-react';
+// 1. Importar a store do utilizador
+import { useUserStore } from '../../stores/useUserStore';
 
-const TelaLogin = ({ onNavigateToRegister, setIsAuthenticated, setUsuario }) => {
+// 2. As props setIsAuthenticated e setUsuario foram removidas
+const TelaLogin = ({ onNavigateToRegister }) => {
+  // 3. Obter a ação de login e o estado de carregamento da store
+  const { login, isLoading } = useUserStore();
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [carregando, setCarregando] = useState(false); // Estado para controlar o carregamento
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    setCarregando(true); // Inicia o carregamento
 
-    try {
-      const response = await fetch('http://localhost:3001/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: email, senha: password }),
-      });
+    // 4. Chamar a ação de login da store
+    const success = await login(email, password);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // SUCESSO!
-        // 1. Salvar o token no localStorage para manter a sessão
-        localStorage.setItem('authToken', data.token);
-
-        // 2. Atualizar o estado principal do App
-        setUsuario(data.usuario);
-        setIsAuthenticated(true);
-      } else {
-        // Erro vindo do backend
-        setError(data.message || 'Ocorreu um erro no login.');
-      }
-    } catch (err) {
-      // Erro de rede
-      console.error('Falha ao conectar com o servidor:', err);
-      setError('Não foi possível conectar ao servidor. Tente novamente.');
-    } finally {
-      // Este bloco sempre executa, com sucesso ou erro
-      setCarregando(false); // Finaliza o carregamento
+    if (success) {
+      // 5. Navegar para a página principal em caso de sucesso
+      navigate('/objetivos'); 
+    } else {
+      // A store já exibe um toast de erro, mas podemos definir um erro local se quisermos
+      setError('Email ou senha inválidos. Tente novamente.');
     }
   };
 
@@ -58,7 +41,7 @@ const TelaLogin = ({ onNavigateToRegister, setIsAuthenticated, setUsuario }) => 
           style={{ filter: 'invert(42%) sepia(93%) saturate(2000%) hue-rotate(133deg) brightness(100%) contrast(107%)' }}
         />
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Bem-vindo!</h1>
-        <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm">Faça login para controlar suas finanças</p>
+        <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm">Faça login para controlar as suas finanças</p>
       </div>
       <form className="space-y-6" onSubmit={handleLogin}>
         <div>
@@ -70,7 +53,7 @@ const TelaLogin = ({ onNavigateToRegister, setIsAuthenticated, setUsuario }) => 
             placeholder="seu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={carregando} // Desabilita o campo durante o carregamento
+            disabled={isLoading}
           />
         </div>
         <div>
@@ -82,7 +65,7 @@ const TelaLogin = ({ onNavigateToRegister, setIsAuthenticated, setUsuario }) => 
             placeholder="********"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            disabled={carregando} // Desabilita o campo durante o carregamento
+            disabled={isLoading}
           />
         </div>
 
@@ -91,15 +74,15 @@ const TelaLogin = ({ onNavigateToRegister, setIsAuthenticated, setUsuario }) => 
         <button
           type="submit"
           className="w-full py-2 font-semibold text-black bg-[#00d971] rounded-md hover:brightness-90 transition duration-300 flex items-center justify-center gap-2 text-base disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={carregando} // Desabilita o botão durante o carregamento
+          disabled={isLoading}
         >
-          {carregando ? <LoaderCircle size={18} className="animate-spin" /> : <LogIn size={18} />}
-          {carregando ? 'Entrando...' : 'Entrar'}
+          {isLoading ? <LoaderCircle size={18} className="animate-spin" /> : <LogIn size={18} />}
+          {isLoading ? 'A entrar...' : 'Entrar'}
         </button>
       </form>
       <p className="text-xs text-center text-gray-500 dark:text-gray-400">
         Não tem uma conta?{' '}
-        <button type="button" onClick={onNavigateToRegister} className="font-medium text-[#00d971] hover:underline">Cadastre-se</button>
+        <button type="button" onClick={onNavigateToRegister} className="font-medium text-[#00d971] hover:underline">Registe-se</button>
       </p>
     </div>
   );

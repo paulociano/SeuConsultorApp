@@ -16,13 +16,13 @@ const menuItems = [
     { id: 'objetivos', label: 'Objetivos', icon: Target, path: '/objetivos' },
     { id: 'orcamento', label: 'Orçamento', icon: BarChart2, path: '/orcamento' },
     { id: 'fluxo', label: 'Fluxo', icon: ArrowRightLeft, subItems: [
-        { id: 'fluxoTransacoes', label: 'Extrato', icon: Coins, path: '/fluxo/transacoes' },
+        { id: 'fluxoTransacoes', label: 'Transações', icon: Coins, path: '/fluxo/transacoes' },
         { id: 'fluxoPlanejamento', label: 'Planejamento', icon: CheckSquare, path: '/fluxo/planejamento' }
     ]},
     { id: 'patrimonio', label: 'Património', icon: Landmark, path: '/patrimonio' },
     { id: 'protecao', label: 'Proteção', icon: Shield, path: '/protecao' },
     { id: 'reserva', label: 'Reserva', icon: PiggyBank, path: '/reserva' },
-    { id: 'aposentadoria', label: 'Aposentadoria', icon: TreePalm, subItems: [
+    { id: 'aposentadoria', label: 'Aposentação', icon: TreePalm, subItems: [
         { id: 'aposentadoriaAportes', label: 'Aportes', icon: ChartLine, path: '/aposentadoria/aportes' },
         { id: 'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins, path: '/aposentadoria/pgbl' }
     ]},
@@ -38,6 +38,7 @@ const menuItems = [
     { id: 'agendaReunioes', label: 'Reuniões e Agenda', icon: CalendarDays, path: '/agenda' }
 ];
 
+// 1. O componente recebe o estado 'isCollapsed' e a função 'setIsCollapsed'
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     const { usuario, logout } = useUserStore();
     const { theme, toggleTheme } = useContext(ThemeContext);
@@ -49,7 +50,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     
     const handleMenuClick = (id, path, hasSubItems) => {
         if (isCollapsed) {
-            setIsCollapsed(false);
+            setIsCollapsed(false); // Expande a barra se estiver colapsada e um item for clicado
         }
         if (hasSubItems) { 
             setOpenMenu(prevOpenMenu => (prevOpenMenu === id ? null : id)); 
@@ -61,7 +62,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
 
     const handleMouseEnter = () => {
         if (isCollapsed) {
-            setIsCollapsed(false);
+            setIsCollapsed(false); // Expande e fixa ao passar o mouse
         }
     };
 
@@ -73,6 +74,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             )}
             onMouseEnter={handleMouseEnter}
         >
+            {/* 2. Este botão agora chama a função 'setIsCollapsed' que veio do App.js */}
             <button 
                 onClick={() => setIsCollapsed(prev => !prev)} 
                 className="absolute top-1/2 -right-3 z-30 w-6 h-6 bg-slate-200 dark:bg-[#3e388b] rounded-full flex items-center justify-center text-slate-600 dark:text-white hover:bg-slate-300 dark:hover:bg-[#00d971] transition-all"

@@ -1,0 +1,104 @@
+const request = require('supertest');
+const { app, server } = require('../index');
+const pool = require('../config/db');
+
+describe('Endpoints de Orçamento (Protegidos)', () => {
+    let token;
+
+    // Antes de todos os testes, criamos um utilizador. O registo já deve criar o orçamento padrão.
+    beforeAll(async () => {
+        const testUser = {
+            nome: 'Utilizador Orcamento',
+            email: `orcamento-${Date.now()}@exemplo.com`,
+            senha: 'password123'
+        };
+        await request(app).post('/cadastro').send(testUser);
+        const loginRes = await request(app)
+            .post('/login')
+            .send({ email: testUser.email, senha: testUser.senha });
+        token = loginRes.body.token;
+    });
+
+    // Fechar o servidor e a pool da base de dados após todos os testes
+    afterAll(async () => {
+        await new Promise(resolve => server.close(resolve));
+        await pool.end();
+    });
+
+    let categoriaDespesaId; // Para guardar o ID de uma categoria para adicionar itens
+    let itemId; // Para guardar o ID do item criado
+
+    it('deve listar a estrutura de orçamento padrão do utilizador', async () => {
+        const res = await request(app)
+            .get('/api/orcamento')
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.statusCode).toEqual(200);
+        expect(Array.isArray(res.body)).toBe(true);
+        // O orçamento padrão deve ter várias categorias
+        expect(res.body.length).toBeGreaterThan(0);
+        // Verificar se uma categoria esperada (ex: 'Moradia') existe
+        const categoriaMoradia = res.body.find(cat => cat.nome === 'Moradia');
+        expect(categoriaMoradia).toBeDefined();
+        // Verificar se a categoria tem sub-itens
+        expect(categoriaMoradia.subItens.length).toBeGreaterThan(0);
+
+        // Guardar o ID de uma categoria de despesa para usar nos próximos testes
+        categoriaDespesaId = categoriaMoradia.id;
+    });
+
+    it('deve adicionar um novo item a uma categoria de orçamento', async () => {
+        const novoItem = {
+            nome: 'Assinatura de Streaming',
+            valor_planejado: 55.90,
+            categoria_id: categoriaDespesaId,
+            categoria_planejamento: 'Lazer' // Campo obrigatório para despesas
+        };
+
+        const res = await request(app)
+            .post('/api/orcamento/itens')
+            .set('Authorization', `Bearer ${token}`)
+            .send(novoItem);
+
+        expect(res.statusCode).toEqual(201);
+        expect(res.body).toHaveProperty('id');
+        expect(res.body.nome).toBe(novoItem.nome);
+        itemId = res.body.id;
+    });
+
+    it('deve atualizar um item de orçamento existente', async () => {
+        const dadosAtualizados = {
+            nome: 'Assinatura de Streaming (Premium)',
+            valor_planejado: 75.00,
+            valor_atual: 55.90, // O utilizador pode atualizar o valor atual
+            categoria_planejamento: 'Assinaturas'
+        };
+
+        const res = await request(app)
+            .put(`/api/orcamento/itens/${itemId}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send(dadosAtualizados);
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.nome).toBe(dadosAtualizados.nome);
+        expect(parseFloat(res.body.valor_planejado)).toBe(dadosAtualizados.valor_planejado);
+    });
+
+    it('deve apagar um item de orçamento existente', async () => {
+        const res = await request(app)
+            .delete(`/api/orcamento/itens/${itemId}`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.statusCode).toEqual(204);
+
+        // Verificar se o item foi realmente apagado
+        const getRes = await request(app)
+            .get('/api/orcamento')
+            .set('Authorization', `Bearer ${token}`);
+        
+        const categoriaMoradia = getRes.body.find(cat => cat.id === categoriaDespesaId);
+        const itemApagado = categoriaMoradia.subItens.find(item => item.id === itemId);
+        
+        expect(itemApagado).toBeUndefined();
+    });
+});

@@ -1,0 +1,100 @@
+const request = require('supertest');
+const { app, server } = require('../index');
+const pool = require('../config/db');
+
+describe('Endpoints de Planeamento (JSON Genérico)', () => {
+    let token;
+
+    // Antes de todos os testes, criamos um utilizador e fazemos login para obter um token
+    beforeAll(async () => {
+        const testUser = {
+            nome: 'Utilizador Planejamento',
+            email: `planejamento-${Date.now()}@exemplo.com`,
+            senha: 'password123'
+        };
+        await request(app).post('/cadastro').send(testUser);
+        const loginRes = await request(app)
+            .post('/login')
+            .send({ email: testUser.email, senha: testUser.senha });
+        token = loginRes.body.token;
+    });
+
+    // Fechar o servidor e a pool da base de dados após todos os testes
+    afterAll(async () => {
+        await new Promise(resolve => server.close(resolve));
+        await pool.end();
+    });
+
+    // --- Testes para /api/aposentadoria ---
+    describe('/api/aposentadoria', () => {
+        it('deve guardar os dados de aposentadoria com sucesso', async () => {
+            const dadosAposentadoria = {
+                idadeAtual: 30,
+                idadeAposentadoria: 65,
+                patrimonioAtual: 50000,
+                aporteMensal: 1000
+            };
+            const res = await request(app)
+                .post('/api/aposentadoria')
+                .set('Authorization', `Bearer ${token}`)
+                .send(dadosAposentadoria);
+            
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.idadeAtual).toBe(dadosAposentadoria.idadeAtual);
+        });
+
+        it('deve obter os dados de aposentadoria guardados', async () => {
+            const res = await request(app)
+                .get('/api/aposentadoria')
+                .set('Authorization', `Bearer ${token}`);
+            
+            expect(res.statusCode).toEqual(200);
+            expect(res.body).toHaveProperty('aporteMensal', 1000);
+        });
+    });
+
+    // --- Testes para /api/simulador-pgbl ---
+    describe('/api/simulador-pgbl', () => {
+        it('deve guardar os dados do simulador PGBL com sucesso', async () => {
+            const dadosSimulador = {
+                salarioBruto: 10000,
+                contribuicaoINSS: 1100,
+                dependentes: 2
+            };
+            const res = await request(app)
+                .post('/api/simulador-pgbl')
+                .set('Authorization', `Bearer ${token}`)
+                .send(dadosSimulador);
+            
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.salarioBruto).toBe(dadosSimulador.salarioBruto);
+        });
+    });
+
+    // --- Testes para /api/aquisicoes ---
+    describe('/api/aquisicoes', () => {
+        it('deve guardar as simulações de imóveis com sucesso', async () => {
+            const simulacoesImoveis = [
+                { id: 'sim1', nome: 'Apartamento', valor: 300000, tipo: 'financiamento' },
+                { id: 'sim2', nome: 'Casa de Campo', valor: 500000, tipo: 'consorcio' }
+            ];
+            const res = await request(app)
+                .post('/api/aquisicoes/imoveis')
+                .set('Authorization', `Bearer ${token}`)
+                .send(simulacoesImoveis);
+            
+            expect(res.statusCode).toEqual(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body.length).toBe(2);
+        });
+
+        it('deve obter as simulações de imóveis guardadas', async () => {
+            const res = await request(app)
+                .get('/api/aquisicoes/imoveis')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toEqual(200);
+            expect(res.body[0].nome).toBe('Apartamento');
+        });
+    });
+});

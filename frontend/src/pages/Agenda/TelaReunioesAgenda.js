@@ -112,7 +112,9 @@ export default function TelaReunioesAgenda() {
 
     // *** CORREÇÃO APLICADA AQUI ***
     // Garante que o objeto enviado para a API tenha todos os campos esperados,
-    // mesmo que vazios, para passar na validação do backend.
+    // com os tipos de dados corretos, para passar na validação do backend.
+    const valorFloat = parseFloat(novaAta.valorEnvolvido);
+
     const ataToSave = {
         id: editingAtaId, // Será null se for uma nova ata
         titulo: novaAta.titulo || "",
@@ -124,7 +126,8 @@ export default function TelaReunioesAgenda() {
         deliberacoes: novaAta.deliberacoes || "",
         categoriaFinanceira: novaAta.categoriaFinanceira || "",
         tipoDecisaoFinanceira: novaAta.tipoDecisaoFinanceira || "",
-        valorEnvolvido: parseFloat(novaAta.valorEnvolvido) || null,
+        // Converte o valor para número, tratando casos de campo vazio ou inválido como null
+        valorEnvolvido: isNaN(valorFloat) ? null : valorFloat,
         impactoEsperado: novaAta.impactoEsperado || "",
         actionItems: novaAta.actionItems || [],
     };
@@ -238,7 +241,7 @@ export default function TelaReunioesAgenda() {
     Concluído: "bg-green-600 text-white",
   };
 
-  const financialCategories = ["Orçamento", "Investimentos", "Auditoria", "Planejamento Tributário", "Revisão de Dívidas", "Relatórios Financeiros", "Outros"];
+  const financialCategories = ["Orçamento", "Investimentos", "Auditoria", "Planeamento Tributário", "Revisão de Dívidas", "Relatórios Financeiros", "Outros"];
 
   const filteredAtas = useMemo(() => (atas || []).filter(ata => 
         (searchTerm ? (ata.titulo.toLowerCase().includes(searchTerm.toLowerCase()) || 

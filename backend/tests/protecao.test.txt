@@ -1,0 +1,163 @@
+const request = require('supertest');
+const { app, server } = require('../index');
+const pool = require('../config/db');
+
+describe('Endpoints de Proteção (Protegidos)', () => {
+    let token;
+
+    // Antes de todos os testes, criamos um utilizador e fazemos login para obter um token
+    beforeAll(async () => {
+        const testUser = {
+            nome: 'Utilizador Protecao',
+            email: `protecao-${Date.now()}@exemplo.com`,
+            senha: 'password123'
+        };
+        await request(app).post('/cadastro').send(testUser);
+        const loginRes = await request(app)
+            .post('/login')
+            .send({ email: testUser.email, senha: testUser.senha });
+        token = loginRes.body.token;
+    });
+
+    // Fechar o servidor e a pool da base de dados após todos os testes
+    afterAll(async () => {
+        await new Promise(resolve => server.close(resolve));
+        await pool.end();
+    });
+
+    // --- Testes para Proteção por Invalidez ---
+    describe('/api/protecao/invalidez', () => {
+        let itemId;
+
+        it('deve criar um novo item de proteção por invalidez', async () => {
+            const novoItem = {
+                nome: 'Seguro de Vida XPTO',
+                cobertura: 500000,
+                observacoes: 'Apólice 123'
+            };
+            const res = await request(app)
+                .post('/api/protecao/invalidez')
+                .set('Authorization', `Bearer ${token}`)
+                .send(novoItem);
+            
+            expect(res.statusCode).toEqual(201);
+            expect(res.body).toHaveProperty('id');
+            itemId = res.body.id;
+        });
+
+        it('deve atualizar um item de proteção por invalidez', async () => {
+            const dadosAtualizados = {
+                nome: 'Seguro de Vida XPTO (Atualizado)',
+                cobertura: 550000,
+                observacoes: 'Apólice 12345'
+            };
+            const res = await request(app)
+                .put(`/api/protecao/invalidez/${itemId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send(dadosAtualizados);
+
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.nome).toBe(dadosAtualizados.nome);
+        });
+
+        it('deve apagar um item de proteção por invalidez', async () => {
+            const res = await request(app)
+                .delete(`/api/protecao/invalidez/${itemId}`)
+                .set('Authorization', `Bearer ${token}`);
+            
+            expect(res.statusCode).toEqual(204);
+        });
+    });
+
+    // --- Testes para Proteção de Despesas Futuras ---
+    describe('/api/protecao/despesas', () => {
+        let itemId;
+
+        it('deve criar um novo item de despesa futura', async () => {
+            const novoItem = {
+                nome: 'Educação do Filho',
+                ano_inicio: 2030,
+                valor_mensal: 1500,
+                prazo_meses: 60
+            };
+            const res = await request(app)
+                .post('/api/protecao/despesas')
+                .set('Authorization', `Bearer ${token}`)
+                .send(novoItem);
+            
+            expect(res.statusCode).toEqual(201);
+            expect(res.body).toHaveProperty('id');
+            itemId = res.body.id;
+        });
+
+        it('deve atualizar um item de despesa futura', async () => {
+            const dadosAtualizados = {
+                nome: 'Educação do Filho (Universidade)',
+                ano_inicio: 2032,
+                valor_mensal: 2000,
+                prazo_meses: 48
+            };
+            const res = await request(app)
+                .put(`/api/protecao/despesas/${itemId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send(dadosAtualizados);
+            
+            expect(res.statusCode).toEqual(200);
+            expect(parseFloat(res.body.valor_mensal)).toBe(dadosAtualizados.valor_mensal);
+        });
+
+        it('deve apagar um item de despesa futura', async () => {
+            const res = await request(app)
+                .delete(`/api/protecao/despesas/${itemId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toEqual(204);
+        });
+    });
+
+    // --- Testes para Proteção Patrimonial ---
+    describe('/api/protecao/patrimonial', () => {
+        let itemId;
+
+        it('deve criar um novo item de proteção patrimonial', async () => {
+            const novoItem = {
+                nome: 'Seguro Automóvel',
+                empresa: 'Seguradora ABC',
+                data_vencimento: '2025-12-31',
+                valor: 80000
+            };
+            const res = await request(app)
+                .post('/api/protecao/patrimonial')
+                .set('Authorization', `Bearer ${token}`)
+                .send(novoItem);
+            
+            expect(res.statusCode).toEqual(201);
+            expect(res.body).toHaveProperty('id');
+            itemId = res.body.id;
+        });
+
+        it('deve atualizar um item de proteção patrimonial', async () => {
+            const dadosAtualizados = {
+                nome: 'Seguro Automóvel 2026',
+                empresa: 'Seguradora ABC',
+                data_vencimento: '2026-12-31',
+                valor: 85000
+            };
+            const res = await request(app)
+                .put(`/api/protecao/patrimonial/${itemId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send(dadosAtualizados);
+            
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.nome).toBe(dadosAtualizados.nome);
+        });
+
+        it('deve apagar um item de proteção patrimonial', async () => {
+            const res = await request(app)
+                .delete(`/api/protecao/patrimonial/${itemId}`)
+                .set('Authorization', `Bearer ${token}`);
+            
+            expect(res.statusCode).toEqual(204);
+        });
+    });
+});

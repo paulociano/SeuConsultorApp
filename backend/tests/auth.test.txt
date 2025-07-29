@@ -1,0 +1,94 @@
+const request = require('supertest');
+const { app, server } = require('../index'); 
+// 1. Importar o 'pool' da base de dados para o podermos fechar
+const pool = require('../config/db');
+
+describe('Endpoints de Autenticação', () => {
+
+    // 2. A função 'afterAll' agora também fecha a ligação à base de dados
+    afterAll(async () => {
+        await new Promise(resolve => server.close(resolve));
+        await pool.end();
+    });
+
+    it('deve registar um novo utilizador com sucesso', async () => {
+        const testUser = {
+            nome: 'Utilizador de Registo',
+            email: `registo-${Date.now()}@exemplo.com`,
+            senha: 'password123'
+        };
+
+        const res = await request(app)
+            .post('/cadastro')
+            .send(testUser);
+        
+        expect(res.statusCode).toEqual(201);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.usuario.email).toBe(testUser.email);
+    });
+
+    it('deve falhar ao tentar registar com um email duplicado', async () => {
+        const testUser = {
+            nome: 'Utilizador Duplicado',
+            email: `duplicado-${Date.now()}@exemplo.com`,
+            senha: 'password123'
+        };
+
+        // A primeira tentativa deve funcionar
+        await request(app)
+            .post('/cadastro')
+            .send(testUser)
+            .expect(201);
+
+        // A segunda tentativa com o mesmo email deve falhar
+        const res = await request(app)
+            .post('/cadastro')
+            .send(testUser);
+
+        expect(res.statusCode).toEqual(409);
+        expect(res.body).toHaveProperty('success', false);
+        expect(res.body.message).toBe('Este email já está em uso.');
+    });
+
+    it('deve fazer o login de um utilizador existente com sucesso', async () => {
+        const testUser = {
+            nome: 'Utilizador de Login',
+            email: `login-${Date.now()}@exemplo.com`,
+            senha: 'password123'
+        };
+        // Primeiro, garantimos que o utilizador existe
+        await request(app).post('/cadastro').send(testUser);
+
+        const res = await request(app)
+            .post('/login')
+            .send({
+                email: testUser.email,
+                senha: testUser.senha
+            });
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body).toHaveProperty('token');
+    });
+
+    it('deve falhar ao tentar fazer login com a senha errada', async () => {
+        const testUser = {
+            nome: 'Utilizador Senha Errada',
+            email: `wrongpass-${Date.now()}@exemplo.com`,
+            senha: 'password123'
+        };
+        // Primeiro, garantimos que o utilizador existe
+        await request(app).post('/cadastro').send(testUser);
+
+        const res = await request(app)
+            .post('/login')
+            .send({
+                email: testUser.email,
+                senha: 'senhaincorreta'
+            });
+
+        expect(res.statusCode).toEqual(401);
+        expect(res.body).toHaveProperty('success', false);
+        expect(res.body.message).toBe('Email ou senha inválidos');
+    });
+});

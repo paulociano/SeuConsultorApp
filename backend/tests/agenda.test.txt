@@ -1,0 +1,136 @@
+const request = require('supertest');
+const { app, server } = require('../index');
+const pool = require('../config/db');
+
+describe('Endpoints de Agenda e Atas (Protegidos)', () => {
+    let token;
+
+    // Antes de todos os testes, criamos um utilizador e fazemos login para obter um token
+    beforeAll(async () => {
+        const testUser = {
+            nome: 'Utilizador Agenda',
+            email: `agenda-${Date.now()}@exemplo.com`,
+            senha: 'password123'
+        };
+        await request(app).post('/cadastro').send(testUser);
+        const loginRes = await request(app)
+            .post('/login')
+            .send({ email: testUser.email, senha: testUser.senha });
+        token = loginRes.body.token;
+    });
+
+    // Fechar o servidor e a pool da base de dados após todos os testes
+    afterAll(async () => {
+        await new Promise(resolve => server.close(resolve));
+        await pool.end();
+    });
+
+    // --- Testes para Atas de Reunião ---
+    describe('/api/atas', () => {
+        let ataId;
+
+        it('deve criar uma nova ata com sucesso', async () => {
+            const novaAta = {
+                titulo: 'Reunião de Planeamento Trimestral',
+                resumo: 'Discussão sobre as metas do Q3.',
+                participantesPresentes: ['João', 'Maria'],
+                deliberacoes: 'Aprovação do orçamento para marketing.',
+                categoriaFinanceira: 'Orçamento',
+                tipoDecisaoFinanceira: 'Aprovação',
+                valorEnvolvido: 25000,
+                impactoEsperado: 'Aumento de leads em 15%',
+                actionItems: []
+            };
+            const res = await request(app)
+                .post('/api/atas')
+                .set('Authorization', `Bearer ${token}`)
+                .send(novaAta);
+            
+            expect(res.statusCode).toEqual(201);
+            expect(res.body).toHaveProperty('id');
+            ataId = res.body.id;
+        });
+
+        it('deve atualizar uma ata existente', async () => {
+            const dadosAtualizados = {
+                titulo: 'Reunião de Planeamento Trimestral (Final)',
+                resumo: 'Discussão e aprovação das metas do Q3.',
+                participantesPresentes: ['João', 'Maria', 'Carlos'],
+                deliberacoes: 'Aprovação do orçamento final para marketing.',
+                categoriaFinanceira: 'Orçamento',
+                tipoDecisaoFinanceira: 'Aprovação Final',
+                valorEnvolvido: 27500,
+                impactoEsperado: 'Aumento de leads em 20%',
+                actionItems: [{ description: 'Contactar agência', responsible: 'Maria', deadline: '2025-08-15', status: 'Pendente' }]
+            };
+            const res = await request(app)
+                .put(`/api/atas/${ataId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send(dadosAtualizados);
+
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.titulo).toBe(dadosAtualizados.titulo);
+            expect(parseFloat(res.body.valor_envolvido)).toBe(dadosAtualizados.valorEnvolvido);
+        });
+
+        it('deve apagar uma ata existente', async () => {
+            const res = await request(app)
+                .delete(`/api/atas/${ataId}`)
+                .set('Authorization', `Bearer ${token}`);
+            
+            expect(res.statusCode).toEqual(204);
+        });
+    });
+
+    // --- Testes para Compromissos da Agenda ---
+    describe('/api/agenda', () => {
+        let compromissoId;
+
+        it('deve criar um novo compromisso com sucesso', async () => {
+            const novoCompromisso = {
+                titulo: 'Reunião com Cliente ABC',
+                data: '2025-08-10T14:00:00.000Z',
+                local: 'Escritório Central',
+                participantes: ['Equipa de Vendas', 'Cliente ABC'],
+                linkReuniao: null,
+                descricaoDetalhada: 'Apresentação da nova proposta.',
+                status: 'Confirmado'
+            };
+            const res = await request(app)
+                .post('/api/agenda')
+                .set('Authorization', `Bearer ${token}`)
+                .send(novoCompromisso);
+            
+            expect(res.statusCode).toEqual(201);
+            expect(res.body).toHaveProperty('id');
+            compromissoId = res.body.id;
+        });
+
+        it('deve atualizar um compromisso existente', async () => {
+            const dadosAtualizados = {
+                titulo: 'Reunião com Cliente ABC (Online)',
+                data: '2025-08-11T15:00:00.000Z',
+                local: 'Online',
+                participantes: ['Equipa de Vendas', 'Cliente ABC'],
+                linkReuniao: 'https://meet.example.com/123',
+                descricaoDetalhada: 'Apresentação da nova proposta (remarcada).',
+                status: 'Confirmado'
+            };
+            const res = await request(app)
+                .put(`/api/agenda/${compromissoId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send(dadosAtualizados);
+            
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.local).toBe(dadosAtualizados.local);
+        });
+
+        it('deve apagar um compromisso existente', async () => {
+            const res = await request(app)
+                .delete(`/api/agenda/${compromissoId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toEqual(204);
+        });
+    });
+});

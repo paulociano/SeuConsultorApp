@@ -38,6 +38,9 @@ app.use('/api',
 );
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+const server = app.listen(PORT, () => {
+  console.log(`Servidor a ser executado na porta ${PORT}`);
 });
+
+// Adicione esta linha para exportar a sua aplicação e o servidor
+module.exports = { app, server };

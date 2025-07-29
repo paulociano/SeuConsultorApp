@@ -1,0 +1,143 @@
+const request = require('supertest');
+const { app, server } = require('../index');
+const pool = require('../config/db');
+
+describe('Endpoints de Património (Protegidos)', () => {
+    let token;
+
+    // Antes de todos os testes, criamos um utilizador e fazemos login para obter um token
+    beforeAll(async () => {
+        const testUser = {
+            nome: 'Utilizador Patrimonio',
+            email: `patrimonio-${Date.now()}@exemplo.com`,
+            senha: 'password123'
+        };
+        await request(app).post('/cadastro').send(testUser);
+        const loginRes = await request(app)
+            .post('/login')
+            .send({ email: testUser.email, senha: testUser.senha });
+        token = loginRes.body.token;
+    });
+
+    // Fechar o servidor e a pool da base de dados após todos os testes
+    afterAll(async () => {
+        await new Promise(resolve => server.close(resolve));
+        await pool.end();
+    });
+
+    // --- Testes do CRUD de Ativos ---
+    describe('/api/ativos', () => {
+        let ativoId;
+
+        it('deve criar um novo ativo com sucesso', async () => {
+            const novoAtivo = {
+                nome: 'Ações da Empresa X',
+                valor: 15000,
+                tipo: 'Renda Variável'
+            };
+
+            const res = await request(app)
+                .post('/api/ativos')
+                .set('Authorization', `Bearer ${token}`)
+                .send(novoAtivo);
+
+            expect(res.statusCode).toEqual(201);
+            expect(res.body).toHaveProperty('id');
+            expect(res.body.nome).toBe(novoAtivo.nome);
+            ativoId = res.body.id;
+        });
+
+        it('deve listar os ativos do utilizador', async () => {
+            const res = await request(app)
+                .get('/api/ativos')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toEqual(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body.some(a => a.id === ativoId)).toBe(true);
+        });
+
+        it('deve atualizar um ativo existente', async () => {
+            const dadosAtualizados = {
+                nome: 'Ações da Empresa X (Atualizado)',
+                valor: 17500,
+                tipo: 'Renda Variável'
+            };
+
+            const res = await request(app)
+                .put(`/api/ativos/${ativoId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send(dadosAtualizados);
+
+            expect(res.statusCode).toEqual(200);
+            // CORREÇÃO: Comparar os valores como números para ignorar diferenças de formatação (ex: .00)
+            expect(parseFloat(res.body.valor)).toBe(dadosAtualizados.valor);
+        });
+
+        it('deve apagar um ativo existente', async () => {
+            const res = await request(app)
+                .delete(`/api/ativos/${ativoId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toEqual(204);
+        });
+    });
+
+    // --- Testes do CRUD de Dívidas ---
+    describe('/api/dividas', () => {
+        let dividaId;
+
+        it('deve criar uma nova dívida com sucesso', async () => {
+            const novaDivida = {
+                nome: 'Financiamento Imobiliário',
+                valor: 250000,
+                tipo: 'Longo Prazo'
+            };
+
+            const res = await request(app)
+                .post('/api/dividas')
+                .set('Authorization', `Bearer ${token}`)
+                .send(novaDivida);
+
+            expect(res.statusCode).toEqual(201);
+            expect(res.body).toHaveProperty('id');
+            expect(res.body.nome).toBe(novaDivida.nome);
+            dividaId = res.body.id;
+        });
+
+        it('deve listar as dívidas do utilizador', async () => {
+            const res = await request(app)
+                .get('/api/dividas')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toEqual(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body.some(d => d.id === dividaId)).toBe(true);
+        });
+
+        it('deve atualizar uma dívida existente', async () => {
+            const dadosAtualizados = {
+                nome: 'Financiamento Imobiliário (Saldo Devedor)',
+                valor: 245000,
+                tipo: 'Longo Prazo'
+            };
+
+            const res = await request(app)
+                .put(`/api/dividas/${dividaId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send(dadosAtualizados);
+
+            expect(res.statusCode).toEqual(200);
+            // CORREÇÃO: Comparar os valores como números
+            expect(parseFloat(res.body.valor)).toBe(dadosAtualizados.valor);
+        });
+
+        it('deve apagar uma dívida existente', async () => {
+            const res = await request(app)
+                .delete(`/api/dividas/${dividaId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.statusCode).toEqual(204);
+        });
+    });
+});

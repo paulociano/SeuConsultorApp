@@ -90,9 +90,9 @@ const saveAquisicoes = async (req, res) => {
         DO UPDATE SET simulacoes = EXCLUDED.simulacoes, atualizado_em = CURRENT_TIMESTAMP
         RETURNING simulacoes;`;
     try {
-        // CORREÇÃO: Passamos o objeto/array 'simulacoes' diretamente.
-        // O driver 'pg' sabe como converter para JSON. Não usamos JSON.stringify() aqui.
-        const result = await pool.query(sql, [userId, tipo, simulacoes]);
+        // CORREÇÃO: Convertemos explicitamente o objeto/array para uma string JSON.
+        // Isto garante que a base de dados recebe os dados no formato de texto que espera.
+        const result = await pool.query(sql, [userId, tipo, JSON.stringify(simulacoes)]);
         res.status(200).json(result.rows[0].simulacoes);
     } catch (error) {
         console.error(`Erro ao salvar dados de aquisição (${tipo}):`, error);

@@ -12,20 +12,15 @@ import { create } from 'zustand';
  * esta store seria expandida com chamadas de API, similar às outras.
  */
 export const useReservaStore = create((set) => ({
-  // 1. ESTADO
   /**
    * Um objeto que mapeia os IDs dos investimentos selecionados.
-   * Ex: { 101: true, 105: true } indica que os investimentos com IDs 101 e 105
-   * foram selecionados para compor a reserva.
-   * @type {Object<number, boolean>}
+   * Ex: { 101: true, 105: true }
    */
   investimentosSelecionados: {},
 
-  // 2. AÇÕES
   /**
    * Alterna a seleção de um investimento para a reserva de emergência.
-   * Se o investimento já estiver selecionado, ele é removido; caso contrário, é adicionado.
-   * @param {number} investimentoId - O ID do ativo/investimento a ser selecionado/desselecionado.
+   * @param {number} investimentoId - O ID do ativo/investimento.
    */
   toggleInvestimento: (investimentoId) =>
     set((state) => ({

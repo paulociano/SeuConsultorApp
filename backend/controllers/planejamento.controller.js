@@ -5,7 +5,7 @@ const getAposentadoria = async (req, res) => {
     try {
         const result = await pool.query('SELECT dados FROM aposentadoria_dados WHERE user_id = $1', [req.usuario.id]);
         if (result.rows.length === 0) {
-            return res.json(null); // Retorna nulo se não houver dados, como no original
+            return res.json(null);
         }
         res.json(result.rows[0].dados);
     } catch (error) {
@@ -70,7 +70,7 @@ const getAquisicoes = async (req, res) => {
     try {
         const result = await pool.query('SELECT simulacoes FROM aquisicao_simulacoes WHERE user_id = $1 AND tipo_bem = $2', [req.usuario.id, tipo]);
         if (result.rows.length === 0) {
-            return res.json([]); // Retorna array vazio como no original
+            return res.json([]);
         }
         res.json(result.rows[0].simulacoes);
     } catch (error) {
@@ -90,6 +90,8 @@ const saveAquisicoes = async (req, res) => {
         DO UPDATE SET simulacoes = EXCLUDED.simulacoes, atualizado_em = CURRENT_TIMESTAMP
         RETURNING simulacoes;`;
     try {
+        // CORREÇÃO: Passamos o objeto/array 'simulacoes' diretamente.
+        // O driver 'pg' sabe como converter para JSON. Não usamos JSON.stringify() aqui.
         const result = await pool.query(sql, [userId, tipo, simulacoes]);
         res.status(200).json(result.rows[0].simulacoes);
     } catch (error) {

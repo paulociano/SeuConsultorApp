@@ -1,5 +1,5 @@
 import { formatCurrency } from '../../utils/formatters';
-import { PlusCircle, Edit, Trash2, Users, Stethoscope, HeartHandshake, Car, Loader } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Users, Stethoscope, HeartHandshake, Car } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { usePatrimonioStore } from '../../stores/usePatrimonioStore';

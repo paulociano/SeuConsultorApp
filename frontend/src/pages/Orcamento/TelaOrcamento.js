@@ -2,10 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Card from '../../components/Card/Card';
 import { formatCurrency } from '../../utils/formatters';
 import { toast } from 'sonner';
-import { Edit, Trash2, PlusCircle, Tag, TrendingDown, TrendingUp, CheckCircle2, AlertTriangle, ChevronsUpDown } from 'lucide-react';
+import { Edit, Trash2, PlusCircle, Tag, TrendingDown, TrendingUp, CheckCircle2, ChevronsUpDown } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { CATEGORIAS_FLUXO } from '../../components/constants/Categorias';
-import { useOrcamentoStore } from '../../stores/useOrcamentoStore'; // 1. Importar a store
+import { useOrcamentoStore } from '../../stores/useOrcamentoStore';
 import LoaderLogo from '../../components/Loader/loaderlogo';
 
 // --- Sub-componente do Modal (sem alterações) ---

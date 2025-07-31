@@ -22,7 +22,7 @@ const menuItems = [
     { id: 'patrimonio', label: 'Património', icon: Landmark, path: '/patrimonio' },
     { id: 'protecao', label: 'Proteção', icon: Shield, path: '/protecao' },
     { id: 'reserva', label: 'Reserva', icon: PiggyBank, path: '/reserva' },
-    { id: 'aposentadoria', label: 'Aposentação', icon: TreePalm, subItems: [
+    { id: 'aposentadoria', label: 'Aposentadoria', icon: TreePalm, subItems: [
         { id: 'aposentadoriaAportes', label: 'Aportes', icon: ChartLine, path: '/aposentadoria/aportes' },
         { id: 'aposentadoriaPGBL', label: 'Estratégia PGBL', icon: HandCoins, path: '/aposentadoria/pgbl' }
     ]},

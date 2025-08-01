@@ -25,21 +25,27 @@ import Sidebar from './components/SideBar/SideBar';
 
 const ProtectedRoutes = () => {
     const location = useLocation();
-    // 1. O estado que controla se a sidebar está colapsada é criado aqui.
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     return (
-        <div className="bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-white min-h-screen font-sans">
-            {/* 2. A função 'setIsCollapsed' é passada como prop para o Sidebar. */}
+        // Cores com maior contraste para fundo e texto.
+        <div className="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 min-h-screen font-sans flex">
+            {/* O Sidebar agora é um componente <nav> com aria-label */}
             <Sidebar 
                 isCollapsed={isCollapsed} 
                 setIsCollapsed={setIsCollapsed} 
             />
             
-            <main className={clsx(
-                "p-4 md:p-6 transition-all duration-300 ease-in-out",
-                isCollapsed ? "ml-20" : "ml-64"
-            )}>
+            {/* Adicionado 'role' e 'aria-label' para identificar a região principal para leitores de tela. */}
+            <main 
+                id="main-content"
+                role="region"
+                aria-label="Conteúdo Principal"
+                className={clsx(
+                    "p-4 md:p-6 transition-all duration-300 ease-in-out w-full",
+                    isCollapsed ? "ml-20" : "ml-64"
+                )}
+            >
                 <PageTransition key={location.pathname}>
                     <Routes>
                         <Route path="/objetivos" element={<TelaObjetivos />} />

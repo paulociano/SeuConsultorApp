@@ -1,0 +1,12 @@
+# Ignorar dependências, pois serão instaladas dentro do contêiner
+node_modules
+
+# Ignorar logs de debug do npm
+npm-debug.log
+
+# Ignorar pasta de build (se houver)
+build
+dist
+
+# Ignorar arquivos de variáveis de ambiente
+.env

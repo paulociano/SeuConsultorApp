@@ -1,0 +1,20 @@
+# Usamos a versão 20 do Node.js que já definimos antes
+FROM node:20-alpine
+
+# Define o diretório de trabalho
+WORKDIR /usr/src/app
+
+# Copia os arquivos de dependência primeiro para aproveitar o cache do Docker
+COPY package*.json ./
+
+# Instala SOMENTE as dependências de produção
+RUN npm install --only=production
+
+# Copia o resto do código da sua aplicação
+COPY . .
+
+# Expõe a porta que o servidor usa
+EXPOSE 3001
+
+# Comando para iniciar o servidor em modo de produção
+CMD [ "node", "index.js" ]

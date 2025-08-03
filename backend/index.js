@@ -4,7 +4,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Carregadores de Módulos
-const pool = require('./config/db'); // Embora não usado aqui, é bom para confirmar que a conexão está ok.
 const authRoutes = require('./routes/auth.routes');
 const objetivosRoutes = require('./routes/objetivos.routes');
 const patrimonioRoutes = require('./routes/patrimonio.routes');
@@ -15,6 +14,8 @@ const perfilRoutes = require('./routes/perfil.routes');
 const planejamentoRoutes = require('./routes/planejamento.routes');
 const milhasRoutes = require('./routes/milhas.routes');
 const agendaRoutes = require('./routes/agenda.routes');
+const chatbotRoutes = require('./routes/chatbot.routes');
+
 const { verificarToken } = require('./middleware/auth.middleware');
 
 const app = express();
@@ -37,7 +38,8 @@ app.use(
   perfilRoutes,
   planejamentoRoutes,
   milhasRoutes,
-  agendaRoutes
+  agendaRoutes,
+  chatbotRoutes
 );
 app.use('/uploads', express.static('uploads'));
 

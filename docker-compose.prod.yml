@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod # Aponta para o nosso novo Dockerfile de produção
+    command: node index.js # Garante que o comando de produção seja executado
+    volumes: [] # IMPORTANTE: Remove o volume para usar o código de dentro da imagem
+    environment:
+      - NODE_ENV=production
+      # Aqui você adicionaria as variáveis de ambiente de produção,
+      # como a URL do banco de dados de produção.
+      - DATABASE_URL=${PROD_DATABASE_URL}
+      - JWT_SECRET=${PROD_JWT_SECRET}
+
+  frontend:
+    # Nenhuma mudança de build necessária, pois o Dockerfile já é de produção.
+    # Apenas removemos o volume para garantir que ele use os arquivos construídos na imagem.
+    volumes: []

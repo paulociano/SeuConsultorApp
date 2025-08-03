@@ -102,9 +102,24 @@ export default function TelaReunioesAgenda() {
       };
       savedItem = await saveAta(ataToSave);
     } else {
-      // compromisso
-
-      // ** VALIDAÇÃO FRONTAL COMPLETA PARA COMPROMISSOS **
+      const isUrlValid = (urlString) => {
+        // Garante que a string não seja vazia antes de tentar validar
+        if (!urlString) return false;
+        try {
+          // Tenta criar um objeto URL. Se falhar, o link é inválido.
+          new URL(urlString);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      };
+      // 1. Valida o link da reunião ANTES de fazer qualquer outra coisa
+      if (data.linkReuniao && data.linkReuniao.trim() !== '' && !isUrlValid(data.linkReuniao)) {
+        toast.error(
+          "O 'Link da Reunião' não é uma URL válida. Por favor, inclua http:// ou https://"
+        );
+        return; // Para a execução aqui mesmo se o link for inválido
+      }
 
       // 1. Validação do Título
       if (!data.titulo || data.titulo.trim() === '') {
@@ -139,9 +154,6 @@ export default function TelaReunioesAgenda() {
       // 4. Tratamento do campo opcional 'linkReuniao'
       // Só adiciona a propriedade ao objeto se ela não for vazia.
       // Isso impede o envio de "" que falha na validação isURL().
-      if (data.linkReuniao && data.linkReuniao.trim() !== '') {
-        eventoToSave.linkReuniao = data.linkReuniao;
-      }
 
       savedItem = await saveCompromisso(eventoToSave);
     }

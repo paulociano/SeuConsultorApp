@@ -1,0 +1,667 @@
+<html lang="pt-BR" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SeuConsultor de Finanças - Potencialize Suas Finanças</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Favicon (Exemplo) -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💡</text></svg>"
+    />
+
+    <style>
+      /* Define a fonte Inter como padrão */
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      /* Animação para o spinner de carregamento */
+      .loader {
+        border: 4px solid #4a5568; /* cinza escuro */
+        border-top: 4px solid #00d971; /* cor primária */
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-white text-gray-800">
+    <!-- ===== Cabeçalho (Header) ===== -->
+    <header
+      class="bg-[#200b5d]/80 backdrop-blur-md fixed top-0 left-0 right-0 z-50"
+    >
+      <div
+        class="container mx-auto px-6 py-4 flex justify-between items-center"
+      >
+        <a href="#" class="text-2xl font-bold text-white">
+          <span class="text-[#00d971]">Seu</span>Consultor
+        </a>
+        <nav class="hidden md:flex space-x-8 items-center">
+          <a
+            href="#features"
+            class="text-gray-300 hover:text-[#00d971] transition-colors"
+            >Funcionalidades</a
+          >
+          <a
+            href="#ai-advisor"
+            class="text-gray-300 hover:text-[#00d971] transition-colors"
+            >Consultor IA ✨</a
+          >
+          <a
+            href="#testimonials"
+            class="text-gray-300 hover:text-[#00d971] transition-colors"
+            >Depoimentos</a
+          >
+          <a
+            href="#cta"
+            class="bg-[#00d971] text-white font-semibold px-5 py-2 rounded-lg hover:bg-opacity-90 transition-all transform hover:scale-105"
+          >
+            Começar Agora
+          </a>
+        </nav>
+        <!-- Menu Mobile (Hamburguer) -->
+        <button
+          id="mobile-menu-button"
+          class="md:hidden text-gray-300 focus:outline-none"
+        >
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16m-7 6h7"
+            ></path>
+          </svg>
+        </button>
+      </div>
+      <!-- Menu Mobile (Dropdown) -->
+      <div id="mobile-menu" class="hidden md:hidden px-6 pb-4 bg-[#200b5d]/95">
+        <a
+          href="#features"
+          class="block py-2 text-gray-300 hover:text-[#00d971]"
+          >Funcionalidades</a
+        >
+        <a
+          href="#ai-advisor"
+          class="block py-2 text-gray-300 hover:text-[#00d971]"
+          >Consultor IA ✨</a
+        >
+        <a
+          href="#testimonials"
+          class="block py-2 text-gray-300 hover:text-[#00d971]"
+          >Depoimentos</a
+        >
+        <a
+          href="#cta"
+          class="block mt-4 w-full text-center bg-[#00d971] text-white font-semibold px-5 py-2 rounded-lg hover:bg-opacity-90"
+        >
+          Começar Agora
+        </a>
+      </div>
+    </header>
+
+    <main>
+      <!-- ===== Seção Hero ===== -->
+      <section class="bg-[#200b5d] text-white pt-32 pb-20">
+        <div class="container mx-auto px-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <!-- Coluna de Texto -->
+            <div class="text-center md:text-left">
+              <h1
+                class="text-4xl lg:text-5xl font-extrabold leading-tight mb-6"
+              >
+                Potencialize Suas Finanças com
+                <span class="text-[#00d971]">Ferramentas Inteligentes</span>
+              </h1>
+              <p class="text-lg lg:text-xl text-gray-300 mb-8">
+                De orçamentos a insights de investimento, nós ajudamos você a
+                controlar seu futuro financeiro.
+              </p>
+              <div
+                class="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-6 mb-8"
+              >
+                <a
+                  href="#cta"
+                  class="w-full sm:w-auto bg-[#00d971] text-white font-bold py-4 px-8 rounded-lg text-lg hover:bg-opacity-90 transition-transform transform hover:scale-105 shadow-lg"
+                >
+                  Começar Agora
+                </a>
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center">
+                    <span class="text-yellow-400">★★★★☆</span>
+                  </div>
+                  <p class="text-gray-300">4.9 de 5 estrelas</p>
+                </div>
+              </div>
+            </div>
+            <!-- Coluna da Ilustração -->
+            <div class="flex justify-center items-center">
+              <img
+                src="https://placehold.co/600x450/ffffff/200b5d?text=Sua+Ilustração+Aqui"
+                alt="Ilustração de pessoas analisando gráficos financeiros"
+                class="rounded-2xl shadow-2xl w-full max-w-lg"
+                onerror="this.onerror=null;this.src='https://placehold.co/600x450/e2e8f0/4a5568?text=Erro+ao+carregar+imagem';"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Seção de Funcionalidades (Features) ===== -->
+      <section id="features" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+          <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900">
+              Tudo que você precisa em um só lugar
+            </h2>
+            <p class="text-lg text-gray-600 mt-4 max-w-2xl mx-auto">
+              Organize suas finanças de forma inteligente e intuitiva.
+            </p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+            <!-- Feature Cards -->
+            <div
+              class="text-center p-6 bg-gray-50 rounded-xl hover:shadow-lg hover:-translate-y-2 transition-all duration-300"
+            >
+              <div
+                class="bg-[#d9f9e9] text-[#00d971] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-5"
+              >
+                <svg
+                  class="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H7a3 3 0 00-3 3v8a3 3 0 003 3z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold mb-2">Controle de Despesas</h3>
+              <p class="text-gray-600">
+                Categorize seus gastos automaticamente e veja para onde seu
+                dinheiro está indo.
+              </p>
+            </div>
+            <div
+              class="text-center p-6 bg-gray-50 rounded-xl hover:shadow-lg hover:-translate-y-2 transition-all duration-300"
+            >
+              <div
+                class="bg-[#d9f9e9] text-[#00d971] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-5"
+              >
+                <svg
+                  class="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold mb-2">
+                Planejamento de Orçamento
+              </h3>
+              <p class="text-gray-600">
+                Crie orçamentos mensais personalizados e receba alertas para não
+                sair da linha.
+              </p>
+            </div>
+            <div
+              class="text-center p-6 bg-gray-50 rounded-xl hover:shadow-lg hover:-translate-y-2 transition-all duration-300"
+            >
+              <div
+                class="bg-[#d9f9e9] text-[#00d971] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-5"
+              >
+                <svg
+                  class="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold mb-2">Metas Financeiras</h3>
+              <p class="text-gray-600">
+                Defina e acompanhe suas metas, seja para uma viagem, um carro
+                novo ou aposentadoria.
+              </p>
+            </div>
+            <div
+              class="text-center p-6 bg-gray-50 rounded-xl hover:shadow-lg hover:-translate-y-2 transition-all duration-300"
+            >
+              <div
+                class="bg-[#d9f9e9] text-[#00d971] rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-5"
+              >
+                <svg
+                  class="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
+                  ></path>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold mb-2">
+                Relatórios Inteligentes
+              </h3>
+              <p class="text-gray-600">
+                Visualize seus dados financeiros com gráficos simples e insights
+                valiosos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Seção Consultor IA (Gemini) ===== -->
+      <section id="ai-advisor" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900">
+              Receba um Plano Personalizado com IA ✨
+            </h2>
+            <p class="text-lg text-gray-600 mt-4 max-w-3xl mx-auto">
+              Não sabe por onde começar? Descreva sua meta financeira e nosso
+              Consultor IA, com a tecnologia do Gemini, criará um plano de ação
+              para você.
+            </p>
+          </div>
+          <div class="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
+            <div class="space-y-4">
+              <label
+                for="goal-input"
+                class="block text-lg font-semibold text-gray-700"
+                >Qual é a sua meta financeira?</label
+              >
+              <textarea
+                id="goal-input"
+                rows="3"
+                class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00d971] focus:border-[#00d971] transition"
+                placeholder="Ex: Comprar um carro de R$ 70.000 em 3 anos, fazer uma viagem para a Europa de R$ 25.000 no ano que vem, ou quitar uma dívida de R$ 10.000 em 6 meses."
+              ></textarea>
+              <button
+                id="generate-plan-button"
+                class="w-full bg-[#00d971] text-white font-bold py-4 px-8 rounded-lg text-lg hover:bg-opacity-90 transition-transform transform hover:scale-105 shadow-md flex items-center justify-center gap-3"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="w-6 h-6"
+                >
+                  <path
+                    d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"
+                  ></path>
+                  <path d="M5 3v4"></path>
+                  <path d="M19 17v4"></path>
+                  <path d="M3 5h4"></path>
+                  <path d="M17 19h4"></path>
+                </svg>
+                <span>Gerar Plano com IA</span>
+              </button>
+            </div>
+            <div id="plan-result" class="mt-8 border-t border-gray-200 pt-8">
+              <p class="text-center text-gray-500">
+                Seu plano personalizado aparecerá aqui.
+              </p>
+            </div>
+            <div id="loader" class="hidden justify-center mt-8">
+              <div class="loader"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Seção de Depoimentos (Testimonials) ===== -->
+      <section id="testimonials" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+          <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900">
+              Amado por milhares de usuários
+            </h2>
+            <p class="text-lg text-gray-600 mt-4 max-w-2xl mx-auto">
+              Veja o que nossos usuários estão dizendo sobre o SeuConsultor.
+            </p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Testimonial Cards -->
+            <div class="bg-gray-50 p-8 rounded-xl shadow-md">
+              <p class="text-gray-600 mb-6">
+                "Finalmente um app de finanças que é fácil de usar! Consegui
+                organizar minhas contas em uma semana. Recomendo muito!"
+              </p>
+              <div class="flex items-center">
+                <img
+                  class="w-12 h-12 rounded-full mr-4"
+                  src="https://placehold.co/100x100/c7d2fe/4338ca?text=JS"
+                  alt="Foto de João Silva"
+                />
+                <div>
+                  <p class="font-semibold text-gray-900">João Silva</p>
+                  <p class="text-sm text-gray-500">Desenvolvedor de Software</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-gray-50 p-8 rounded-xl shadow-md">
+              <p class="text-gray-600 mb-6">
+                "O recurso de metas me ajudou a economizar para a entrada do meu
+                apartamento. Ver o progresso me manteve motivada. Incrível!"
+              </p>
+              <div class="flex items-center">
+                <img
+                  class="w-12 h-12 rounded-full mr-4"
+                  src="https://placehold.co/100x100/fecaca/991b1b?text=MC"
+                  alt="Foto de Maria Costa"
+                />
+                <div>
+                  <p class="font-semibold text-gray-900">Maria Costa</p>
+                  <p class="text-sm text-gray-500">Designer Gráfica</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-gray-50 p-8 rounded-xl shadow-md">
+              <p class="text-gray-600 mb-6">
+                "A melhor parte são os relatórios. Consigo ver exatamente onde
+                posso cortar gastos. O app se paga sozinho."
+              </p>
+              <div class="flex items-center">
+                <img
+                  class="w-12 h-12 rounded-full mr-4"
+                  src="https://placehold.co/100x100/bbf7d0/15803d?text=PF"
+                  alt="Foto de Pedro Ferreira"
+                />
+                <div>
+                  <p class="font-semibold text-gray-900">Pedro Ferreira</p>
+                  <p class="text-sm text-gray-500">Autônomo</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Seção de CTA Final ===== -->
+      <section id="cta" class="bg-[#200b5d]">
+        <div class="container mx-auto px-6 py-20 text-center">
+          <h2 class="text-3xl md:text-4xl font-bold text-white">
+            Pronto para transformar suas finanças?
+          </h2>
+          <p class="text-lg text-gray-300 mt-4 mb-8 max-w-2xl mx-auto">
+            Baixe o SeuConsultor de Finanças agora e dê o primeiro passo em
+            direção à sua liberdade financeira.
+          </p>
+          <a
+            href="#"
+            class="bg-[#00d971] text-white font-bold py-4 px-8 rounded-lg text-lg hover:bg-opacity-90 transition-transform transform hover:scale-105 shadow-lg"
+          >
+            Baixar o App Gratuitamente
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <!-- ===== Rodapé (Footer) ===== -->
+    <footer class="bg-gray-900 text-white">
+      <div class="container mx-auto px-6 py-12">
+        <div
+          class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left"
+        >
+          <div>
+            <h3 class="text-xl font-bold mb-4">
+              <span class="text-[#00d971]">Seu</span>Consultor
+            </h3>
+            <p class="text-gray-400">Simplificando suas finanças.</p>
+          </div>
+          <div>
+            <h4 class="font-semibold mb-4">Links Rápidos</h4>
+            <ul class="space-y-2">
+              <li>
+                <a href="#features" class="text-gray-400 hover:text-white"
+                  >Funcionalidades</a
+                >
+              </li>
+              <li>
+                <a href="#ai-advisor" class="text-gray-400 hover:text-white"
+                  >Consultor IA ✨</a
+                >
+              </li>
+              <li>
+                <a href="#testimonials" class="text-gray-400 hover:text-white"
+                  >Depoimentos</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-semibold mb-4">Siga-nos</h4>
+            <div class="flex space-x-4 justify-center md:justify-start">
+              <a href="#" class="text-gray-400 hover:text-white"
+                ><svg
+                  class="w-6 h-6"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
+                    clip-rule="evenodd"
+                  ></path></svg
+              ></a>
+              <a href="#" class="text-gray-400 hover:text-white"
+                ><svg
+                  class="w-6 h-6"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.71v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"
+                  ></path></svg
+              ></a>
+              <a href="#" class="text-gray-400 hover:text-white"
+                ><svg
+                  class="w-6 h-6"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.024.06 1.378.06 3.808s-.012 2.784-.06 3.808c-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.024.048-1.378.06-3.808.06s-2.784-.013-3.808-.06c-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.048-1.024-.06-1.378-.06-3.808s.012-2.784.06-3.808c.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 016.345 2.525c.636-.247 1.363-.416 2.427-.465C9.793 2.013 10.148 2 12.315 2zm-1.161 1.545c-1.04.042-1.675.21-2.227.412a3.397 3.397 0 00-1.212.87c-.375.375-.69.833-.87 1.212-.202.552-.37 1.187-.412 2.227-.043 1.004-.056 1.343-.056 3.755s.013 2.75.056 3.755c.042 1.04.21 1.675.412 2.227.18.379.495.837.87 1.212.375.375.833.69 1.212.87.552.202 1.187.37 2.227.412 1.004.043 1.343.056 3.755.056s2.75-.013 3.755-.056c1.04-.042 1.675-.21 2.227-.412.379-.18.837-.495 1.212-.87.375-.375.69-.833.87-1.212.202-.552-.37-1.187-.412-2.227.043-1.004.056-1.343-.056-3.755s-.013-2.75-.056-3.755c-.042-1.04-.21-1.675-.412-2.227a3.397 3.397 0 00-.87-1.212 3.397 3.397 0 00-1.212-.87c-.552-.202-1.187-.37-2.227-.412-1.004-.043-1.343-.056-3.755-.056s-2.75.013-3.755.056zm-1.688 6.712c0-2.122 1.722-3.843 3.843-3.843s3.843 1.721 3.843 3.843-1.722 3.843-3.843 3.843-3.843-1.721-3.843-3.843zM12 15.315c1.54 0 2.791-1.251 2.791-2.79s-1.251-2.79-2.791-2.79-2.791 1.25-2.791 2.79 1.251 2.79 2.791 2.79zm5.25-6.465c-.621 0-1.125.504-1.125 1.125s.504 1.125 1.125 1.125 1.125-.504 1.125-1.125-.504-1.125-1.125-1.125z"
+                    clip-rule="evenodd"
+                  ></path></svg
+              ></a>
+            </div>
+          </div>
+        </div>
+        <div class="border-t border-gray-700 mt-8 pt-8">
+          <p class="text-center text-gray-400 text-sm">
+            &copy; 2024 SeuConsultor de Finanças. Todos os direitos reservados.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Script para o menu mobile
+      const mobileMenuButton = document.getElementById("mobile-menu-button");
+      const mobileMenu = document.getElementById("mobile-menu");
+      mobileMenuButton.addEventListener("click", () => {
+        mobileMenu.classList.toggle("hidden");
+      });
+
+      // Script para o Consultor IA com Gemini
+      const generateButton = document.getElementById("generate-plan-button");
+      const goalInput = document.getElementById("goal-input");
+      const planResultDiv = document.getElementById("plan-result");
+      const loader = document.getElementById("loader");
+
+      // Função para chamar a API Gemini com retry e backoff exponencial
+      const callGeminiApi = async (prompt, retries = 3, delay = 1000) => {
+        const apiKey = ""; // A chave da API será injetada pelo ambiente
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+        const payload = {
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topP: 1,
+            topK: 1,
+          },
+        };
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+
+          if (
+            result.candidates &&
+            result.candidates.length > 0 &&
+            result.candidates[0].content &&
+            result.candidates[0].content.parts &&
+            result.candidates[0].content.parts.length > 0
+          ) {
+            return result.candidates[0].content.parts[0].text;
+          } else {
+            throw new Error("Resposta da API inválida ou vazia.");
+          }
+        } catch (error) {
+          console.error(
+            `Erro na tentativa: ${
+              4 - retries
+            }. Tentando novamente em ${delay}ms...`,
+            error
+          );
+          if (retries > 1) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            return callGeminiApi(prompt, retries - 1, delay * 2); // Backoff exponencial
+          } else {
+            throw error; // Lança o erro final após todas as tentativas falharem
+          }
+        }
+      };
+
+      generateButton.addEventListener("click", async () => {
+        const userGoal = goalInput.value.trim();
+        if (!userGoal) {
+          planResultDiv.innerHTML =
+            '<p class="text-center text-red-500 font-semibold">Por favor, descreva sua meta financeira primeiro.</p>';
+          return;
+        }
+
+        loader.style.display = "flex";
+        planResultDiv.style.display = "none";
+        generateButton.disabled = true;
+        generateButton.classList.add("opacity-50", "cursor-not-allowed");
+
+        const prompt = `
+                Aja como um consultor financeiro amigável e motivador chamado 'SeuConsultor'.
+                Um usuário descreveu a seguinte meta financeira: "${userGoal}".
+
+                Crie um plano de ação simples, claro e encorajador para este usuário.
+                A resposta DEVE ser em HTML e seguir estritamente esta estrutura:
+                1.  Um título principal em uma tag <h3> com o texto "Seu Plano de Ação Personalizado".
+                2.  Uma breve introdução em uma tag <p>.
+                3.  Um subtítulo em uma tag <h4> com o texto "🎯 Meta Principal".
+                4.  Um parágrafo <p> descrevendo o cálculo principal (ex: valor a economizar por mês).
+                5.  Um subtítulo em uma tag <h4> com o texto "💡 Dicas para Economizar".
+                6.  Uma lista não ordenada <ul> com exatamente 3 dicas práticas em tags <li>.
+                7.  Um subtítulo em uma tag <h4> com o texto "⭐ Dica de Motivação".
+                8.  Um parágrafo final <p> com uma mensagem de encorajamento.
+
+                Seja positivo e use uma linguagem que qualquer pessoa possa entender. Use a cor '#00d971' para destacar elementos importantes. Não inclua markdown como \`\`\`html. A resposta deve ser apenas o código HTML.
+            `;
+
+        try {
+          const plan = await callGeminiApi(prompt);
+          planResultDiv.innerHTML = plan;
+        } catch (error) {
+          console.error("Falha ao gerar o plano:", error);
+          planResultDiv.innerHTML =
+            '<p class="text-center text-red-500 font-semibold">Desculpe, não foi possível gerar seu plano no momento. Por favor, tente novamente mais tarde.</p>';
+        } finally {
+          loader.style.display = "none";
+          planResultDiv.style.display = "block";
+          generateButton.disabled = false;
+          generateButton.classList.remove("opacity-50", "cursor-not-allowed");
+        }
+      });
+    </script>
+  </body>
+</html>

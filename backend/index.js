@@ -39,6 +39,7 @@ app.use(
   milhasRoutes,
   agendaRoutes
 );
+app.use('/uploads', express.static('uploads'));
 
 const PORT = process.env.PORT || 3001;
 const server = app.listen(PORT, () => {

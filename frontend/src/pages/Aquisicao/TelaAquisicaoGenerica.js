@@ -8,11 +8,69 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAquisicaoStore } from '../../stores/useAquisicaoStore';
 import LoaderLogo from '../../components/Loader/loaderlogo';
 
-// O componente agora recebe apenas props de configuração, não mais de dados ou handlers.
+// --- INÍCIO DAS ADIÇÕES PARA O ONBOARDING ---
+import Joyride from 'react-joyride';
+import { useOnboarding } from '../../hooks/useOnboarding';
+// --- FIM DAS ADIÇÕES PARA O ONBOARDING ---
+
 const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => {
     const { theme } = useContext(ThemeContext);
-    // Conecta-se à store para obter estados e ações
     const { imoveis, automoveis, isLoading, fetchAquisicoes, saveAquisicao } = useAquisicaoStore();
+
+    // --- INÍCIO DA LÓGICA DO ONBOARDING ---
+    const TOUR_KEY = `aquisicao_${tipo}_tour`;
+    const { runTour, startTour, handleTourEnd } = useOnboarding(TOUR_KEY);
+
+    const tourSteps = useMemo(() => {
+        const steps = [
+            {
+                target: 'body',
+                content: `Bem-vindo ao Simulador de Aquisição de ${tipo === 'imoveis' ? 'Imóveis' : 'Automóveis'}! Vamos guiá-lo pelas funcionalidades.`,
+                placement: 'center',
+                disableBeacon: true,
+            },
+            {
+                target: '#dados-gerais-card',
+                content: 'Comece preenchendo os dados gerais do bem que você deseja adquirir e sua situação financeira atual.',
+            },
+            {
+                target: '#parametros-financiamento',
+                content: 'Nesta seção, informe os parâmetros para simular um financiamento tradicional.',
+            },
+            {
+                target: '#parametros-consorcio',
+                content: 'Aqui, você pode configurar os detalhes para uma simulação de consórcio.',
+            },
+            {
+                target: '#simulacao-actions',
+                content: 'Após preencher, adicione como uma nova simulação para ver os resultados. Você pode criar e salvar vários cenários.',
+            },
+            {
+                target: '#resultados-previsao',
+                content: 'Quando uma simulação for calculada, aqui você verá um resumo do tempo previsto para atingir seu objetivo em cada modalidade: Financiamento, Consórcio e À Vista.',
+            },
+            {
+                target: '#grafico-projecao-card',
+                content: 'E este gráfico principal mostrará uma projeção detalhada da evolução do seu capital em cada cenário ao longo dos anos.',
+            }
+        ];
+
+        if (tipo === 'imoveis') {
+            steps.splice(2, 0, {
+                target: '#fgts-input-section',
+                content: 'Para imóveis, você pode incluir o seu saldo do FGTS na simulação para abater na entrada ou no lance.',
+            });
+        }
+
+        return steps;
+    }, [tipo]);
+
+    useEffect(() => {
+        if (!isLoading) {
+            startTour();
+        }
+    }, [isLoading, startTour]);
+    // --- FIM DA LÓGICA DO ONBOARDING ---
 
     const initialFormState = useMemo(() => ({
         descricao: descricaoBem,
@@ -39,16 +97,13 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => 
     const [casos, setCasos] = useState([]);
     const [casoSelecionado, setCasoSelecionado] = useState(null);
     const [activeChart, setActiveChart] = useState('acumulo');
-
     const [percentualReducao, setPercentualReducao] = useState(0);
     const [percentualEmbutido, setPercentualEmbutido] = useState(0);
 
-    // Efeito para buscar os dados da store na montagem do componente
     useEffect(() => {
         fetchAquisicoes();
     }, [fetchAquisicoes]);
 
-    // Efeito que sincroniza o estado local com os dados vindos da store
     useEffect(() => {
         const dadosDaStore = tipo === 'imoveis' ? imoveis : automoveis;
         if (dadosDaStore && dadosDaStore.length > 0) {
@@ -66,7 +121,6 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => 
         setCasoSelecionado(caso);
     };
 
-    // Handlers que agora chamam a ação 'saveAquisicao' da store
     const handleUpdateCaso = () => {
         if (!casoSelecionado) return;
         const casoAtualizado = { ...novoCaso, id: casoSelecionado.id };
@@ -357,7 +411,7 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => 
         <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">{titulo}</h1>
             
-            <Card className="mb-6">
+            <Card id="dados-simulacao-card" className="mb-6">
                  <form onSubmit={handleAddCaso}>
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Dados Gerais da Simulação</h3>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 text-sm">
@@ -371,7 +425,7 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => 
                         <div><label className="block font-medium text-gray-700 dark:text-gray-300">Rentabilidade Mensal (%)</label><input type="number" name="rentabilidadeMensal" value={novoCaso.rentabilidadeMensal} onChange={handleInputChange} step="0.01" className="mt-1 w-full bg-white dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-2 py-1 border border-slate-300 dark:border-[#3e388b]"/></div>
                         
                         {permitirFGTS && (
-                            <div className="md:col-span-2 flex items-end gap-4">
+                            <div id="fgts-input-section" className="md:col-span-2 flex items-end gap-4">
                                 <label className="flex items-center gap-2 cursor-pointer pb-1"><input type="checkbox" name="possuiFGTS" checked={novoCaso.possuiFGTS} onChange={handleInputChange} className="form-checkbox h-4 w-4 text-[#00d971] bg-gray-700 border-gray-600 rounded focus:ring-[#00d971]" /><span className="text-gray-700 dark:text-gray-300">Possui FGTS?</span></label>
                                 {novoCaso.possuiFGTS && (
                                     <div className="flex-1"><label className="block font-medium text-gray-700 dark:text-gray-300">Valor FGTS</label><input type="number" name="valorFGTS" value={novoCaso.valorFGTS} onChange={handleInputChange} className="mt-1 w-full bg-white dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-2 py-1 border border-slate-300 dark:border-[#3e388b]"/></div>
@@ -380,7 +434,7 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => 
                         )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                        <div>
+                        <div id="parametros-financiamento">
                             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2 border-t border-slate-200 dark:border-[#3e388b] pt-4">Parâmetros do Financiamento</h3>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div><label className="block font-medium text-gray-600 dark:text-gray-400">Juros (% a.a.)</label><input type="number" name="jurosFinanciamento" value={novoCaso.jurosFinanciamento} onChange={handleInputChange} className="w-full bg-white dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-2 py-1 border border-slate-300 dark:border-[#3e388b]"/></div>
@@ -392,7 +446,7 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => 
                                 <div className="md:col-span-2"><label className="block font-medium text-gray-600 dark:text-gray-400">Reajuste Anual do Saldo Devedor (%)</label><input type="number" name="reajusteAnualFinanciamento" value={novoCaso.reajusteAnualFinanciamento} onChange={handleInputChange} className="w-full bg-white dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-2 py-1 border border-slate-300 dark:border-[#3e388b]"/></div>
                             </div>
                         </div>
-                        <div>
+                        <div id="parametros-consorcio">
                             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2 border-t border-slate-200 dark:border-[#3e388b] pt-4">Parâmetros do Consórcio</h3>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div><label className="block font-medium text-gray-600 dark:text-gray-400">Taxa Adm Total (%)</label><input type="number" name="taxaAdmTotal" value={novoCaso.taxaAdmTotal} onChange={handleInputChange} className="w-full bg-white dark:bg-[#2a246f] text-slate-900 dark:text-white rounded-md px-2 py-1 border border-slate-300 dark:border-[#3e388b]"/></div>
@@ -403,7 +457,7 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => 
                         </div>
                     </div>
                     
-                    <div className="mt-6 flex justify-end gap-4">
+                    <div id="simulacao-actions" className="mt-6 flex justify-end gap-4">
                         <button type="button" onClick={handleUpdateCaso} disabled={!casoSelecionado} className="bg-blue-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"><Edit size={16}/> Atualizar Simulação</button>
                         <button type="submit" className="bg-[#00d971] text-black font-semibold py-2 px-6 rounded-md hover:brightness-90 flex items-center justify-center gap-2"><PlusCircle size={18}/> Adicionar como Nova</button>
                     </div>
@@ -426,13 +480,13 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => 
             
             {casoSelecionado && (
                 <>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div id="resultados-previsao" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                             <Card><h3 className="font-bold text-base text-slate-800 dark:text-white">Financiamento</h3><div className="p-2 rounded-lg text-xs"><p className="text-gray-600 dark:text-gray-400">Previsão p/ Entrada:</p><p className="font-bold text-lg text-[#00d971]">{previsaoEntradaFinanciamento.data}</p></div></Card>
                             <Card><h3 className="font-bold text-base text-slate-800 dark:text-white">Consórcio</h3><div className="p-2 rounded-lg text-xs"><p className="text-gray-600 dark:text-gray-400">Previsão p/ Lance:</p><p className="font-bold text-lg text-[#00d971]">{previsaoLanceConsorcio.data}</p></div></Card>
                             <Card><h3 className="font-bold text-base text-slate-800 dark:text-white">À Vista</h3><div className="p-2 rounded-lg text-xs"><p className="text-gray-600 dark:text-gray-400">Previsão para Acumular Valor Total:</p><p className="font-bold text-lg text-[#00d971]">{previsaoAVista.data}</p></div></Card>
                         </div>
-                        <Card>
+                        <Card id="grafico-projecao-card">
                             <div className="flex justify-center border-b border-slate-200 dark:border-b-[#3e388b] mb-4">
                                 <button onClick={() => setActiveChart('acumulo')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeChart === 'acumulo' ? 'border-b-2 border-[#00d971] text-[#00d971]' : 'text-gray-500 dark:text-gray-400'}`}>Acúmulo de Capital</button>
                                 <button onClick={() => setActiveChart('capacidade')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeChart === 'capacidade' ? 'border-b-2 border-[#00d971] text-[#00d971]' : 'text-gray-500 dark:text-gray-400'}`}>Capacidade de Poupar</button>
@@ -449,7 +503,6 @@ const TelaAquisicaoGenerica = ({ titulo, descricaoBem, permitirFGTS, tipo }) => 
                         </Card>
                     </div>
 
-                    {/* NOVA SEÇÃO DE COMPARATIVO DE CONSÓRCIO */}
                     <div className="mt-8">
                         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Comparativo de Cenários de Consórcio</h2>
                         <Card className="p-6">

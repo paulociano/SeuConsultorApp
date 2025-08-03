@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { apiRequest } from '../services/apiClient';
+// 1. CORREÇÃO: Importar a função correta
+import { apiPrivateRequest } from '../services/apiClient';
 
 export const useProtecaoStore = create((set) => ({
   invalidez: [],
@@ -10,7 +11,8 @@ export const useProtecaoStore = create((set) => ({
 
   fetchProtecao: async () => {
     set({ isLoading: true });
-    const perfilData = await apiRequest('/perfil');
+    // 2. CORREÇÃO: Usar apiPrivateRequest
+    const perfilData = await apiPrivateRequest('/api/perfil');
     if (perfilData && perfilData.protecao) {
       set({
         invalidez: perfilData.protecao.invalidez || [],
@@ -23,10 +25,12 @@ export const useProtecaoStore = create((set) => ({
 
   saveProtecaoItem: async (item, tipo) => {
     const isEditing = !!item.id;
-    const endpoint = isEditing ? `/protecao/${tipo}/${item.id}` : `/protecao/${tipo}`;
+    // 3. CORREÇÃO: Adicionar prefixo /api
+    const endpoint = isEditing ? `/api/protecao/${tipo}/${item.id}` : `/api/protecao/${tipo}`;
     const method = isEditing ? 'PUT' : 'POST';
 
-    const itemSalvo = await apiRequest(endpoint, method, item);
+    // 4. CORREÇÃO: Usar apiPrivateRequest
+    const itemSalvo = await apiPrivateRequest(endpoint, method, item);
     
     if (itemSalvo) {
       const stateKey = tipo === 'despesas' ? 'despesasFuturas' : tipo;
@@ -47,7 +51,8 @@ export const useProtecaoStore = create((set) => ({
   deleteProtecaoItem: async (itemId, tipo) => {
     if (!window.confirm("Tem certeza que deseja apagar este item?")) return;
     
-    if (await apiRequest(`/protecao/${tipo}/${itemId}`, 'DELETE')) {
+    // 5. CORREÇÃO: Adicionar prefixo /api e usar apiPrivateRequest
+    if (await apiPrivateRequest(`/api/protecao/${tipo}/${itemId}`, 'DELETE')) {
       const stateKey = tipo === 'despesas' ? 'despesasFuturas' : tipo;
       
       set((state) => ({

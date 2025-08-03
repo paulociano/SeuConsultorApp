@@ -2,9 +2,14 @@ const pool = require('../config/db');
 
 const getTransacoes = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM transacoes WHERE user_id = $1 ORDER BY data DESC', [req.usuario.id]);
+    const result = await pool.query(
+      'SELECT * FROM transacoes WHERE user_id = $1 ORDER BY data DESC',
+      [req.usuario.id]
+    );
     res.json(result.rows);
-  } catch (error) { res.status(500).json({ message: 'Erro ao buscar transações.' }); }
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar transações.' });
+  }
 };
 
 const createTransacao = async (req, res) => {
@@ -14,7 +19,9 @@ const createTransacao = async (req, res) => {
     const values = [descricao, valor, data, tipo, categoria, ignorada || false, req.usuario.id];
     const result = await pool.query(sql, values);
     res.status(201).json(result.rows[0]);
-  } catch (error) { res.status(500).json({ message: 'Erro ao adicionar transação.' }); }
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao adicionar transação.' });
+  }
 };
 
 const updateTransacao = async (req, res) => {
@@ -24,23 +31,32 @@ const updateTransacao = async (req, res) => {
   try {
     const values = [descricao, valor, data, tipo, categoria, ignorada, id, req.usuario.id];
     const result = await pool.query(sql, values);
-    if (result.rows.length === 0) return res.status(404).json({ message: 'Transação não encontrada.' });
+    if (result.rows.length === 0)
+      return res.status(404).json({ message: 'Transação não encontrada.' });
     res.json(result.rows[0]);
-  } catch (error) { res.status(500).json({ message: 'Erro ao atualizar transação.' }); }
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao atualizar transação.' });
+  }
 };
 
 const deleteTransacao = async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query('DELETE FROM transacoes WHERE id = $1 AND user_id = $2', [id, req.usuario.id]);
-    if (result.rowCount === 0) return res.status(404).json({ message: 'Transação não encontrada.' });
-    res.status(204).send(); 
-  } catch (error) { res.status(500).json({ message: 'Erro ao apagar transação.' }); }
+    const result = await pool.query('DELETE FROM transacoes WHERE id = $1 AND user_id = $2', [
+      id,
+      req.usuario.id,
+    ]);
+    if (result.rowCount === 0)
+      return res.status(404).json({ message: 'Transação não encontrada.' });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao apagar transação.' });
+  }
 };
 
 module.exports = {
-    getTransacoes,
-    createTransacao,
-    updateTransacao,
-    deleteTransacao,
+  getTransacoes,
+  createTransacao,
+  updateTransacao,
+  deleteTransacao,
 };

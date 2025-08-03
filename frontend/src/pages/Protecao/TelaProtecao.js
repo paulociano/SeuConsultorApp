@@ -11,6 +11,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import LoaderLogo from '../../components/Loader/loaderlogo';
 
+// --- INÍCIO DAS ADIÇÕES PARA O ONBOARDING ---
+import Joyride from 'react-joyride';
+import { useOnboarding } from '../../hooks/useOnboarding';
+// --- FIM DAS ADIÇÕES PARA O ONBOARDING ---
+
 // 1. O componente agora não recebe mais props. Ele busca tudo das stores.
 const TelaProtecao = () => {
     // 2. Acesso ao estado e às ações de todas as stores necessárias.
@@ -27,6 +32,47 @@ const TelaProtecao = () => {
     const { categorias, isLoading: isLoadingOrcamento, fetchOrcamento } = useOrcamentoStore();
     const { usuario } = useUserStore();
 
+    // --- INÍCIO DA LÓGICA DO ONBOARDING (CORRIGIDA) ---
+    const TOUR_KEY = 'protecao_tour';
+    // 1. Obter a nova função 'startTour' do hook
+    const { runTour, startTour, handleTourEnd } = useOnboarding(TOUR_KEY);
+
+    // CORREÇÃO: Mova a declaração de 'isLoading' para ANTES do useEffect.
+const isLoading = isLoadingPatrimonio || isLoadingProtecao || isLoadingOrcamento;
+
+    // 2. Este useEffect agora controla o início do tour
+    useEffect(() => {
+        // O tour só será iniciado se o carregamento de dados tiver terminado
+        if (!isLoading) {
+            startTour();
+        }
+    }, [isLoading, startTour]); // Dependências corretas
+
+    const tourSteps = [
+        {
+            target: 'body',
+            content: 'Bem-vindo à tela de Proteção. Aqui, calculamos as coberturas ideais para proteger você e sua família em diversos cenários.',
+            placement: 'center',
+            disableBeacon: true,
+        },
+        {
+            target: '#resumo-protecao-cards',
+            content: 'Estes cards no topo mostram o resumo das coberturas necessárias calculadas com base nas suas informações.',
+        },
+        {
+            target: '#sucessorio-card',
+            content: 'Nesta seção, planejamos a proteção em caso de falecimento, calculando os custos de inventário e cobrindo despesas futuras para seus dependentes.',
+        },
+        {
+            target: '#invalidez-card',
+            content: 'Aqui, planejamos a cobertura para invalidez permanente (que protege sua renda ou custo de vida para sempre) e temporária (apólices contratadas).',
+        },
+        {
+            target: '#exportar-proposta-card',
+            content: 'Ao final, você pode exportar um resumo completo desta análise em um relatório PDF.',
+        }
+    ];
+    // --- FIM DA LÓGICA DO ONBOARDING --
 
     // 3. Carrega todos os dados necessários quando o componente é montado.
     useEffect(() => {
@@ -214,8 +260,6 @@ const TelaProtecao = () => {
         }
     };
 
-    const isLoading = isLoadingPatrimonio || isLoadingProtecao || isLoadingOrcamento;
-
     if (isLoading) {
         return (
             <LoaderLogo />
@@ -225,7 +269,31 @@ const TelaProtecao = () => {
     // O JSX abaixo é o mesmo que você forneceu, sem alterações de layout.
     return (
         <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
+            <Joyride
+                steps={tourSteps}
+                run={runTour}
+                callback={handleTourEnd}
+                continuous={true}
+                showProgress={true}
+                showSkipButton={true}
+                locale={{
+                    back: 'Voltar',
+                    close: 'Fechar',
+                    last: 'Fim',
+                    next: 'Próximo',
+                    skip: 'Pular',
+                }}
+                styles={{
+                    options: {
+                      arrowColor: '#fff',
+                      backgroundColor: '#fff',
+                      primaryColor: '#00d971',
+                      textColor: '#333',
+                      zIndex: 1000,
+                    }
+                }}
+            />
+            <div id="resumo-protecao-cards" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
                 <Card>
                     <p className="text-sm text-slate-800 dark:text-white">Cobertura Invalidez</p>
                     <p className="text-2xl font-bold text-[#00d971]">{formatCurrency(totalCoberturaInvalidez)}</p>
@@ -243,7 +311,7 @@ const TelaProtecao = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Coluna Esquerda */}
                 <div className="space-y-6">
-                    <Card>
+                    <Card id="sucessorio-card">
                         <div className="flex items-center gap-3 mb-4">
                             <Users className="text-[#00d971]" size={24} />
                             <h2 className="text-lg font-bold text-slate-800 dark:text-white">Planejamento Sucessório</h2>
@@ -353,7 +421,7 @@ const TelaProtecao = () => {
 
                 {/* Coluna Direita */}
                 <div className="space-y-6">
-                    <Card>
+                    <Card id="invalidez-card">
                         <div className="flex items-center gap-3 mb-4">
                             <HeartHandshake className="text-[#00d971]" size={24} />
                             <h2 className="text-lg font-bold text-slate-800 dark:text-white">Cobertura Invalidez</h2>
@@ -463,7 +531,7 @@ const TelaProtecao = () => {
                             )) : <p className="text-center text-slate-500 dark:text-gray-400 p-2 text-xs">Nenhum seguro patrimonial adicionado.</p>}
                         </div>
                     </Card>
-                     <Card>
+                     <Card id="exportar-proposta-card">
                         <div className="flex justify-between items-center p-3">
                             <h2 className="text-lg font-bold text-slate-800 dark:text-white">Exportar Proposta</h2>
                             <button

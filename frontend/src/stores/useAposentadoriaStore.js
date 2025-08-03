@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { apiRequest } from '../services/apiClient';
+// 1. CORREÇÃO: Importar a função correta
+import { apiPrivateRequest } from '../services/apiClient';
 
 export const useAposentadoriaStore = create((set) => ({
   aposentadoriaData: null,
@@ -10,9 +11,10 @@ export const useAposentadoriaStore = create((set) => ({
   fetchAposentadoria: async () => {
     set({ isLoading: true });
     try {
+      // 2. CORREÇÃO: Usar apiPrivateRequest
       const [aposentadoriaRes, simuladorRes] = await Promise.all([
-        apiRequest('/aposentadoria'),
-        apiRequest('/simulador-pgbl')
+        apiPrivateRequest('/api/aposentadoria'),
+        apiPrivateRequest('/api/simulador-pgbl')
       ]);
       
       set({
@@ -25,7 +27,8 @@ export const useAposentadoriaStore = create((set) => ({
   },
 
   saveAposentadoria: async (data) => {
-    const savedData = await apiRequest('/aposentadoria', 'POST', data);
+    // 3. CORREÇÃO: Adicionar prefixo /api e usar apiPrivateRequest
+    const savedData = await apiPrivateRequest('/api/aposentadoria', 'POST', data);
     if (savedData) {
       set({ aposentadoriaData: savedData });
       toast.success("Plano de aposentadoria salvo com sucesso!");
@@ -34,7 +37,8 @@ export const useAposentadoriaStore = create((set) => ({
   },
 
   saveSimuladorPgbl: async (data) => {
-    const savedData = await apiRequest('/simulador-pgbl', 'POST', data);
+    // 4. CORREÇÃO: Adicionar prefixo /api e usar apiPrivateRequest
+    const savedData = await apiPrivateRequest('/api/simulador-pgbl', 'POST', data);
     if (savedData) {
       set({ simuladorPgblData: savedData });
       toast.success("Simulação PGBL/VGBL salva com sucesso!");

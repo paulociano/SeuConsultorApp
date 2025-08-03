@@ -52,40 +52,38 @@ const createTablesQueries = [
         valor NUMERIC(15, 2) NOT NULL DEFAULT 0,
         criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
-  `
+  `,
 ];
 
 // Função assíncrona para executar as consultas de criação de tabelas.
 const setupDatabase = async () => {
   console.log('Iniciando a configuração do banco de dados...');
-  
+
   // Pega um cliente do pool de conexões.
   const client = await pool.connect();
-  
+
   try {
     // Itera sobre cada consulta SQL no array
     for (const query of createTablesQueries) {
       // Extrai o nome da tabela da consulta para usar na mensagem de log.
       const tableName = query.match(/CREATE TABLE IF NOT EXISTS (\w+)/)[1];
-      
+
       // Executa a consulta
       await client.query(query);
-      
+
       // Imprime uma mensagem de sucesso
       console.log(`✅ Tabela '${tableName}' verificada/criada com sucesso.`);
     }
-    
+
     console.log('\nConfiguração do banco de dados concluída com sucesso!');
-    
   } catch (error) {
     // Se ocorrer um erro, imprime a mensagem de erro.
     console.error('❌ Erro durante a configuração do banco de dados:', error);
-    
   } finally {
     // Garante que a conexão com o cliente seja liberada de volta para o pool,
     // independentemente de ter ocorrido um erro ou não.
     client.release();
-    
+
     // Fecha o pool de conexões, encerrando o script.
     pool.end();
   }

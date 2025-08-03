@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { apiRequest } from '../services/apiClient';
+// 1. CORREÇÃO: Importar a função correta
+import { apiPrivateRequest } from '../services/apiClient';
 
 export const useAgendaStore = create((set) => ({
   atas: [],
@@ -10,9 +11,10 @@ export const useAgendaStore = create((set) => ({
   fetchAgenda: async () => {
     set({ isLoading: true });
     try {
+      // 2. CORREÇÃO: Usar apiPrivateRequest
       const [atasRes, agendaRes] = await Promise.all([
-        apiRequest('/atas'),
-        apiRequest('/agenda')
+        apiPrivateRequest('/api/atas'),
+        apiPrivateRequest('/api/agenda')
       ]);
       
       set({
@@ -27,10 +29,12 @@ export const useAgendaStore = create((set) => ({
 
   saveAta: async (ata) => {
     const isEditing = !!ata.id;
-    const endpoint = isEditing ? `/atas/${ata.id}` : '/atas';
+    // 3. CORREÇÃO: Adicionar prefixo /api
+    const endpoint = isEditing ? `/api/atas/${ata.id}` : '/api/atas';
     const method = isEditing ? 'PUT' : 'POST';
 
-    const savedAta = await apiRequest(endpoint, method, ata);
+    // 4. CORREÇÃO: Usar apiPrivateRequest
+    const savedAta = await apiPrivateRequest(endpoint, method, ata);
     
     if (savedAta) {
       set((state) => {
@@ -49,7 +53,8 @@ export const useAgendaStore = create((set) => ({
   deleteAta: async (ataId) => {
     if (!window.confirm("Tem certeza que deseja apagar esta ata?")) return;
     
-    if (await apiRequest(`/atas/${ataId}`, 'DELETE')) {
+    // 5. CORREÇÃO: Adicionar prefixo /api e usar apiPrivateRequest
+    if (await apiPrivateRequest(`/api/atas/${ataId}`, 'DELETE')) {
       set((state) => ({ atas: state.atas.filter(a => a.id !== ataId) }));
       toast.success("Ata apagada com sucesso!");
     }
@@ -57,10 +62,12 @@ export const useAgendaStore = create((set) => ({
 
   saveCompromisso: async (compromisso) => {
     const isEditing = !!compromisso.id;
-    const endpoint = isEditing ? `/agenda/${compromisso.id}` : '/agenda';
+    // 6. CORREÇÃO: Adicionar prefixo /api
+    const endpoint = isEditing ? `/api/agenda/${compromisso.id}` : '/api/agenda';
     const method = isEditing ? 'PUT' : 'POST';
 
-    const savedCompromisso = await apiRequest(endpoint, method, compromisso);
+    // 7. CORREÇÃO: Usar apiPrivateRequest
+    const savedCompromisso = await apiPrivateRequest(endpoint, method, compromisso);
     
     if (savedCompromisso) {
       set((state) => {
@@ -79,7 +86,8 @@ export const useAgendaStore = create((set) => ({
   deleteCompromisso: async (compromissoId) => {
     if (!window.confirm("Tem certeza que deseja apagar este compromisso?")) return;
 
-    if (await apiRequest(`/agenda/${compromissoId}`, 'DELETE')) {
+    // 8. CORREÇÃO: Adicionar prefixo /api e usar apiPrivateRequest
+    if (await apiPrivateRequest(`/api/agenda/${compromissoId}`, 'DELETE')) {
       set((state) => ({ agenda: state.agenda.filter(c => c.id !== compromissoId) }));
       toast.success("Compromisso apagado com sucesso!");
     }

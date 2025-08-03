@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { apiRequest } from '../services/apiClient';
+// 1. CORREÇÃO: Importar a função correta
+import { apiPrivateRequest } from '../services/apiClient';
 
 export const usePatrimonioStore = create((set) => ({
   ativos: [],
@@ -10,9 +11,10 @@ export const usePatrimonioStore = create((set) => ({
   fetchPatrimonio: async () => {
     set({ isLoading: true });
     try {
+      // 2. CORREÇÃO: Usar apiPrivateRequest para buscar os dados
       const [ativosData, dividasData] = await Promise.all([
-        apiRequest('/ativos'),
-        apiRequest('/dividas')
+        apiPrivateRequest('/api/ativos'),
+        apiPrivateRequest('/api/dividas')
       ]);
       set({ ativos: ativosData || [], dividas: dividasData || [] });
     } finally {
@@ -22,10 +24,12 @@ export const usePatrimonioStore = create((set) => ({
 
   savePatrimonioItem: async (item, tipoItem) => { // tipoItem será 'ativos' ou 'dividas'
     const isEditing = !!item.id;
-    const endpoint = isEditing ? `/${tipoItem}/${item.id}` : `/${tipoItem}`;
+    // 3. CORREÇÃO: Adicionar o prefixo /api ao endpoint
+    const endpoint = isEditing ? `/api/${tipoItem}/${item.id}` : `/api/${tipoItem}`;
     const method = isEditing ? 'PUT' : 'POST';
 
-    const savedItem = await apiRequest(endpoint, method, item);
+    // 4. CORREÇÃO: Usar apiPrivateRequest para salvar
+    const savedItem = await apiPrivateRequest(endpoint, method, item);
     
     if (savedItem) {
       set((state) => ({
@@ -42,7 +46,8 @@ export const usePatrimonioStore = create((set) => ({
   deletePatrimonioItem: async (itemId, tipoItem) => {
     if (!window.confirm("Tem certeza que deseja apagar este item?")) return;
 
-    if (await apiRequest(`/${tipoItem}/${itemId}`, 'DELETE')) {
+    // 5. CORREÇÃO: Adicionar prefixo /api e usar apiPrivateRequest para apagar
+    if (await apiPrivateRequest(`/api/${tipoItem}/${itemId}`, 'DELETE')) {
       set((state) => ({
         [tipoItem]: state[tipoItem].filter(i => i.id !== itemId)
       }));

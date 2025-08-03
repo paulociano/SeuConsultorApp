@@ -8,6 +8,11 @@ import { ThemeContext } from '../../ThemeContext';
 import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
 import LoaderLogo from '../../components/Loader/loaderlogo';
 
+// --- INÍCIO DAS ADIÇÕES PARA O ONBOARDING ---
+import Joyride from 'react-joyride';
+import { useOnboarding } from '../../hooks/useOnboarding';
+// --- FIM DAS ADIÇÕES PARA O ONBOARDING ---
+
 // --- Componente do Modal para Adicionar/Editar Item (sem alterações) ---
 const ModalPatrimonioItem = ({ item, tipo, onClose, onSave }) => {
     const isEdicao = !!item.id;
@@ -51,24 +56,50 @@ const ModalPatrimonioItem = ({ item, tipo, onClose, onSave }) => {
 
 
 // --- Componente Principal da Tela de Patrimônio ---
-// 2. As props foram removidas. O componente agora é autônomo.
 const TelaPatrimonio = () => {
     const { theme } = useContext(ThemeContext);
     
-    // 3. Aceder ao estado e às ações diretamente da store
     const { ativos, dividas, isLoading, fetchPatrimonio, savePatrimonioItem, deletePatrimonioItem } = usePatrimonioStore();
+
+    // --- INÍCIO DA LÓGICA DO ONBOARDING ---
+    const TOUR_KEY = 'patrimonio_tour';
+    const { runTour, handleTourEnd } = useOnboarding(TOUR_KEY);
+
+    const tourSteps = [
+        {
+            target: 'body',
+            content: 'Bem-vindo à tela de Patrimônio. Aqui você pode visualizar e gerenciar seus ativos e passivos.',
+            placement: 'center',
+            disableBeacon: true,
+        },
+        {
+            target: '#composicao-geral-card',
+            content: 'Este gráfico mostra a composição geral do seu patrimônio: o total de ativos, o total de dívidas (passivos) e o seu patrimônio líquido.',
+        },
+        {
+            target: '#composicao-ativos-card',
+            content: 'Aqui, você vê um detalhamento de como seus ativos estão distribuídos por categoria.',
+        },
+        {
+            target: '#patrimonio-tabs',
+            content: 'Navegue por estas abas para ver e gerenciar os itens de cada categoria, como investimentos, imóveis ou dívidas.',
+        },
+        {
+            target: '#adicionar-item-patrimonio-btn',
+            content: 'Clique aqui para adicionar um novo ativo ou dívida na categoria que estiver selecionada.',
+        }
+    ];
+    // --- FIM DA LÓGICA DO ONBOARDING ---
 
     const patrimonioCategorias = [ { id: 'investimentos', nome: 'Investimentos', icon: Coins }, { id: 'automoveis', nome: 'Automóveis', icon: CarFront }, { id: 'imoveis', nome: 'Imóveis', icon: Building2 }, { id: 'contaBancaria', nome: 'Conta Bancária', icon: Landmark }, { id: 'beneficios', nome: 'Benefícios', icon: Gift }, { id: 'outros', nome: 'Outros', icon: Package }, { id: 'dividas', nome: 'Dívidas', icon: DollarSign }, ];
     const [abaAtiva, setAbaAtiva] = useState('investimentos');
     const [modalState, setModalState] = useState({ isOpen: false, item: null });
 
-    // 4. Chamar a função para carregar os dados quando o componente montar
     useEffect(() => {
         fetchPatrimonio();
     }, [fetchPatrimonio]);
 
     // --- LÓGICA DE DADOS (MEMOIZED) ---
-    // Os cálculos agora usam os dados diretamente da store
     const totalAtivos = useMemo(() => ativos.reduce((acc, item) => acc + parseFloat(item.valor), 0), [ativos]);
     const totalDividas = useMemo(() => dividas.reduce((acc, item) => acc + parseFloat(item.valor), 0), [dividas]);
     const patrimonioTotal = useMemo(() => totalAtivos - totalDividas, [totalAtivos, totalDividas]);
@@ -116,7 +147,6 @@ const TelaPatrimonio = () => {
         setModalState({ isOpen: false, item: null });
     };
 
-    // 5. A função de salvar agora chama a ação 'savePatrimonioItem' da store
     const handleSave = (item) => {
         const tipoDoItem = patrimonioCategorias.find(c => c.id === abaAtiva)?.nome || 'Outros';
         const itemParaSalvar = { ...item, tipo: item.tipo || tipoDoItem };
@@ -125,7 +155,6 @@ const TelaPatrimonio = () => {
         savePatrimonioItem(itemParaSalvar, tipoDaAba);
     };
     
-    // 6. A função de apagar agora chama a ação 'deletePatrimonioItem' da store
     const handleDelete = (itemId) => {
         const tipoDaAba = abaAtiva === 'dividas' ? 'dividas' : 'ativos';
         deletePatrimonioItem(itemId, tipoDaAba);
@@ -139,16 +168,38 @@ const TelaPatrimonio = () => {
         return ativos.filter(item => item.tipo === categoriaSelecionada);
     }, [abaAtiva, ativos, dividas]);
 
-    // O `isLoading` agora vem diretamente da store
     if (isLoading) {
         return (
             <LoaderLogo />
         );
     }
 
-    // --- RENDERIZAÇÃO DO COMPONENTE (sem alterações na estrutura do JSX) ---
     return (
         <div className="max-w-7xl mx-auto space-y-6">
+            <Joyride
+                steps={tourSteps}
+                run={runTour}
+                callback={handleTourEnd}
+                continuous={true}
+                showProgress={true}
+                showSkipButton={true}
+                locale={{
+                    back: 'Voltar',
+                    close: 'Fechar',
+                    last: 'Fim',
+                    next: 'Próximo',
+                    skip: 'Pular',
+                }}
+                styles={{
+                    options: {
+                      arrowColor: '#fff',
+                      backgroundColor: '#fff',
+                      primaryColor: '#00d971',
+                      textColor: '#333',
+                      zIndex: 1000,
+                    }
+                }}
+            />
             {modalState.isOpen && (
                 <ModalPatrimonioItem
                     item={modalState.item}
@@ -159,7 +210,7 @@ const TelaPatrimonio = () => {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card>
+                <Card id="composicao-geral-card">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Composição Geral</h3>
                     <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={compositionBarData} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
@@ -174,7 +225,7 @@ const TelaPatrimonio = () => {
                     </ResponsiveContainer>
                 </Card>
 
-                <Card>
+                <Card id="composicao-ativos-card">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Composição dos Ativos</h3>
                     <ResponsiveContainer width="100%" height={250}>
                         <PieChart>
@@ -194,13 +245,13 @@ const TelaPatrimonio = () => {
             </div>
 
             <Card>
-                <div className="flex items-center border-b border-slate-200 dark:border-b-[#3e388b] overflow-x-auto">
+                <div id="patrimonio-tabs" className="flex items-center border-b border-slate-200 dark:border-b-[#3e388b] overflow-x-auto">
                     {patrimonioCategorias.map(cat => ( <button key={cat.id} onClick={() => setAbaAtiva(cat.id)} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-200 border-b-2 ${abaAtiva === cat.id ? 'border-[#00d971] text-[#00d971]' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-white'}`}> <cat.icon size={16} />{cat.nome} </button> ))}
                 </div>
                 <div className="mt-4">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-bold text-slate-800 dark:text-white capitalize">{patrimonioCategorias.find(c => c.id === abaAtiva)?.nome}</h2>
-                        <button onClick={() => handleOpenModal()} className="text-xs flex items-center gap-1 text-[#00d971] hover:brightness-90 font-semibold"><PlusCircle size={14} /> Adicionar Item</button>
+                        <button id="adicionar-item-patrimonio-btn" onClick={() => handleOpenModal()} className="text-xs flex items-center gap-1 text-[#00d971] hover:brightness-90 font-semibold"><PlusCircle size={14} /> Adicionar Item</button>
                     </div>
                     <div className="space-y-2 text-sm">
                         {itensExibidos.length > 0 ? itensExibidos.map(item => ( 

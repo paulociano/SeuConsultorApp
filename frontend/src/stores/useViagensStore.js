@@ -1,22 +1,21 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-// 1. Importar o apiClient centralizado
-import { apiRequest } from '../services/apiClient';
+// 1. CORREÇÃO: Importar a função correta
+import { apiPrivateRequest } from '../services/apiClient';
 
 export const useViagensStore = create((set) => ({
-  // 2. Adicionar o estado de 'error'
   carteiras: [],
   metas: [],
   isLoading: false,
   error: null,
 
   fetchViagens: async () => {
-    // 3. Gerenciar o estado de loading e limpar erros antigos
     set({ isLoading: true, error: null });
     try {
+      // 2. CORREÇÃO: Usar apiPrivateRequest
       const [carteirasRes, metasRes] = await Promise.all([
-        apiRequest('/milhas/carteiras'),
-        apiRequest('/milhas/metas')
+        apiPrivateRequest('/api/milhas/carteiras'),
+        apiPrivateRequest('/api/milhas/metas')
       ]);
       
       set({
@@ -35,10 +34,12 @@ export const useViagensStore = create((set) => ({
     set({ isLoading: true, error: null });
     try {
         const isEditing = !!item.id;
-        const endpoint = isEditing ? `/milhas/${tipo}/${item.id}` : `/milhas/${tipo}`;
+        // 3. CORREÇÃO: Adicionar prefixo /api
+        const endpoint = isEditing ? `/api/milhas/${tipo}/${item.id}` : `/api/milhas/${tipo}`;
         const method = isEditing ? 'PUT' : 'POST';
 
-        const savedItem = await apiRequest(endpoint, method, item);
+        // 4. CORREÇÃO: Usar apiPrivateRequest
+        const savedItem = await apiPrivateRequest(endpoint, method, item);
         
         if (savedItem) {
           set((state) => {
@@ -67,7 +68,8 @@ export const useViagensStore = create((set) => ({
     
     set({ isLoading: true, error: null });
     try {
-        if (await apiRequest(`/milhas/${tipo}/${itemId}`, 'DELETE')) {
+        // 5. CORREÇÃO: Adicionar prefixo /api e usar apiPrivateRequest
+        if (await apiPrivateRequest(`/api/milhas/${tipo}/${itemId}`, 'DELETE')) {
           set((state) => ({
             [tipo]: state[tipo].filter(i => i.id !== itemId)
           }));

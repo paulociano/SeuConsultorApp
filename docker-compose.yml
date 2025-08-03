@@ -1,0 +1,54 @@
+services:
+  # Serviço do Banco de Dados (sem alterações)
+  postgres_db:
+    image: postgres:14-alpine
+    container_name: meuapp-postgres
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: meudb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  # Serviço do Backend (sem alterações)
+  backend:
+    build: ./backend
+    container_name: meuapp-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      DATABASE_URL: postgresql://devuser:devpassword@postgres_db:5432/meudb
+      NODE_ENV: development
+    command: npm start
+    depends_on:
+      - postgres_db
+
+  # Serviço do Frontend (MODIFICADO PARA DESENVOLVIMENTO COM HOT-RELOAD)
+  frontend:
+    build:
+      context: ./frontend       # Aponta para a pasta do frontend
+      dockerfile: Dockerfile.dev # Especifica o uso do nosso novo Dockerfile de desenvolvimento
+    container_name: meuapp-frontend-dev
+    ports:
+      - "3000:3000"             # Mapeia a porta 3000 do React para a porta 3000 da sua máquina
+    volumes:
+      # Monta todo o código do frontend no contêiner para que as alterações sejam refletidas
+      - ./frontend:/app
+      # Adiciona um volume anônimo para node_modules para evitar conflitos com o seu sistema local
+      - /app/node_modules
+    environment:
+      # Garante que o Hot-Reload funcione em todos os sistemas
+      - CHOKIDAR_USEPOLLING=true
+    stdin_open: true  # Mantém o processo do contêiner ativo
+    tty: true         # Aloca um pseudo-TTY, necessário para o servidor de desenvolvimento do React
+    depends_on:
+      - backend
+
+# Volume para persistir os dados do banco
+volumes:
+  postgres-data:

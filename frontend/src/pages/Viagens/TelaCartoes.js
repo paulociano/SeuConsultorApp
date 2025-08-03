@@ -1,32 +1,21 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, Sparkles, ArrowRight, Shuffle, Star, Award, TrendingUp } from 'lucide-react';
 
-/*
-  NOTA DE ESTILO:
-  Este componente foi reescrito para utilizar a identidade visual fornecida pelo 'Card.js'.
-  - Fundo do Card (Dark Mode): #201b5d
-  - Sombra: shadow-lg
-  - Borda (Dark Mode): Transparente
-  - v2: Corrigido bug de posicionamento do selo "Melhor Escolha" e completada a renderização da tabela.
-*/
+// --- INÍCIO DAS ADIÇÕES PARA O ONBOARDING ---
+import Joyride from 'react-joyride';
+import { useOnboarding } from '../../hooks/useOnboarding';
+// --- FIM DAS ADIÇÕES PARA O ONBOARDING ---
 
-// Importe o seu arquivo JSON de dados reestruturado.
 const dadosDosCartoes = require('../../data/cartoes_credito.json');
 
-// --- COMPONENTE DE CARD REUTILIZÁVEL ---
-// Adicionada a classe `relative` para garantir que elementos filhos com `absolute` se posicionem corretamente.
-const Card = ({ children, className = '' }) => (
-  <div className={`relative bg-white dark:bg-[#201b5d] p-4 rounded-xl shadow-lg border border-slate-200 dark:border-transparent ${className}`}>
+const Card = ({ children, className = '', ...props }) => (
+  <div {...props} className={`relative bg-white dark:bg-[#201b5d] p-4 rounded-xl shadow-lg border border-slate-200 dark:border-transparent ${className}`}>
     {children}
   </div>
 );
 
-
-// --- COMPONENTES AUXILIARES ---
-
-// Wizard interativo com a nova identidade visual
-const Wizard = ({ onSubmit, onReset }) => {
+const Wizard = ({ onSubmit, onReset, ...props }) => {
     const [gastoMensal, setGastoMensal] = useState(5000);
     const [prioridade, setPrioridade] = useState('milhas');
 
@@ -42,7 +31,7 @@ const Wizard = ({ onSubmit, onReset }) => {
     ];
 
     return (
-        <Card className="p-6 md:p-8">
+        <Card {...props} className="p-6 md:p-8">
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="flex justify-between items-start">
                     <div>
@@ -57,7 +46,7 @@ const Wizard = ({ onSubmit, onReset }) => {
                 </div>
                 
                 <div className="space-y-8 mt-8">
-                    <div>
+                    <div id="wizard-gasto-slider">
                         <label className="font-semibold block mb-3 text-slate-700 dark:text-slate-200">Qual seu gasto mensal estimado no cartão?</label>
                         <div className="flex items-center gap-4">
                             <span className="text-sm text-slate-500 dark:text-slate-400">R$ 1.000</span>
@@ -73,7 +62,7 @@ const Wizard = ({ onSubmit, onReset }) => {
                             <span className="font-bold text-lg w-28 text-right text-slate-800 dark:text-white">R$ {gastoMensal.toLocaleString('pt-BR')}</span>
                         </div>
                     </div>
-                    <div>
+                    <div id="wizard-prioridade-buttons">
                         <label className="font-semibold block mb-3 text-slate-700 dark:text-slate-200">O que você mais valoriza em um cartão?</label>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             {prioridadesOpcoes.map(p => (
@@ -91,7 +80,7 @@ const Wizard = ({ onSubmit, onReset }) => {
                 </div>
 
                 <div className="flex justify-center mt-10">
-                    <button onClick={handleSubmit} className="bg-[#00d971] hover:bg-[#00b860] text-black font-bold py-3 px-10 rounded-lg transition-all hover:scale-105 flex items-center gap-2">
+                    <button id="wizard-submit-btn" onClick={handleSubmit} className="bg-[#00d971] hover:bg-[#00b860] text-black font-bold py-3 px-10 rounded-lg transition-all hover:scale-105 flex items-center gap-2">
                         Encontrar Recomendações <ArrowRight size={20} />
                     </button>
                 </div>
@@ -100,7 +89,6 @@ const Wizard = ({ onSubmit, onReset }) => {
     );
 };
 
-// Tabela de comparação rica e visual com a nova identidade visual
 const TabelaComparativa = ({ cartoes, fecharComparacao }) => {
     const beneficios = [
         { key: 'anuidade', label: 'Anuidade' },
@@ -198,13 +186,46 @@ const TabelaComparativa = ({ cartoes, fecharComparacao }) => {
 };
 
 
-// --- COMPONENTE PRINCIPAL ---
 const TelaCartoes = () => {
+    // --- INÍCIO DA LÓGICA DO ONBOARDING ---
+    const TOUR_KEY = 'cartoes_tour';
+    const { runTour, startTour, handleTourEnd } = useOnboarding(TOUR_KEY);
+
+    useEffect(() => {
+        // Como esta tela não tem loading de dados, podemos iniciar o tour imediatamente.
+        startTour();
+    }, [startTour]); // A dependência garante que rode apenas uma vez
+
+    const tourSteps = [
+        {
+            target: 'body',
+            content: 'Bem-vindo ao nosso recomendador de cartões de crédito! Vamos encontrar o melhor cartão para você.',
+            placement: 'center',
+            disableBeacon: true,
+        },
+        {
+            target: '#wizard-gasto-slider',
+            content: 'Primeiro, deslize para informar seu gasto médio mensal no cartão.',
+        },
+        {
+            target: '#wizard-prioridade-buttons',
+            content: 'Depois, escolha qual benefício é o mais importante para você.',
+        },
+        {
+            target: '#wizard-submit-btn',
+            content: 'Clique aqui para ver as recomendações personalizadas com base nas suas respostas!',
+        },
+        {
+            target: '#recomendacoes-container',
+            content: 'Suas melhores opções aparecerão aqui. Você pode selecionar até 4 cartões para uma comparação detalhada.',
+        },
+    ];
+    // --- FIM DA LÓGICA DO ONBOARDING ---
+
     const [recomendacoes, setRecomendacoes] = useState([]);
     const [cartoesParaComparar, setCartoesParaComparar] = useState([]);
     const [wizardKey, setWizardKey] = useState(1);
     
-    // As lógicas de cálculo e estado permanecem as mesmas.
     const calcularCompatibilidade = (cartao, preferencias) => {
         let score = 0;
         const { gastoMensal, prioridade } = preferencias;
@@ -246,11 +267,17 @@ const TelaCartoes = () => {
 
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-10 bg-slate-50 dark:bg-gray-900 min-h-screen">
-            <Wizard key={wizardKey} onSubmit={handleWizardSubmit} onReset={handleReset} />
+            <Joyride
+                steps={tourSteps} run={runTour} callback={handleTourEnd} continuous={true}
+                showProgress={true} showSkipButton={true}
+                locale={{ back: 'Voltar', close: 'Fechar', last: 'Fim', next: 'Próximo', skip: 'Pular' }}
+                styles={{ options: { arrowColor: '#fff', backgroundColor: '#fff', primaryColor: '#00d971', textColor: '#333', zIndex: 1000 } }}
+            />
+            <Wizard key={wizardKey} onSubmit={handleWizardSubmit} onReset={handleReset} id="cartoes-wizard" />
 
             <AnimatePresence>
             {recomendacoes.length > 0 && (
-                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+                 <motion.div id="recomendacoes-container" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
                     <div className="flex items-center gap-3">
                         <Award className="text-[#00d971]" size={28} />
                         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Suas Recomendações</h2>

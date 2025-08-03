@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { apiRequest } from '../services/apiClient';
+// 1. CORREÇÃO: Importar a função correta
+import { apiPrivateRequest } from '../services/apiClient';
 
 export const useObjetivosStore = create((set) => ({
   objetivos: [],
@@ -8,7 +9,8 @@ export const useObjetivosStore = create((set) => ({
 
   fetchObjetivos: async () => {
     set({ isLoading: true });
-    const data = await apiRequest('/objetivos');
+    // 2. CORREÇÃO: Usar apiPrivateRequest para buscar os dados
+    const data = await apiPrivateRequest('/api/objetivos');
     if (data) {
       set({ objetivos: data });
     }
@@ -17,10 +19,12 @@ export const useObjetivosStore = create((set) => ({
 
   saveObjetivo: async (objetivo) => {
     const isEditing = !!objetivo.id;
-    const endpoint = isEditing ? `/objetivos/${objetivo.id}` : '/objetivos';
+    // 3. CORREÇÃO: Adicionar o prefixo /api ao endpoint
+    const endpoint = isEditing ? `/api/objetivos/${objetivo.id}` : '/api/objetivos';
     const method = isEditing ? 'PUT' : 'POST';
 
-    const savedObjetivo = await apiRequest(endpoint, method, objetivo);
+    // 4. CORREÇÃO: Usar apiPrivateRequest para salvar
+    const savedObjetivo = await apiPrivateRequest(endpoint, method, objetivo);
     
     if (savedObjetivo) {
       set((state) => ({
@@ -37,7 +41,8 @@ export const useObjetivosStore = create((set) => ({
   deleteObjetivo: async (objetivoId) => {
     if (!window.confirm("Tem certeza que deseja apagar este objetivo?")) return;
 
-    if (await apiRequest(`/objetivos/${objetivoId}`, 'DELETE')) {
+    // 5. CORREÇÃO: Adicionar prefixo /api e usar apiPrivateRequest para apagar
+    if (await apiPrivateRequest(`/api/objetivos/${objetivoId}`, 'DELETE')) {
       set((state) => ({
         objetivos: state.objetivos.filter(o => o.id !== objetivoId)
       }));

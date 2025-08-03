@@ -15,6 +15,10 @@ import LoaderLogo from '../../components/Loader/loaderlogo';
 import { useObjetivosStore } from '../../stores/useObjetivosStore';
 import { usePatrimonioStore } from '../../stores/usePatrimonioStore';
 import { useAchievementsStore } from '../../stores/useAchievementsStore';
+// --- INÍCIO DAS ADIÇÕES PARA O ONBOARDING ---
+import Joyride from 'react-joyride';
+import { useOnboarding } from '../../hooks/useOnboarding';
+// --- FIM DAS ADIÇÕES PARA O ONBOARDING ---
 
 // Estilos para o efeito de brilho (sem alterações)
 const shineEffectStyles = `
@@ -113,6 +117,36 @@ const TelaObjetivos = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [hoveredObjectiveId, setHoveredObjectiveId] = useState(null);
     const [objetivoParaEditar, setObjetivoParaEditar] = useState(null);
+
+    // --- INÍCIO DA LÓGICA DO ONBOARDING ---
+    const TOUR_KEY = 'objetivos_tour';
+    const { runTour, handleTourEnd } = useOnboarding(TOUR_KEY);
+
+    const tourSteps = [
+        {
+          target: 'body',
+          content: 'Bem-vindo à tela de Objetivos! Vamos fazer um tour rápido pelas funcionalidades.',
+          placement: 'center',
+          disableBeacon: true,
+        },
+        {
+          target: '#toggle-view-button',
+          content: 'Você pode alternar entre a visualização "Gamificada", com cards, e a "Clássica", com uma visão orbital de suas metas.',
+        },
+        {
+          target: '#main-view-container',
+          content: 'Nesta área principal, você verá seus objetivos. Interaja com eles para ver mais detalhes.',
+        },
+        {
+          target: '#conquistas-gallery',
+          content: 'Ao completar objetivos, você desbloqueia conquistas que aparecerão aqui. Colecione todas!',
+        },
+        {
+          target: '#add-objective-button',
+          content: 'Para começar, clique aqui para adicionar seu primeiro objetivo financeiro!',
+        }
+    ];
+    // --- FIM DA LÓGICA DO ONBOARDING ---
 
     useEffect(() => {
         fetchObjetivos();
@@ -366,14 +400,42 @@ const TelaObjetivos = () => {
             <LoaderLogo />
         );
     }
-
+    
     return (
         <div className="max-w-6xl mx-auto px-4 pb-24">
+            <Joyride
+                steps={tourSteps}
+                run={runTour}
+                callback={handleTourEnd}
+                continuous={true}
+                showProgress={true}
+                showSkipButton={true}
+                locale={{
+                    back: 'Voltar',
+                    close: 'Fechar',
+                    last: 'Fim',
+                    next: 'Próximo',
+                    skip: 'Pular',
+                }}
+                styles={{
+                    options: {
+                      arrowColor: '#fff',
+                      backgroundColor: '#fff',
+                      primaryColor: '#00d971',
+                      textColor: '#333',
+                      zIndex: 1000,
+                    }
+                }}
+            />
             <style>{shineEffectStyles}</style>
 
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Seus Objetivos</h1>
-                <button onClick={() => setModoGamificado(prev => !prev)} className="flex items-center gap-2 text-sm bg-slate-200 dark:bg-[#2a246f] text-slate-700 dark:text-white px-4 py-1.5 rounded-lg hover:bg-slate-300 dark:hover:bg-[#3e388b] transition-colors">
+                <button 
+                    id="toggle-view-button" // ID para o tour
+                    onClick={() => setModoGamificado(prev => !prev)} 
+                    className="flex items-center gap-2 text-sm bg-slate-200 dark:bg-[#2a246f] text-slate-700 dark:text-white px-4 py-1.5 rounded-lg hover:bg-slate-300 dark:hover:bg-[#3e388b] transition-colors"
+                >
                     {modoGamificado ? <Rotate3D size={16} /> : <Grid2X2 size={16} />}
                     <span>{modoGamificado ? 'Modo Clássico' : 'Modo Gamificado'}</span>
                 </button>
@@ -382,7 +444,10 @@ const TelaObjetivos = () => {
             <AnimatePresence mode="wait">
                 {objetivoSelecionadoId ? renderDetalheObjetivo() : (
                     objetivosCalculados.length > 0 ? (
-                        <motion.div key="main-view">
+                        <motion.div 
+                            key="main-view"
+                            id="main-view-container" // ID para o tour
+                        >
                             {modoGamificado ? renderGamificado() : renderClássico()}
                         </motion.div>
                     ) : (
@@ -395,7 +460,10 @@ const TelaObjetivos = () => {
             </AnimatePresence>
 
             {!objetivoSelecionadoId && (
-                <div className="mt-12">
+                <div 
+                    id="conquistas-gallery" // ID para o tour
+                    className="mt-12"
+                >
                     <AnimatePresence>
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -408,7 +476,11 @@ const TelaObjetivos = () => {
                 </div>
             )}
 
-            <button onClick={() => handleOpenModal()} className="fixed bottom-10 right-10 bg-[#00d971] text-black w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-30">
+            <button 
+                id="add-objective-button" // ID para o tour
+                onClick={() => handleOpenModal()} 
+                className="fixed bottom-10 right-10 bg-[#00d971] text-black w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-30"
+            >
                 <PlusCircle size={32} />
             </button>
 

@@ -8,6 +8,11 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// --- INÍCIO DAS ADIÇÕES PARA O ONBOARDING ---
+import Joyride from 'react-joyride';
+import { useOnboarding } from '../../hooks/useOnboarding';
+// --- FIM DAS ADIÇÕES PARA O ONBOARDING ---
+
 // 1. Importar as stores necessárias
 import { useOrcamentoStore } from '../../stores/useOrcamentoStore';
 import { useTransacoesStore } from '../../stores/useTransacoesStore';
@@ -17,6 +22,32 @@ const TelaPlanejamento = () => {
     // 2. CORREÇÃO: Obter 'categorias' da store, não 'orcamento'
     const { categorias, isLoading: isOrcamentoLoading, fetchOrcamento } = useOrcamentoStore();
     const { transacoes: gastosReais, isLoading: isTransacoesLoading, fetchTransacoes } = useTransacoesStore();
+
+    // --- INÍCIO DA LÓGICA DO ONBOARDING ---
+    const TOUR_KEY = 'planejamento_tour';
+    const { runTour, handleTourEnd } = useOnboarding(TOUR_KEY);
+
+    const tourSteps = [
+        {
+          target: 'body',
+          content: 'Esta é a tela de Planejamento, onde você compara suas metas do orçamento com seus gastos reais.',
+          placement: 'center',
+          disableBeacon: true,
+        },
+        {
+          target: '#planejamento-controles',
+          content: 'Use estes controles para filtrar os dados por mês e ano, ou para exportar o relatório em Excel (CSV) e PDF.',
+        },
+        {
+          target: '#resumo-mes-planejamento',
+          content: 'Aqui você tem um resumo rápido de quanto gastou no mês em comparação com o total planejado.',
+        },
+        {
+          target: '#primeira-categoria-planejamento',
+          content: 'Cada barra mostra o progresso de uma categoria. A barra enche à medida que você gasta, comparando com a meta que você definiu no orçamento.',
+        }
+    ];
+    // --- FIM DA LÓGICA DO ONBOARDING ---
 
     // Usar o useEffect para carregar os dados na montagem do componente
     useEffect(() => {
@@ -89,7 +120,69 @@ const TelaPlanejamento = () => {
             <LoaderLogo />
         );
     }
-    return ( <div className="max-w-4xl mx-auto space-y-6"> <Card> <div className="flex justify-between items-center mb-4 flex-wrap gap-4"> <h2 className="text-lg font-bold text-slate-800 dark:text-white">Planejamento vs Realizado</h2> <div className="flex gap-2 items-center"> <button onClick={exportarCSV} title="Exportar para Excel" className="p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700"> <FileDown size={20} className="text-green-600" /> </button> <button onClick={exportarPDF} title="Exportar para PDF" className="p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700"> <FileDown size={20} className="text-red-600" /> </button> <select name="mes" value={filtroData.mes} onChange={handleFiltroChange} className="bg-white dark:bg-[#2a246f] border border-slate-300 dark:border-[#3e388b] rounded-md px-2 py-1 text-sm"> {opcoesFiltro.meses.map(m => <option key={m.v} value={m.v}>{m.n}</option>)} </select> <select name="ano" value={filtroData.ano} onChange={handleFiltroChange} className="bg-white dark:bg-[#2a246f] border border-slate-300 dark:border-[#3e388b] rounded-md px-2 py-1 text-sm"> {opcoesFiltro.anos.map(a => <option key={a} value={a}>{a}</option>)} </select> </div> </div> <div className="flex justify-between items-center mb-4 text-sm text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg"> <span>Resumo do mês: <strong>{formatCurrency(totalRealizado)}</strong> de <strong>{formatCurrency(totalMeta)}</strong> ({percentualTotal.toFixed(1)}%)</span> <label className="flex items-center gap-2 cursor-pointer"> <input type="checkbox" checked={mostrarSomenteComMetas} onChange={() => setMostrarSomenteComMetas(prev => !prev)} className="rounded text-[#00d971] focus:ring-0"/> Mostrar apenas categorias com metas </label> </div> <div className="space-y-5"> {categoriasParaExibir.map(item => { const Icone = item.icon; const cor = item.realizado > item.meta && item.meta > 0 ? 'bg-red-500' : 'bg-[#00d971]'; const largura = Math.min(item.percentual, 100); return ( <div key={item.id}> <div className="flex justify-between items-center mb-1"> <div className="flex items-center gap-2"> <Icone size={16} /> <span className="font-bold text-slate-800 dark:text-white">{item.nome}</span> {item.percentual >= 100 && item.meta > 0 && <AlertTriangle size={14} className="text-red-400" title="Meta ultrapassada!" />} </div> <div className="text-sm font-semibold flex gap-2 items-center text-slate-600 dark:text-slate-400"> <span className={item.realizado > item.meta && item.meta > 0 ? 'text-red-500' : 'text-green-500'}> {formatCurrency(item.realizado)} </span> / <span>{formatCurrency(item.meta)}</span> </div> </div> <div className="relative w-full bg-slate-200 dark:bg-slate-700 rounded-full h-5"> <div className={`h-full rounded-full transition-all duration-500 ${cor}`} style={{ width: `${largura}%` }}></div> <div className="absolute inset-0 flex items-center justify-center"> <span className="text-xs font-bold text-white drop-shadow-md">{item.percentual.toFixed(0)}%</span> </div> </div> </div> ); })} </div> </Card> </div> );
+    return ( 
+        <div className="max-w-4xl mx-auto space-y-6">
+            <Joyride
+                steps={tourSteps}
+                run={runTour}
+                callback={handleTourEnd}
+                continuous={true}
+                showProgress={true}
+                showSkipButton={true}
+                locale={{
+                    back: 'Voltar',
+                    close: 'Fechar',
+                    last: 'Fim',
+                    next: 'Próximo',
+                    skip: 'Pular',
+                }}
+                styles={{
+                    options: {
+                      arrowColor: '#fff',
+                      backgroundColor: '#fff',
+                      primaryColor: '#00d971',
+                      textColor: '#333',
+                      zIndex: 1000,
+                    }
+                }}
+            />
+            <Card> 
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-4"> 
+                    <h2 className="text-lg font-bold text-slate-800 dark:text-white">Planejamento vs Realizado</h2> 
+                    <div id="planejamento-controles" className="flex gap-2 items-center">
+                        <button onClick={exportarCSV} title="Exportar para Excel" className="p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700"> <FileDown size={20} className="text-green-600" /> </button> 
+                        <button onClick={exportarPDF} title="Exportar para PDF" className="p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700"> <FileDown size={20} className="text-red-600" /> </button> 
+                        <select name="mes" value={filtroData.mes} onChange={handleFiltroChange} className="bg-white dark:bg-[#2a246f] border border-slate-300 dark:border-[#3e388b] rounded-md px-2 py-1 text-sm"> {opcoesFiltro.meses.map(m => <option key={m.v} value={m.v}>{m.n}</option>)} </select> 
+                        <select name="ano" value={filtroData.ano} onChange={handleFiltroChange} className="bg-white dark:bg-[#2a246f] border border-slate-300 dark:border-[#3e388b] rounded-md px-2 py-1 text-sm"> {opcoesFiltro.anos.map(a => <option key={a} value={a}>{a}</option>)} </select> 
+                    </div> 
+                </div> 
+                <div id="resumo-mes-planejamento" className="flex justify-between items-center mb-4 text-sm text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg"> 
+                    <span>Resumo do mês: <strong>{formatCurrency(totalRealizado)}</strong> de <strong>{formatCurrency(totalMeta)}</strong> ({percentualTotal.toFixed(1)}%)</span> 
+                    <label className="flex items-center gap-2 cursor-pointer"> 
+                        <input type="checkbox" checked={mostrarSomenteComMetas} onChange={() => setMostrarSomenteComMetas(prev => !prev)} className="rounded text-[#00d971] focus:ring-0"/> Mostrar apenas categorias com metas 
+                    </label> 
+                </div> 
+                <div className="space-y-5"> 
+                    {categoriasParaExibir.map((item, index) => { 
+                        const Icone = item.icon; 
+                        const cor = item.realizado > item.meta && item.meta > 0 ? 'bg-red-500' : 'bg-[#00d971]'; 
+                        const largura = Math.min(item.percentual, 100); 
+                        return ( 
+                            <div key={item.id} id={index === 0 ? 'primeira-categoria-planejamento' : undefined}>
+                                <div className="flex justify-between items-center mb-1"> 
+                                    <div className="flex items-center gap-2"> <Icone size={16} /> <span className="font-bold text-slate-800 dark:text-white">{item.nome}</span> {item.percentual >= 100 && item.meta > 0 && <AlertTriangle size={14} className="text-red-400" title="Meta ultrapassada!" />} </div> <div className="text-sm font-semibold flex gap-2 items-center text-slate-600 dark:text-slate-400"> <span className={item.realizado > item.meta && item.meta > 0 ? 'text-red-500' : 'text-green-500'}> {formatCurrency(item.realizado)} </span> / <span>{formatCurrency(item.meta)}</span> </div> 
+                                </div> 
+                                <div className="relative w-full bg-slate-200 dark:bg-slate-700 rounded-full h-5"> 
+                                    <div className={`h-full rounded-full transition-all duration-500 ${cor}`} style={{ width: `${largura}%` }}></div> 
+                                    <div className="absolute inset-0 flex items-center justify-center"> <span className="text-xs font-bold text-white drop-shadow-md">{item.percentual.toFixed(0)}%</span> </div> 
+                                </div> 
+                            </div> 
+                        ); 
+                    })} 
+                </div> 
+            </Card> 
+        </div> 
+    );
 };
 
 export default TelaPlanejamento;

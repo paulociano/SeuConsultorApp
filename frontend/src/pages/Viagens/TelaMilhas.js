@@ -3,11 +3,15 @@ import { PlusCircle, Edit, Trash2, TrendingUp, DollarSign, AlertCircle, Sparkles
 import { ThemeContext } from "../../ThemeContext";
 import ModalNovaViagem from "../../components/Modals/ModalNovaViagem";
 import ModalWallet from "../../components/Modals/ModalWallet";
-// 1. Importar a store de Viagens
 import { useViagensStore } from "../../stores/useViagensStore";
 import LoaderLogo from "../../components/Loader/loaderlogo";
 
-// Componente para exibir um "ticket" de viagem com o progresso (sem alterações)
+// --- INÍCIO DAS ADIÇÕES PARA O ONBOARDING ---
+import Joyride from 'react-joyride';
+import { useOnboarding } from '../../hooks/useOnboarding';
+// --- FIM DAS ADIÇÕES PARA O ONBOARDING ---
+
+// Componente para exibir um "ticket" de viagem com o progresso
 const TicketDeViagem = ({ viagem, onEdit, onDelete }) => (
     <div className={`p-4 rounded-lg shadow-md ${viagem.theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border border-gray-200 dark:border-gray-700`}>
         <div className="flex justify-between items-start">
@@ -33,12 +37,50 @@ const TicketDeViagem = ({ viagem, onEdit, onDelete }) => (
     </div>
 );
 
-// 2. O componente agora não recebe mais props de dados ou handlers
 const TelaMilhas = () => {
     const { theme } = useContext(ThemeContext);
-    // 3. Conectar ao estado e às ações da store
     const { carteiras, metas, isLoading, fetchViagens, saveViagensItem, deleteViagensItem } = useViagensStore();
     
+    // --- INÍCIO DA LÓGICA DO ONBOARDING ---
+    const TOUR_KEY = 'milhas_tour';
+    const { runTour, startTour, handleTourEnd } = useOnboarding(TOUR_KEY);
+    
+    useEffect(() => {
+        if (!isLoading) {
+            startTour();
+        }
+    }, [isLoading, startTour]);
+
+    const tourSteps = [
+        {
+            target: 'body',
+            content: 'Bem-vindo ao Centro de Comando de Milhas! Aqui você gerencia seus pontos, milhas e metas de viagem.',
+            placement: 'center',
+            disableBeacon: true,
+        },
+        {
+            target: '#milhas-dashboard',
+            content: 'Este é o seu Dashboard, com um resumo do valor do seu portfólio de milhas e os saldos totais.',
+        },
+        {
+            target: '#milhas-tabs',
+            content: 'Use estas abas para navegar entre as seções: Dashboard, Carteiras, Metas e Simuladores.',
+        },
+        {
+            target: '#milhas-carteiras-tab',
+            content: 'Clique em "Carteiras" para adicionar e gerenciar seus programas de fidelidade, tanto de bancos quanto de companhias aéreas.',
+        },
+        {
+            target: '#milhas-metas-tab',
+            content: 'Na aba "Metas", você pode cadastrar as viagens que deseja fazer para acompanhar seu progresso.',
+        },
+        {
+            target: '#milhas-simuladores-tab',
+            content: 'Em "Simuladores", você encontra calculadoras úteis para planejar transferências e vendas de milhas.',
+        },
+    ];
+    // --- FIM DA LÓGICA DO ONBOARDING ---
+
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isWalletModalOpen, setWalletModalOpen] = useState(false);
     const [walletToEdit, setWalletToEdit] = useState(null);
@@ -51,12 +93,10 @@ const TelaMilhas = () => {
         saleValuePerThousand: 21,
     });
 
-    // 4. Chamar a ação para buscar os dados na montagem do componente
     useEffect(() => {
         fetchViagens();
     }, [fetchViagens]);
 
-    // Derivação de estado agora usa os dados da store (sem alteração na lógica)
     const pointPrograms = useMemo(() => carteiras.filter(w => w.type === 'ponto'), [carteiras]);
     const milePrograms = useMemo(() => carteiras.filter(w => w.type === 'milha'), [carteiras]);
     const totalMilesValueBRL = useMemo(() => carteiras.reduce((total, wallet) => total + (wallet.balance / 1000) * wallet.avgCpm, 0), [carteiras]);
@@ -86,7 +126,6 @@ const TelaMilhas = () => {
         setWalletModalOpen(false);
     };
     
-    // 5. Handlers de salvar e apagar agora chamam as ações da store
     const handleSaveWallet = (walletData) => {
         saveViagensItem(walletData, 'carteiras');
         handleCloseWalletModal();
@@ -115,8 +154,8 @@ const TelaMilhas = () => {
         deleteViagensItem(tripId, 'metas');
     };
 
-    const TabButton = ({ tabId, label, icon: Icon }) => (
-        <button onClick={() => setActiveTab(tabId)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${activeTab === tabId ? 'bg-[#00d971] text-slate-800 font-semibold' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+    const TabButton = ({ tabId, label, icon: Icon, ...props }) => (
+        <button {...props} onClick={() => setActiveTab(tabId)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${activeTab === tabId ? 'bg-[#00d971] text-slate-800 font-semibold' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
             <Icon size={18} />
             <span>{label}</span>
         </button>
@@ -137,7 +176,6 @@ const TelaMilhas = () => {
         </div>
     );
     
-    // 6. Adicionado um indicador de carregamento
     if (isLoading) {
         return (
             <LoaderLogo />
@@ -146,22 +184,28 @@ const TelaMilhas = () => {
 
     return (
         <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} p-4 sm:p-6 transition-colors duration-300`}>
+            <Joyride
+                steps={tourSteps} run={runTour} callback={handleTourEnd} continuous={true}
+                showProgress={true} showSkipButton={true}
+                locale={{ back: 'Voltar', close: 'Fechar', last: 'Fim', next: 'Próximo', skip: 'Pular' }}
+                styles={{ options: { arrowColor: '#fff', backgroundColor: '#fff', primaryColor: '#00d971', textColor: '#333', zIndex: 1000 } }}
+            />
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8 text-center">
                     <h1 className="text-3xl font-bold">Centro de Comando de Milhas</h1>
                     <p className="text-gray-500 dark:text-gray-400">Sua plataforma para transformar pontos em experiências.</p>
                 </header>
 
-                <nav className={`flex flex-wrap justify-center gap-2 md:gap-4 p-2 rounded-xl mb-8 shadow-md ${theme === 'dark' ? 'bg-[#201b5d]' : 'bg-white'}`}>
+                <nav id="milhas-tabs" className={`flex flex-wrap justify-center gap-2 md:gap-4 p-2 rounded-xl mb-8 shadow-md ${theme === 'dark' ? 'bg-[#201b5d]' : 'bg-white'}`}>
                     <TabButton tabId="dashboard" label="Dashboard" icon={Home} />
-                    <TabButton tabId="wallets" label="Carteiras" icon={Wallet} />
-                    <TabButton tabId="goals" label="Metas" icon={Target} />
-                    <TabButton tabId="simulators" label="Simuladores" icon={Calculator} />
+                    <TabButton id="milhas-carteiras-tab" tabId="wallets" label="Carteiras" icon={Wallet} />
+                    <TabButton id="milhas-metas-tab" tabId="goals" label="Metas" icon={Target} />
+                    <TabButton id="milhas-simuladores-tab" tabId="simulators" label="Simuladores" icon={Calculator} />
                 </nav>
 
                 <main>
                     {activeTab === 'dashboard' && (
-                        <section className="space-y-6 animate-fade-in">
+                        <section id="milhas-dashboard" className="space-y-6 animate-fade-in">
                             <h2 className="text-2xl font-semibold">Dashboard Geral</h2>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="p-6 rounded-xl shadow-lg flex flex-col items-center justify-center bg-white dark:bg-gray-800">

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { apiRequest } from '../services/apiClient';
+// 1. CORREÇÃO: Importar a função correta
+import { apiPrivateRequest } from '../services/apiClient';
 
 export const useOrcamentoStore = create((set, get) => ({
   categorias: [],
@@ -8,7 +9,8 @@ export const useOrcamentoStore = create((set, get) => ({
 
   fetchOrcamento: async () => {
     set({ isLoading: true });
-    const data = await apiRequest('/orcamento');
+    // Usar apiPrivateRequest para buscar dados
+    const data = await apiPrivateRequest('/api/orcamento');
     if (data) {
       set({ categorias: data });
     }
@@ -17,20 +19,21 @@ export const useOrcamentoStore = create((set, get) => ({
 
   saveOrcamentoItem: async (itemData, categoriaPaiId) => {
     const isEditing = !!itemData.id;
-    const endpoint = isEditing ? `/orcamento/itens/${itemData.id}` : '/orcamento/itens';
+    const endpoint = isEditing ? `/api/orcamento/itens/${itemData.id}` : '/api/orcamento/itens';
     const method = isEditing ? 'PUT' : 'POST';
     
     const payload = {
         nome: itemData.nome,
         valor_planejado: itemData.sugerido,
         valor_atual: itemData.atual,
-        categoria_planejamento: itemData.categoria_planejamento
+        categoria_planejamento: itemData.categoria_planejamento,
+        // --- CORREÇÃO PRINCIPAL AQUI ---
+        // O categoria_id é necessário tanto para criar quanto para editar.
+        // Removemos a condição "if (!isEditing)" e passamos o ID da categoria pai em ambos os casos.
+        categoria_id: categoriaPaiId
     };
-    if (!isEditing) {
-        payload.categoria_id = categoriaPaiId;
-    }
 
-    const itemSalvo = await apiRequest(endpoint, method, payload);
+    const itemSalvo = await apiPrivateRequest(endpoint, method, payload);
     
     if (itemSalvo) {
       const novasCategorias = JSON.parse(JSON.stringify(get().categorias));
@@ -58,7 +61,7 @@ export const useOrcamentoStore = create((set, get) => ({
   deleteOrcamentoItem: async (itemId) => {
     if (!window.confirm("Tem certeza que deseja apagar este item do orçamento?")) return;
 
-    if (await apiRequest(`/orcamento/itens/${itemId}`, 'DELETE')) {
+    if (await apiPrivateRequest(`/api/orcamento/itens/${itemId}`, 'DELETE')) {
       set(state => ({
         categorias: state.categorias.map(cat => ({
           ...cat,

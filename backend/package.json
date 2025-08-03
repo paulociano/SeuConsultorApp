@@ -4,7 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
@@ -21,7 +24,11 @@
     "pg": "^8.16.3"
   },
   "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.3",
     "jest": "^30.0.5",
+    "prettier": "^3.6.2",
     "supertest": "^7.1.4"
   }
 }

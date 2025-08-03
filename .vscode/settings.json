@@ -1,0 +1,15 @@
+{
+  // Define o Prettier como o formatador padrão para evitar conflitos
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  // Ativa a formatação automática ao salvar o arquivo
+  "editor.formatOnSave": true,
+  // Ativa a correção automática do ESLint ao salvar
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  // Define quais linguagens o ESLint deve validar
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact"
+  ]
+}

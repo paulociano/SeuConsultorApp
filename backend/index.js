@@ -15,6 +15,7 @@ const perfilRoutes = require('./routes/perfil.routes');
 const planejamentoRoutes = require('./routes/planejamento.routes');
 const milhasRoutes = require('./routes/milhas.routes');
 const agendaRoutes = require('./routes/agenda.routes');
+const { verificarToken } = require('./middleware/auth.middleware');
 
 const app = express();
 
@@ -25,16 +26,18 @@ app.use(express.urlencoded({ extended: true }));
 
 // Orquestração de Rotas
 app.use('/', authRoutes); // Rotas públicas como /login, /cadastro
-app.use('/api', 
-    objetivosRoutes, 
-    patrimonioRoutes, 
-    transacoesRoutes, 
-    orcamentoRoutes, 
-    protecaoRoutes, 
-    perfilRoutes, 
-    planejamentoRoutes, 
-    milhasRoutes, 
-    agendaRoutes
+app.use(
+  '/api',
+  verificarToken,
+  objetivosRoutes,
+  patrimonioRoutes,
+  transacoesRoutes,
+  orcamentoRoutes,
+  protecaoRoutes,
+  perfilRoutes,
+  planejamentoRoutes,
+  milhasRoutes,
+  agendaRoutes
 );
 
 const PORT = process.env.PORT || 3001;

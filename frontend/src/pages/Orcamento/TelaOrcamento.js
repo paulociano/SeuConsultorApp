@@ -7,6 +7,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, L
 import { CATEGORIAS_FLUXO } from '../../components/constants/Categorias';
 import { useOrcamentoStore } from '../../stores/useOrcamentoStore';
 import LoaderLogo from '../../components/Loader/loaderlogo';
+// --- INÍCIO DAS ADIÇÕES PARA O ONBOARDING ---
+import Joyride from 'react-joyride';
+import { useOnboarding } from '../../hooks/useOnboarding';
+// --- FIM DAS ADIÇÕES PARA O ONBOARDING ---
 
 // --- Sub-componente do Modal (sem alterações) ---
 const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
@@ -99,8 +103,9 @@ const ModalItemOrcamento = ({ isOpen, onClose, onSave, context }) => {
 };
 
 
-// --- Sub-componente para o Resumo do Orçamento (sem alterações funcionais) ---
-const OrcamentoResumo = ({ calculos, chartData }) => {
+// --- Sub-componente para o Resumo do Orçamento ---
+// ADIÇÃO: Aceitar props extras (...props) para passar o ID para o Card
+const OrcamentoResumo = ({ calculos, chartData, ...props }) => {
     const { totalReceitas, totalDespesas, saldoAtual } = calculos;
     const COLORS = {
         'Fixos': '#ef4444',
@@ -131,7 +136,7 @@ const OrcamentoResumo = ({ calculos, chartData }) => {
     };
 
     return (
-        <Card>
+        <Card {...props}> {/* ADIÇÃO: Passar as props para o Card */}
             <div className="p-6">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Distribuição das Despesas</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 items-center">
@@ -157,7 +162,7 @@ const OrcamentoResumo = ({ calculos, chartData }) => {
                             <div className="flex items-center gap-2 text-red-500"><TrendingDown size={18}/> <h3 className="font-semibold">Despesas</h3></div>
                             <p className="text-2xl font-bold text-slate-800 dark:text-white">{formatCurrency(totalDespesas.atual)}</p>
                         </div>
-                        <div className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg col-span-2">
+                        <div id="saldo-mes-resumo" className="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-lg col-span-2">
                              <div className="flex items-center gap-2 text-blue-500"><CheckCircle2 size={18}/> <h3 className="font-semibold">Sobra/Déficit do Mês</h3></div>
                              <p className={`text-2xl font-bold ${saldoAtual >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(saldoAtual)}</p>
                         </div>
@@ -232,15 +237,55 @@ const CategoriaLinha = ({ cat, onToggle, isExpanded }) => {
 };
 
 
-// --- Componente Principal da Tela de Orçamento (REFATORADO) ---
+// --- Componente Principal da Tela de Orçamento ---
 const TelaOrcamento = () => {
-    // 2. Conectar à store para obter estado e ações
     const { categorias, isLoading, fetchOrcamento, saveOrcamentoItem, deleteOrcamentoItem } = useOrcamentoStore();
 
-    // 3. Buscar os dados do orçamento na montagem do componente
     useEffect(() => {
         fetchOrcamento();
     }, [fetchOrcamento]);
+
+    // --- INÍCIO DA LÓGICA DO ONBOARDING (CORRIGIDA) ---
+const TOUR_KEY = 'orcamento_tour';
+// 1. Obtenha a nova função 'startTour' do hook
+const { runTour, startTour, handleTourEnd } = useOnboarding(TOUR_KEY);
+
+// 2. Este useEffect agora controla o início do tour
+useEffect(() => {
+  // O tour só será iniciado se:
+  // - O carregamento de dados tiver terminado (isLoading for false)
+  // - Existirem categorias para serem exibidas
+  if (!isLoading && categorias && categorias.length > 0) {
+    startTour();
+  }
+}, [isLoading, categorias, startTour]); // Dependências corretas
+
+
+const tourSteps = [
+    {
+      target: 'body',
+      content: 'Bem-vindo à tela de Orçamento! Aqui você pode controlar suas receitas e despesas.',
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: '#orcamento-detalhes-card',
+      content: 'Esta é a sua lista de categorias de orçamento. Você pode ver os totais de gastos atuais e planejados.',
+    },
+    {
+      target: '#primeira-categoria',
+      content: 'Clique em uma categoria para expandir e ver os itens detalhados. Dentro, você poderá adicionar novos itens.',
+    },
+    {
+      target: '#orcamento-resumo-card',
+      content: 'Este painel mostra um resumo visual das suas finanças do mês, incluindo a distribuição das despesas.',
+    },
+    {
+      target: '#saldo-mes-resumo',
+      content: 'Fique de olho neste valor! Ele mostra o quanto sobrou (ou faltou) no seu orçamento mensal.',
+    }
+];
+// --- FIM DA LÓGICA DO ONBOARDING ---
 
     const [expandedCategories, setExpandedCategories] = useState({});
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -255,12 +300,10 @@ const TelaOrcamento = () => {
         setIsModalOpen(true);
     };
 
-    // 4. A função de salvar agora chama a ação da store
     const handleSave = (itemData) => {
         saveOrcamentoItem(itemData, modalContext.category.id);
     };
 
-    // 5. Cálculos que antes vinham de App.js agora são feitos aqui, usando os dados da store
     const { orcamentoCalculos, chartData } = useMemo(() => {
         const normalizeString = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         const defaultReturn = { orcamentoCalculos: { totalReceitas: { atual: 0 }, totalDespesas: { atual: 0 }, saldoAtual: 0 }, chartData: [] };
@@ -330,7 +373,32 @@ const TelaOrcamento = () => {
 
     return (
         <div className="space-y-6">
-            <Card>
+            <Joyride
+                steps={tourSteps}
+                run={runTour}
+                callback={handleTourEnd}
+                continuous={true}
+                showProgress={true}
+                showSkipButton={true}
+                locale={{
+                    back: 'Voltar',
+                    close: 'Fechar',
+                    last: 'Fim',
+                    next: 'Próximo',
+                    skip: 'Pular',
+                }}
+                styles={{
+                    options: {
+                      arrowColor: '#fff',
+                      backgroundColor: '#fff',
+                      primaryColor: '#00d971',
+                      textColor: '#333',
+                      zIndex: 1000,
+                    }
+                }}
+            />
+
+            <Card id="orcamento-detalhes-card">
                  <div className="p-4 border-b border-slate-200 dark:border-slate-700">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-white">Detalhamento do Orçamento</h2>
                 </div>
@@ -342,8 +410,8 @@ const TelaOrcamento = () => {
                     <span className="col-span-2 text-right">Ações</span>
                 </div>
 
-                {categoriasFormatadas.map(cat => (
-                    <div key={cat.id}>
+                {categoriasFormatadas.map((cat, index) => (
+                    <div key={cat.id} id={index === 0 ? 'primeira-categoria' : undefined}>
                        <CategoriaLinha cat={cat} onToggle={() => toggleCategory(cat.id)} isExpanded={!!expandedCategories[cat.id]} />
 
                         {!!expandedCategories[cat.id] && (
@@ -354,7 +422,6 @@ const TelaOrcamento = () => {
                                         item={item}
                                         catTipo={cat.tipo}
                                         onEdit={() => handleOpenModal('edit', cat, item)}
-                                        // 6. A ação de apagar item chama diretamente a função da store
                                         onDelete={() => deleteOrcamentoItem(item.id)}
                                     />
                                 ))}
@@ -370,7 +437,8 @@ const TelaOrcamento = () => {
                 ))}
             </Card>
             
-            <OrcamentoResumo 
+            <OrcamentoResumo
+                id="orcamento-resumo-card" 
                 calculos={orcamentoCalculos} 
                 chartData={chartData}
             />

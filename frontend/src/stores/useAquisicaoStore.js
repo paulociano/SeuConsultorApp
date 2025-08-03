@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { apiRequest } from '../services/apiClient';
+// 1. CORREÇÃO: Importar a função correta
+import { apiPrivateRequest } from '../services/apiClient';
 
 export const useAquisicaoStore = create((set) => ({
   imoveis: [],
@@ -10,9 +11,10 @@ export const useAquisicaoStore = create((set) => ({
   fetchAquisicoes: async () => {
     set({ isLoading: true });
     try {
+      // 2. CORREÇÃO: Usar apiPrivateRequest
       const [imoveisRes, automoveisRes] = await Promise.all([
-        apiRequest('/aquisicoes/imoveis'),
-        apiRequest('/aquisicoes/automoveis')
+        apiPrivateRequest('/api/aquisicoes/imoveis'),
+        apiPrivateRequest('/api/aquisicoes/automoveis')
       ]);
       
       set({
@@ -26,7 +28,8 @@ export const useAquisicaoStore = create((set) => ({
   },
 
   saveAquisicao: async (tipo, data) => {
-    const savedData = await apiRequest(`/aquisicoes/${tipo}`, 'POST', data);
+    // 3. CORREÇÃO: Adicionar prefixo /api e usar apiPrivateRequest
+    const savedData = await apiPrivateRequest(`/api/aquisicoes/${tipo}`, 'POST', data);
     if (savedData) {
       set({ [tipo]: savedData });
       toast.success(`Simulações de ${tipo} salvas com sucesso!`);

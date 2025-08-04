@@ -9,20 +9,20 @@
 
 ## 🎯 Sobre o Projeto
 
-O **SeuConsultor App** é uma plataforma full-stack de planeamento financeiro pessoal, projetada para oferecer uma visão 360° da vida financeira do utilizador. A aplicação permite o controlo de orçamentos, o acompanhamento de transações, a definição de objetivos, a simulação de aquisições, proteção financeira e o planeajmento de aposentadoria, tudo dentro de um ambiente seguro e interativo.
+O **SeuConsultor App** é uma plataforma full-stack de planeamento financeiro pessoal, projetada para oferecer uma visão 360° da vida financeira do utilizador. A aplicação permite o controle de orçamentos, o acompanhamento de transações, a definição de objetivos, a simulação de aquisições, proteção financeira e o planejamento de aposentadoria, tudo dentro de um ambiente seguro e interativo.
 
 Este projeto foi totalmente containerizado com Docker e possui um pipeline de CI/CD configurado com GitHub Actions para automação de builds e deploy.
 
 ## ✨ Funcionalidades Principais
 
-* **Autenticação de Utilizador:** Sistema de registo e login seguro com tokens JWT.
+* **Autenticação de Utilizador:** Sistema de registro e login seguro com tokens JWT.
 * **Dashboard de Objetivos:** Criação e acompanhamento visual do progresso de metas financeiras (ex: comprar um carro, fazer uma viagem).
-* **Gestão de Orçamento:** Definição de categorias de receitas e despesas com acompanhamento de valores planeados vs. realizados.
-* **Fluxo de Caixa:** Registo e categorização de todas as transações, com filtros por data, descrição e categoria.
-* **Análise de Património:** Registo e visualização de ativos e passivos para cálculo do património líquido.
+* **Gestão de Orçamento:** Definição de categorias de receitas e despesas com acompanhamento de valores planejados vs. realizados.
+* **Fluxo de Caixa:** Registro e categorização de todas as transações, com filtros por data, descrição e categoria.
+* **Análise de Património:** Registro e visualização de ativos e passivos para cálculo do património líquido.
 * **Planeamento de Proteção:** Simulador para calcular as necessidades de cobertura para invalidez, morte e doenças graves.
 * **Simuladores Avançados:**
-    * Projeção de Reforma.
+    * Projeção de Aposentadoria.
     * Análise de benefício fiscal PGBL vs. VGBL.
     * Simulador de aquisição de imóveis e automóveis, comparando compra à vista, financiamento e consórcio.
 * **Centro de Milhas e Cartões:**

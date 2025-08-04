@@ -16,8 +16,11 @@ jobs:
       - name: Login no Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
+      - name: Verificar arquivos da pasta backend
+        run: ls -la backend
+
       - name: Build da imagem Docker
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/meu-app:latest .
+        run: docker build -f backend/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/meu-app:latest backend/
 
       - name: Push da imagem para o Docker Hub
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/meu-app:latest

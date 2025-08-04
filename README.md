@@ -9,7 +9,7 @@
 
 ## 🎯 Sobre o Projeto
 
-O **SeuConsultor App** é uma plataforma full-stack de planeamento financeiro pessoal, projetada para oferecer uma visão 360° da vida financeira do utilizador. A aplicação permite o controlo de orçamentos, o acompanhamento de transações, a definição de objetivos, a simulação de aquisições e o planeamento da reforma, tudo dentro de um ambiente seguro e interativo.
+O **SeuConsultor App** é uma plataforma full-stack de planeamento financeiro pessoal, projetada para oferecer uma visão 360° da vida financeira do utilizador. A aplicação permite o controlo de orçamentos, o acompanhamento de transações, a definição de objetivos, a simulação de aquisições, proteção financeira e o planeajmento de aposentadoria, tudo dentro de um ambiente seguro e interativo.
 
 Este projeto foi totalmente containerizado com Docker e possui um pipeline de CI/CD configurado com GitHub Actions para automação de builds e deploy.
 

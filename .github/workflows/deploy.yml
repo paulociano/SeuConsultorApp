@@ -1,58 +1,23 @@
-#jobs:
-build-and-push:
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout do código
-      uses: actions/checkout@v4
+name: Deploy to Docker Hub
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+on:
+  push:
+    branches:
+      - main
 
-    # --- NOVO PASSO DE DEBUG ADICIONADO AQUI ---
-    - name: Debug Docker Hub Username
-      run: |
-        if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
-          echo "ERRO: O segredo DOCKERHUB_USERNAME está vazio ou não foi encontrado."
-          exit 1
-        else
-          echo "SUCESSO: O segredo DOCKERHUB_USERNAME foi encontrado."
-        fi
-    # --- FIM DO PASSO DE DEBUG ---
-    - name: Login no Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-    # 4. Constrói e envia a imagem do Backend
-    - name: Build and push Backend image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        file: ./backend/Dockerfile.prod # Usa o Dockerfile de produção
-        push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/seuconsultor-backend:latest # Troque pelo seu usuário
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
 
-    # 5. Constrói e envia a imagem do Frontend
-    - name: Build and push Frontend image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./frontend
-        file: ./frontend/Dockerfile # O Dockerfile do frontend já é de produção
-        push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/seuconsultor-frontend:latest # Troque pelo seu usuário
+      - name: Login no Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
+      - name: Build da imagem Docker
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/meu-app:latest .
 
-    # --- PASSO FUTURO: DEPLOY ---
-    # 6. Conecta ao seu servidor e atualiza a aplicação
-    # Este passo é um EXEMPLO e dependerá do seu provedor de nuvem.
-    # - name: Deploy to Server
-    #   uses: appleboy/ssh-action@master
-    #   with:
-    #     host: ${{ secrets.SERVER_HOST }}
-    #     username: ${{ secrets.SERVER_USERNAME }}
-    #     key: ${{ secrets.SSH_PRIVATE_KEY }}
-    #     script: |
-    #       cd /caminho/para/seu/app
-    #       docker compose pull
-    #       docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+      - name: Push da imagem para o Docker Hub
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/meu-app:latest
